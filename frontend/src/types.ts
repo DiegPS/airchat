@@ -29,3 +29,24 @@ export interface ChatItem {
   IsModerator: boolean;
   Timestamp: string;
 }
+
+export interface ChatSettings {
+  fontSize: number;
+  bgOpacity: number;
+  messageOpacity: number;
+  showAvatars: boolean;
+  showBadges: boolean;
+  chromaMode: boolean;
+  chromaColor: string;
+  textStroke: number;
+  textStrokeColor: string;
+  threeDEnabled: boolean;
+  perspective: number;
+  rotateX: number;
+  rotateY: number;
+  rotateZ: number;
+  skewX: number;
+  skewY: number;
+  scale: number;
+  showGrid: boolean;
+}
