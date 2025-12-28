@@ -3,11 +3,19 @@ package main
 import (
 	"context"
 	"fmt"
+	"sync"
+
+	"github.com/DiegPS/youtube-chat"
+	"github.com/DiegPS/youtube-chat/types"
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // App struct
 type App struct {
-	ctx context.Context
+	ctx        context.Context
+	lc         *youtubechat.LiveChat
+	lcMu       sync.Mutex
+	stopSignal chan struct{}
 }
 
 // NewApp creates a new App application struct
@@ -21,7 +29,63 @@ func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 }
 
-// Greet returns a greeting for the given name
-func (a *App) Greet(name string) string {
-	return fmt.Sprintf("Hello %s, It's show time!", name)
+// StartChat starts observing the chat for a given channel ID
+func (a *App) StartChat(channelID string) error {
+	a.lcMu.Lock()
+	defer a.lcMu.Unlock()
+
+	if a.lc != nil {
+		a.lc.Stop("Starting new session")
+		close(a.stopSignal)
+	}
+
+	lc, err := youtubechat.NewLiveChat(types.YoutubeId{ChannelID: channelID}, 1000)
+	if err != nil {
+		return err
+	}
+
+	a.lc = lc
+	a.stopSignal = make(chan struct{})
+
+	ok := a.lc.Start()
+	if !ok {
+		return fmt.Errorf("failed to start live chat observation")
+	}
+
+	go a.handleChatEvents()
+
+	return nil
+}
+
+// StopChat manually stops the chat observation
+func (a *App) StopChat() {
+	a.lcMu.Lock()
+	defer a.lcMu.Unlock()
+
+	if a.lc != nil {
+		a.lc.Stop("User stopped chat")
+		if a.stopSignal != nil {
+			close(a.stopSignal)
+			a.stopSignal = nil
+		}
+		a.lc = nil
+	}
+}
+
+func (a *App) handleChatEvents() {
+	for {
+		select {
+		case <-a.stopSignal:
+			return
+		case liveId := <-a.lc.StartChan:
+			runtime.EventsEmit(a.ctx, "chat_started", liveId)
+		case reason := <-a.lc.EndChan:
+			runtime.EventsEmit(a.ctx, "chat_ended", reason)
+			return
+		case chatItem := <-a.lc.ChatChan:
+			runtime.EventsEmit(a.ctx, "chat_message", chatItem)
+		case err := <-a.lc.ErrorChan:
+			runtime.EventsEmit(a.ctx, "chat_error", err.Error())
+		}
+	}
 }
