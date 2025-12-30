@@ -29,6 +29,7 @@ body {
   align-items: center;
   justify-content: center;
   height: 100vh;
+  padding-top: 38px;
   background: radial-gradient(circle at top right, #1a0000, #0f0f0f);
 }
 
@@ -196,6 +197,7 @@ body {
   /* Slightly more solid */
   border-right: 1px solid var(--glass-border);
   padding: 2rem;
+  padding-top: calc(2rem + 38px);
   display: flex;
   flex-direction: column;
   gap: 2rem;
@@ -363,6 +365,7 @@ body {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  padding-top: 38px;
   /* Checkerboard background for transparency preview */
   background-image:
     linear-gradient(45deg, rgba(0, 0, 0, 0.1) 25%, transparent 25%),

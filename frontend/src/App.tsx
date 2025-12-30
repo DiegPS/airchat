@@ -5,6 +5,7 @@ import { useChat } from './hooks/useChat';
 import { SetupScreen } from './components/SetupScreen';
 import { Sidebar } from './components/Sidebar';
 import { PreviewArea } from './components/PreviewArea';
+import { TitleBar } from './components/TitleBar';
 
 function AppContent() {
     const {
@@ -65,6 +66,7 @@ function AppContent() {
 function App() {
     return (
         <SettingsProvider>
+            <TitleBar />
             <AppContent />
         </SettingsProvider>
     );
