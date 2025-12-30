@@ -1,15 +1,34 @@
-import { WindowMinimise, WindowToggleMaximise, Quit } from '../../wailsjs/runtime/runtime';
+import { WindowMinimise, WindowToggleMaximise, Quit, WindowSetAlwaysOnTop } from '../../wailsjs/runtime/runtime';
 import './TitleBar.css';
+import { useState } from 'react';
 
 interface TitleBarProps {
     show?: boolean;
 }
 
 export function TitleBar({ show = true }: TitleBarProps) {
+    const [isPinned, setIsPinned] = useState(false);
+
+    const togglePin = () => {
+        const newState = !isPinned;
+        setIsPinned(newState);
+        WindowSetAlwaysOnTop(newState);
+    };
+
     return (
         <div className={`title-bar ${!show ? 'hidden' : ''}`}>
             <div className={`window-title ${!show ? 'visible' : ''}`}>AirChat</div>
             <div className="window-controls">
+                <button
+                    className={`control-btn ${isPinned ? 'pinned' : ''}`}
+                    onClick={togglePin}
+                    title={isPinned ? "Unpin from top" : "Pin to top"}
+                >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(45deg)' }}>
+                        <line x1="12" y1="17" x2="12" y2="3"></line>
+                        <path d="M5 17h14v4H5z"></path>
+                    </svg>
+                </button>
                 <button className="control-btn" onClick={WindowMinimise} title="Minimize">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
                         <line x1="5" y1="12" x2="19" y2="12"></line>
