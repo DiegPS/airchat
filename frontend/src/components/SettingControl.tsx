@@ -61,5 +61,32 @@ export const SettingControl: React.FC<SettingControlProps> = ({ config, value, o
         );
     }
 
+    if (config.type === 'select' && config.options) {
+        return (
+            <div className="setting-group animate-in">
+                <label>{config.label}</label>
+                <select
+                    value={value as string}
+                    onChange={(e) => onChange(e.target.value)}
+                    style={{
+                        background: 'rgba(255, 255, 255, 0.1)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        color: 'white',
+                        padding: '8px',
+                        borderRadius: '8px',
+                        outline: 'none',
+                        cursor: 'pointer'
+                    }}
+                >
+                    {config.options.map(opt => (
+                        <option key={opt.value} value={opt.value} style={{ background: '#222' }}>
+                            {opt.label}
+                        </option>
+                    ))}
+                </select>
+            </div>
+        );
+    }
+
     return null;
 };

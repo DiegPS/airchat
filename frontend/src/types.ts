@@ -55,4 +55,8 @@ export interface ChatSettings {
   fontWeight: number;
   borderRadius: number;
   textShadow: boolean;
+  showBubble: boolean;
+  animation: string;
+  animationDuration: number;
+  textAlign: string;
 }

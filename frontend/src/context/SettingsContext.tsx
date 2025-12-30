@@ -24,7 +24,11 @@ const defaultSettings: ChatSettings = {
     messageGap: 15,
     fontWeight: 400,
     borderRadius: 16,
-    textShadow: false
+    textShadow: false,
+    showBubble: true,
+    animation: 'slide-up',
+    animationDuration: 0.4,
+    textAlign: 'left'
 };
 
 interface SettingsContextType {

@@ -23,6 +23,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = ({ messages, scrollRef })
                 style={{
                     fontSize: `${settings.fontSize}px`,
                     gap: `${settings.messageGap}px`,
+                    alignItems: settings.textAlign === 'center' ? 'center' : settings.textAlign === 'right' ? 'flex-end' : 'flex-start',
                     transform: settings.threeDEnabled ? `
                         rotateX(${settings.rotateX}deg) 
                         rotateY(${settings.rotateY}deg) 
@@ -36,10 +37,14 @@ export const PreviewArea: React.FC<PreviewAreaProps> = ({ messages, scrollRef })
                 {messages.map((msg) => (
                     <div
                         key={msg.ID}
-                        className="chat-item animate-in"
+                        className="chat-item"
                         style={{
-                            backgroundColor: `rgba(0,0,0,${settings.messageOpacity})`,
-                            borderRadius: `${settings.borderRadius}px`
+                            backgroundColor: settings.showBubble ? `rgba(0,0,0,${settings.messageOpacity})` : 'transparent',
+                            borderRadius: `${settings.borderRadius}px`,
+                            border: settings.showBubble ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
+                            padding: settings.showBubble ? '12px 18px' : '4px 0',
+                            boxShadow: settings.showBubble ? '0 8px 32px rgba(0, 0, 0, 0.3)' : 'none',
+                            animation: settings.animation ? `${settings.animation} ${settings.animationDuration}s cubic-bezier(0.16, 1, 0.3, 1) both` : 'none'
                         }}
                     >
                         {settings.showAvatars && (

@@ -1,6 +1,6 @@
 import { ChatSettings } from '../types';
 
-export type SettingType = 'toggle' | 'range' | 'color';
+export type SettingType = 'toggle' | 'range' | 'color' | 'select';
 
 export interface SettingConfig {
     key: keyof ChatSettings;
@@ -10,6 +10,7 @@ export interface SettingConfig {
     max?: number;
     step?: number;
     unit?: string;
+    options?: { label: string; value: string }[];
     // Función opcional para formatear el valor mostrado (ej: 0.5 -> 50%)
     formatDisplay?: (value: any) => string;
     // Función opcional para decidir si este control se muestra
@@ -86,6 +87,17 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
         id: 'message-design',
         title: 'Message Design',
         items: [
+            { key: 'showBubble', label: 'Show Bubble Background', type: 'toggle' },
+            {
+                key: 'textAlign',
+                label: 'Text Alignment',
+                type: 'select',
+                options: [
+                    { label: 'Left', value: 'left' },
+                    { label: 'Center', value: 'center' },
+                    { label: 'Right', value: 'right' }
+                ]
+            },
             {
                 key: 'messageOpacity',
                 label: 'Bubble Opacity',
@@ -93,11 +105,46 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
                 min: 0,
                 max: 1,
                 step: 0.1,
-                formatDisplay: (v) => `${Math.round(v * 100)}%`
+                formatDisplay: (v) => `${Math.round(v * 100)}%`,
+                showIf: (s) => s.showBubble
             },
-            { key: 'borderRadius', label: 'Corner Radius', type: 'range', min: 0, max: 30, unit: 'px' },
+            {
+                key: 'borderRadius',
+                label: 'Corner Radius',
+                type: 'range',
+                min: 0,
+                max: 30,
+                unit: 'px',
+                showIf: (s) => s.showBubble
+            },
             { key: 'messageGap', label: 'Vertical Gap', type: 'range', min: 0, max: 30, unit: 'px' },
             { key: 'textShadow', label: 'Drop Shadow', type: 'toggle' },
+        ]
+    },
+    {
+        id: 'animation',
+        title: 'Animation',
+        items: [
+            {
+                key: 'animation',
+                label: 'Entrance Animation',
+                type: 'select',
+                options: [
+                    { label: 'Slide Up', value: 'slide-up' },
+                    { label: 'Slide Left', value: 'slide-left' },
+                    { label: 'Fade In', value: 'fade-in' },
+                    { label: 'Zoom In', value: 'zoom-in' }
+                ]
+            },
+            {
+                key: 'animationDuration',
+                label: 'Duration (Speed)',
+                type: 'range',
+                min: 0.1,
+                max: 2,
+                step: 0.1,
+                formatDisplay: (v) => `${v}s`
+            },
         ]
     },
     {

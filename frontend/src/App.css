@@ -139,9 +139,46 @@ body {
 }
 
 .error-message {
+  background: rgba(255, 77, 77, 0.1);
+  border: 1px solid rgba(255, 77, 77, 0.3);
   color: #ff4d4d;
-  margin-top: 1rem;
-  font-size: 0.9rem;
+  margin-top: 1.5rem;
+  font-size: 0.85rem;
+  padding: 12px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+.error-message::before {
+  content: '⚠️';
+}
+
+@keyframes shake {
+
+  10%,
+  90% {
+    transform: translate3d(-1px, 0, 0);
+  }
+
+  20%,
+  80% {
+    transform: translate3d(2px, 0, 0);
+  }
+
+  30%,
+  50%,
+  70% {
+    transform: translate3d(-4px, 0, 0);
+  }
+
+  40%,
+  60% {
+    transform: translate3d(4px, 0, 0);
+  }
 }
 
 /* --- Dashboard Layout --- */
@@ -360,7 +397,6 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.1);
   width: fit-content;
   max-width: 85%;
-  animation: chat-in 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   transition: all 0.3s ease;
 }
@@ -439,6 +475,40 @@ body {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes slide-left {
+  from {
+    opacity: 0;
+    transform: translateX(-40px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes zoom-in {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
   }
 }
 
