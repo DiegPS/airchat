@@ -1,10 +1,14 @@
 import { WindowMinimise, WindowToggleMaximise, Quit } from '../../wailsjs/runtime/runtime';
 import './TitleBar.css';
 
-export function TitleBar() {
+interface TitleBarProps {
+    show?: boolean;
+}
+
+export function TitleBar({ show = true }: TitleBarProps) {
     return (
-        <div className="title-bar">
-            <div className="window-title">AirChat</div>
+        <div className={`title-bar ${!show ? 'hidden' : ''}`}>
+            <div className={`window-title ${!show ? 'visible' : ''}`}>AirChat</div>
             <div className="window-controls">
                 <button className="control-btn" onClick={WindowMinimise} title="Minimize">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">

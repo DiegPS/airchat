@@ -7,6 +7,8 @@ import { Sidebar } from './components/Sidebar';
 import { PreviewArea } from './components/PreviewArea';
 import { TitleBar } from './components/TitleBar';
 
+
+
 function AppContent() {
     const {
         messages,
@@ -22,51 +24,67 @@ function AppContent() {
         scrollToBottomRef
     } = useChat();
 
-    const [showSidebar, setShowSidebar] = useState(true);
+    const [showUI, setShowUI] = useState(true);
+    const isSetup = !isStarted && !isPreviewMode;
+
+    // Reset UI visibility when entering setup mode or starting a new session
+    useEffect(() => {
+        if (isSetup) {
+            setShowUI(true);
+        }
+    }, [isSetup]);
 
     useEffect(() => {
         const handleKeyPress = (e: KeyboardEvent) => {
+            // Disable shortcut on setup screen
+            if (isSetup) return;
+
             if (e.ctrlKey && e.key.toLowerCase() === 'b') {
-                setShowSidebar(prev => !prev);
+                setShowUI(prev => !prev);
             }
         };
         window.addEventListener('keydown', handleKeyPress);
         return () => window.removeEventListener('keydown', handleKeyPress);
-    }, []);
+    }, [isSetup]);
 
-    if (!isStarted && !isPreviewMode) {
+    if (isSetup) {
         return (
-            <SetupScreen
-                channelId={channelId}
-                onChannelIdChange={setChannelId}
-                onStart={startChat}
-                onPreview={startPreview}
-                error={error}
-            />
+            <>
+                <TitleBar show={true} />
+                <SetupScreen
+                    channelId={channelId}
+                    onChannelIdChange={setChannelId}
+                    onStart={startChat}
+                    onPreview={startPreview}
+                    error={error}
+                />
+            </>
         );
     }
 
     return (
-        <div className={`dashboard-layout ${!showSidebar ? 'sidebar-hidden' : ''}`}>
-            <Sidebar
-                showSidebar={showSidebar}
-                channelId={channelId}
-                liveId={liveId}
-                isPreviewMode={isPreviewMode}
-                onStop={stopChat}
-            />
-            <PreviewArea
-                messages={messages}
-                scrollRef={scrollToBottomRef}
-            />
-        </div>
+        <>
+            <TitleBar show={showUI} />
+            <div className={`dashboard-layout ${!showUI ? 'sidebar-hidden' : ''}`}>
+                <Sidebar
+                    showSidebar={showUI}
+                    channelId={channelId}
+                    liveId={liveId}
+                    isPreviewMode={isPreviewMode}
+                    onStop={stopChat}
+                />
+                <PreviewArea
+                    messages={messages}
+                    scrollRef={scrollToBottomRef}
+                />
+            </div>
+        </>
     );
 }
 
 function App() {
     return (
         <SettingsProvider>
-            <TitleBar />
             <AppContent />
         </SettingsProvider>
     );

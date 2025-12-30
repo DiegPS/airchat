@@ -14,8 +14,17 @@
     user-select: none;
     /* Glassmorphism background */
     background: linear-gradient(to bottom, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.0));
-    transition: background 0.3s ease;
+    backdrop-filter: blur(2px);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
+.title-bar.hidden {
+    transform: translateY(-100%);
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Optional: Keep buttons visible on hover at top edge if hidden? NO, requested to hide. */
 
 .title-bar:hover {
     background: linear-gradient(to bottom, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.1));
@@ -29,13 +38,14 @@
     text-transform: uppercase;
     margin-left: 8px;
     pointer-events: none;
+    transition: opacity 0.3s;
 }
 
+/* Ensure controls are clickable */
 .window-controls {
     display: flex;
     align-items: center;
     gap: 8px;
-    /* Disable dragging on buttons so they are clickable */
     --wails-draggable: no-drag;
 }
 
@@ -60,7 +70,6 @@
 
 .control-btn.close:hover {
     background: rgba(255, 59, 48, 0.8);
-    /* Red for close */
     color: white;
 }
 
