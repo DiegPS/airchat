@@ -52,7 +52,7 @@ func (a *App) StartChat(channelID string) error {
 		return fmt.Errorf("failed to start live chat observation")
 	}
 
-	go a.handleChatEvents()
+	go a.handleChatEvents(lc, a.stopSignal)
 
 	return nil
 }
@@ -72,19 +72,19 @@ func (a *App) StopChat() {
 	}
 }
 
-func (a *App) handleChatEvents() {
+func (a *App) handleChatEvents(lc *youtubechat.LiveChat, stopSignal chan struct{}) {
 	for {
 		select {
-		case <-a.stopSignal:
+		case <-stopSignal:
 			return
-		case liveId := <-a.lc.StartChan:
+		case liveId := <-lc.StartChan:
 			runtime.EventsEmit(a.ctx, "chat_started", liveId)
-		case reason := <-a.lc.EndChan:
+		case reason := <-lc.EndChan:
 			runtime.EventsEmit(a.ctx, "chat_ended", reason)
 			return
-		case chatItem := <-a.lc.ChatChan:
+		case chatItem := <-lc.ChatChan:
 			runtime.EventsEmit(a.ctx, "chat_message", chatItem)
-		case err := <-a.lc.ErrorChan:
+		case err := <-lc.ErrorChan:
 			runtime.EventsEmit(a.ctx, "chat_error", err.Error())
 		}
 	}
