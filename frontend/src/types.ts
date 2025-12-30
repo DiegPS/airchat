@@ -49,4 +49,10 @@ export interface ChatSettings {
   skewY: number;
   scale: number;
   showGrid: boolean;
+  // New Design Options
+  lineHeight: number;
+  messageGap: number;
+  fontWeight: number;
+  borderRadius: number;
+  textShadow: boolean;
 }

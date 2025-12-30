@@ -1,0 +1,65 @@
+import React from 'react';
+import { ChatSettings } from '../types';
+import { SettingConfig } from '../config/settingsSchema';
+
+interface SettingControlProps {
+    config: SettingConfig;
+    value: any;
+    onChange: (value: any) => void;
+}
+
+export const SettingControl: React.FC<SettingControlProps> = ({ config, value, onChange }) => {
+    // Si la configuración tiene una unidad (ej: px) o un formateador (ej: %), lo usamos para el label
+    const displayValue = config.formatDisplay
+        ? config.formatDisplay(value)
+        : `${value}${config.unit || ''}`;
+
+    if (config.type === 'toggle') {
+        return (
+            <div className="setting-toggle animate-in">
+                <label>{config.label}</label>
+                <input
+                    type="checkbox"
+                    checked={(value ?? false) as boolean}
+                    onChange={(e) => onChange(e.target.checked)}
+                />
+            </div>
+        );
+    }
+
+    if (config.type === 'color') {
+        return (
+            <div className="setting-group animate-in">
+                <label>{config.label}</label>
+                <input
+                    type="color"
+                    value={(value ?? '#000000') as string}
+                    onChange={(e) => onChange(e.target.value)}
+                />
+            </div>
+        );
+    }
+
+    if (config.type === 'range') {
+        const safeValue = value ?? config.min ?? 0;
+        return (
+            <div className="setting-group animate-in">
+                <label>{config.label} ({config.formatDisplay ? config.formatDisplay(safeValue) : `${safeValue}${config.unit || ''}`})</label>
+                <input
+                    type="range"
+                    min={config.min}
+                    max={config.max}
+                    step={config.step}
+                    value={safeValue as number}
+                    onChange={(e) => {
+                        const val = parseFloat(e.target.value);
+                        // Si el step es 1, queremos un entero, si no, decimal
+                        onChange(config.step === 1 || !config.step ? Math.round(val) : val);
+                    }}
+                />
+            </div>
+        );
+    }
+
+    return null;
+};
