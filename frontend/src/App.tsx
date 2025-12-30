@@ -10,6 +10,7 @@ function App() {
     const [isStarted, setIsStarted] = useState(false);
     const [error, setError] = useState('');
     const [liveId, setLiveId] = useState('');
+    const [isPreviewMode, setIsPreviewMode] = useState(false);
     const [settings, setSettings] = useState<ChatSettings>({
         fontSize: 16,
         bgOpacity: 0.1,
@@ -95,14 +96,42 @@ function App() {
         }
     };
 
+    const handlePreview = () => {
+        setIsPreviewMode(true);
+        const dummyMessages: ChatItem[] = [
+            {
+                ID: "1",
+                Author: { Name: "System", Thumbnail: { URL: "https://i.pravatar.cc/100?u=a", Alt: "S" }, ChannelID: "A" },
+                Message: [{ Text: "Welcome to the Design Preview!" }],
+                IsMembership: false, IsVerified: false, IsOwner: true, IsModerator: false, Timestamp: new Date().toISOString()
+            },
+            {
+                ID: "2",
+                Author: { Name: "ModeratorJack", Thumbnail: { URL: "https://i.pravatar.cc/100?u=b", Alt: "M" }, ChannelID: "B" },
+                Message: [{ Text: "You can adjust the sidebar settings to your liking." }],
+                IsMembership: false, IsVerified: true, IsOwner: false, IsModerator: true, Timestamp: new Date().toISOString()
+            },
+            {
+                ID: "3",
+                Author: { Name: "Viewer99", Thumbnail: { URL: "https://i.pravatar.cc/100?u=c", Alt: "V" }, ChannelID: "C" },
+                Message: [{ Text: "Try the 3D effects, they look amazing! 🚀" }],
+                IsMembership: true, IsVerified: false, IsOwner: false, IsModerator: false, Timestamp: new Date().toISOString()
+            }
+        ];
+        setMessages(dummyMessages);
+    };
+
     const handleStop = async () => {
-        await StopChat();
+        if (!isPreviewMode) {
+            await StopChat();
+        }
         setIsStarted(false);
+        setIsPreviewMode(false);
         setMessages([]);
         setLiveId('');
     };
 
-    if (!isStarted) {
+    if (!isStarted && !isPreviewMode) {
         return (
             <div className="container">
                 <div className="setup-card">
@@ -118,6 +147,8 @@ function App() {
                         />
                         <button onClick={handleStart} className="btn-primary">Connect</button>
                     </div>
+                    <div className="divider"><span>OR</span></div>
+                    <button onClick={handlePreview} className="btn-secondary">Preview Design</button>
                     {error && <p className="error-message">{error}</p>}
                 </div>
             </div>
@@ -129,13 +160,13 @@ function App() {
             <aside className={`sidebar ${!showSidebar ? 'hidden' : ''}`}>
                 <div className="sidebar-header">
                     <div className="header-top">
-                        <h3>Dashboard</h3>
+                        <h3>{isPreviewMode ? 'Design Preview' : 'Dashboard'}</h3>
                         <span className="shortcut-hint">Ctrl+B</span>
                     </div>
-                    <p className="channel-display">{channelId}</p>
+                    <p className="channel-display">{isPreviewMode ? 'DEMO MODE' : channelId}</p>
                     <div className="live-badge">
-                        <span className="pulse"></span>
-                        Live: {liveId}
+                        <span className={isPreviewMode ? 'dot-preview' : 'pulse'}></span>
+                        {isPreviewMode ? 'Preview Mode Active' : `Live: ${liveId}`}
                     </div>
                 </div>
 
