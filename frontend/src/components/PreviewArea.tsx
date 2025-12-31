@@ -1,13 +1,16 @@
 import React from 'react';
 import { useSettings } from '../context/SettingsContext';
 import { ChatItem } from '../types';
+import { SubscriberGoal } from './SubscriberGoal';
 
 interface PreviewAreaProps {
     messages: ChatItem[];
     scrollRef: React.RefObject<HTMLDivElement>;
+    channelId: string;
+    isPreviewMode: boolean;
 }
 
-export const PreviewArea: React.FC<PreviewAreaProps> = ({ messages, scrollRef }) => {
+export const PreviewArea: React.FC<PreviewAreaProps> = ({ messages, scrollRef, channelId, isPreviewMode }) => {
     const { settings } = useSettings();
 
     return (
@@ -86,6 +89,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = ({ messages, scrollRef })
                 ))}
                 <div ref={scrollRef} />
             </div>
+            <SubscriberGoal channelId={channelId} isPreviewMode={isPreviewMode} />
         </main>
     );
 };

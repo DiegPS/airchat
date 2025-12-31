@@ -88,5 +88,33 @@ export const SettingControl: React.FC<SettingControlProps> = ({ config, value, o
         );
     }
 
+    if (config.type === 'text') {
+        return (
+            <div className="setting-group animate-in">
+                <label>{config.label}</label>
+                <input
+                    type="text"
+                    value={value as string}
+                    onChange={(e) => onChange(e.target.value)}
+                    className="setting-input"
+                />
+            </div>
+        );
+    }
+
+    if (config.type === 'number') {
+        return (
+            <div className="setting-group animate-in">
+                <label>{config.label}</label>
+                <input
+                    type="number"
+                    value={value as number}
+                    onChange={(e) => onChange(Number(e.target.value))}
+                    className="setting-input"
+                />
+            </div>
+        );
+    }
+
     return null;
 };

@@ -1,6 +1,6 @@
 import { ChatSettings } from '../types';
 
-export type SettingType = 'toggle' | 'range' | 'color' | 'select';
+export type SettingType = 'toggle' | 'range' | 'color' | 'select' | 'text' | 'number';
 
 export interface SettingConfig {
     key: keyof ChatSettings;
@@ -165,6 +165,25 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
             { key: 'rotateZ', label: 'Rotate Z', type: 'range', min: -180, max: 180, unit: 'deg' },
             { key: 'skewX', label: 'Skew X', type: 'range', min: -45, max: 45, unit: 'deg' },
             { key: 'scale', label: 'Scale', type: 'range', min: 0.5, max: 2, step: 0.1 },
+        ]
+    },
+    {
+        id: 'sub-goal',
+        title: 'Subscriber Goal',
+        items: [
+            { key: 'showSubGoal', label: 'Show Goal Overlay', type: 'toggle' },
+            {
+                key: 'subGoalTitle',
+                label: 'Goal Title',
+                type: 'text',
+                showIf: (s) => s.showSubGoal
+            },
+            {
+                key: 'subGoalTarget',
+                label: 'Goal Target',
+                type: 'number',
+                showIf: (s) => s.showSubGoal
+            },
         ]
     }
 ];

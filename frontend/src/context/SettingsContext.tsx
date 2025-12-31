@@ -28,7 +28,10 @@ const defaultSettings: ChatSettings = {
     showBubble: true,
     animation: 'slide-up',
     animationDuration: 0.4,
-    textAlign: 'left'
+    textAlign: 'left',
+    showSubGoal: false,
+    subGoalTitle: 'Sub Goal',
+    subGoalTarget: 1000
 };
 
 interface SettingsContextType {

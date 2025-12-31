@@ -76,6 +76,8 @@ function AppContent() {
                 <PreviewArea
                     messages={messages}
                     scrollRef={scrollToBottomRef}
+                    channelId={channelId}
+                    isPreviewMode={isPreviewMode}
                 />
             </div>
         </>

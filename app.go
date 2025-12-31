@@ -2,10 +2,13 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"sync"
 
-	"github.com/DiegPS/youtube-chat"
+	youtubechat "github.com/DiegPS/youtube-chat"
 	"github.com/DiegPS/youtube-chat/types"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -21,6 +24,53 @@ type App struct {
 // NewApp creates a new App application struct
 func NewApp() *App {
 	return &App{}
+}
+
+// YoutubeStats represents the response from livecounts.io
+type YoutubeStats struct {
+	Cache         bool    `json:"cache"`
+	Success       bool    `json:"success"`
+	FollowerCount int64   `json:"followerCount"`
+	BottomOdos    []int64 `json:"bottomOdos"`
+	IsStudioCount bool    `json:"isStudioCount"`
+}
+
+// GetYoutubeStats fetches channel statistics from livecounts.io
+func (a *App) GetYoutubeStats(channelID string) (*YoutubeStats, error) {
+	url := fmt.Sprintf("https://api.livecounts.io/youtube-live-subscriber-counter/stats/%s", channelID)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Add some headers to avoid being blocked
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+	req.Header.Set("Origin", "https://livecounts.io")
+	req.Header.Set("Referer", "https://livecounts.io/")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to fetch stats: status %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var stats YoutubeStats
+	if err := json.Unmarshal(body, &stats); err != nil {
+		return nil, err
+	}
+
+	return &stats, nil
 }
 
 // startup is called when the app starts. The context is saved
