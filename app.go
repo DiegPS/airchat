@@ -84,17 +84,6 @@ func (a *App) GetYoutubeStats(channelID string) (*YoutubeStats, error) {
 	return &stats, nil
 }
 
-// startup is called when the app starts. The context is saved
-// so we can call the runtime methods
-func (a *App) startup(ctx context.Context) {
-	a.ctx = ctx
-	// Force transparency on Windows
-	a.hwnd = win.FindWindow(nil, syscall.StringToUTF16Ptr("airchat"))
-	if a.hwnd != 0 {
-		win.SetWindowLong(a.hwnd, win.GWL_EXSTYLE, win.GetWindowLong(a.hwnd, win.GWL_EXSTYLE)|win.WS_EX_LAYERED)
-	}
-}
-
 // OBSStatus represents the health of the stream
 type OBSStatus struct {
 	Connected      bool    `json:"connected"`
@@ -328,18 +317,22 @@ func (a *App) monitorOBS(client *goobs.Client, stopSignal chan struct{}) {
 	}
 }
 
-// SetClickThrough enables or disables mouse passthrough on the window
+func (a *App) startup(ctx context.Context) {
+	a.ctx = ctx
+	// Find window manually but DO NOT modify styles yet
+	a.hwnd = win.FindWindow(nil, syscall.StringToUTF16Ptr("airchat"))
+}
 func (a *App) SetClickThrough(enabled bool) {
 	if a.hwnd == 0 {
 		return
 	}
 	currStyle := win.GetWindowLong(a.hwnd, win.GWL_EXSTYLE)
 	if enabled {
-		// Add WS_EX_TRANSPARENT style
-		win.SetWindowLong(a.hwnd, win.GWL_EXSTYLE, currStyle|win.WS_EX_TRANSPARENT)
+		// Enable ClickThrough: Must add LAYERED + TRANSPARENT
+		win.SetWindowLong(a.hwnd, win.GWL_EXSTYLE, currStyle|win.WS_EX_LAYERED|win.WS_EX_TRANSPARENT)
 	} else {
-		// Remove WS_EX_TRANSPARENT style
-		win.SetWindowLong(a.hwnd, win.GWL_EXSTYLE, currStyle&^win.WS_EX_TRANSPARENT)
+		// Disable ClickThrough: Remove both to return to a standard managed window
+		win.SetWindowLong(a.hwnd, win.GWL_EXSTYLE, currStyle&^(win.WS_EX_LAYERED|win.WS_EX_TRANSPARENT))
 	}
 }
 
