@@ -122,16 +122,10 @@ export const SettingControl: React.FC<SettingControlProps> = ({ config, value, o
     if (config.type === 'button') {
         const isConnected = value === true;
         return (
-            <div className="setting-group animate-in" style={{ marginTop: '8px' }}>
+            <div className="setting-group animate-in">
                 <button
                     onClick={() => onChange(!value)}
-                    className={isConnected ? 'btn-disconnect' : 'btn-primary'}
-                    style={{
-                        width: '100%',
-                        padding: '10px',
-                        fontSize: '0.9rem',
-                        marginTop: '0'
-                    }}
+                    className={isConnected ? 'btn-obs-disconnect' : 'btn-obs-connect'}
                 >
                     {isConnected ? 'Disconnect OBS' : 'Connect OBS'}
                 </button>
