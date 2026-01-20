@@ -6,6 +6,10 @@ export function GetYoutubeStats(arg1) {
   return window['go']['main']['App']['GetYoutubeStats'](arg1);
 }
 
+export function SetClickThrough(arg1) {
+  return window['go']['main']['App']['SetClickThrough'](arg1);
+}
+
 export function StartChat(arg1) {
   return window['go']['main']['App']['StartChat'](arg1);
 }

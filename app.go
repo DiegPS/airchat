@@ -7,9 +7,11 @@ import (
 	"io"
 	"net/http"
 	"sync"
+	"syscall"
 
 	youtubechat "github.com/DiegPS/youtube-chat"
 	"github.com/DiegPS/youtube-chat/types"
+	"github.com/lxn/win"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
@@ -19,6 +21,7 @@ type App struct {
 	lc         *youtubechat.LiveChat
 	lcMu       sync.Mutex
 	stopSignal chan struct{}
+	hwnd       win.HWND
 }
 
 // NewApp creates a new App application struct
@@ -77,6 +80,26 @@ func (a *App) GetYoutubeStats(channelID string) (*YoutubeStats, error) {
 // so we can call the runtime methods
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+	// Force transparency on Windows
+	a.hwnd = win.FindWindow(nil, syscall.StringToUTF16Ptr("airchat"))
+	if a.hwnd != 0 {
+		win.SetWindowLong(a.hwnd, win.GWL_EXSTYLE, win.GetWindowLong(a.hwnd, win.GWL_EXSTYLE)|win.WS_EX_LAYERED)
+	}
+}
+
+// SetClickThrough enables or disables mouse passthrough on the window
+func (a *App) SetClickThrough(enabled bool) {
+	if a.hwnd == 0 {
+		return
+	}
+	currStyle := win.GetWindowLong(a.hwnd, win.GWL_EXSTYLE)
+	if enabled {
+		// Add WS_EX_TRANSPARENT style
+		win.SetWindowLong(a.hwnd, win.GWL_EXSTYLE, currStyle|win.WS_EX_TRANSPARENT)
+	} else {
+		// Remove WS_EX_TRANSPARENT style
+		win.SetWindowLong(a.hwnd, win.GWL_EXSTYLE, currStyle&^win.WS_EX_TRANSPARENT)
+	}
 }
 
 // StartChat starts observing the chat for a given channel ID

@@ -9,6 +9,8 @@ import { TitleBar } from './components/TitleBar';
 
 
 
+import { SetClickThrough } from '../wailsjs/go/main/App';
+
 function AppContent() {
     const {
         messages,
@@ -31,6 +33,7 @@ function AppContent() {
     useEffect(() => {
         if (isSetup) {
             setShowUI(true);
+            SetClickThrough(false);
         }
     }, [isSetup]);
 
@@ -40,7 +43,11 @@ function AppContent() {
             if (isSetup) return;
 
             if (e.ctrlKey && e.key.toLowerCase() === 'b') {
-                setShowUI(prev => !prev);
+                setShowUI(prev => {
+                    const next = !prev;
+                    SetClickThrough(!next);
+                    return next;
+                });
             }
         };
         window.addEventListener('keydown', handleKeyPress);

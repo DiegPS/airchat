@@ -4,6 +4,8 @@ import {main} from '../models';
 
 export function GetYoutubeStats(arg1:string):Promise<main.YoutubeStats>;
 
+export function SetClickThrough(arg1:boolean):Promise<void>;
+
 export function StartChat(arg1:string):Promise<void>;
 
 export function StopChat():Promise<void>;
