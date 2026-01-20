@@ -84,6 +84,58 @@ func (a *App) GetYoutubeStats(channelID string) (*YoutubeStats, error) {
 	return &stats, nil
 }
 
+// LiveCountsUserData represents a user in the search results
+type LiveCountsUserData struct {
+	ID       string `json:"id"`
+	Username string `json:"username"`
+	Avatar   string `json:"avatar"`
+}
+
+// LiveCountsSearchResponse represents the response from livecounts.io search
+type LiveCountsSearchResponse struct {
+	Cache    bool                 `json:"cache"`
+	Success  bool                 `json:"success"`
+	UserData []LiveCountsUserData `json:"userData"`
+}
+
+// SearchYoutubeChannel searches for a channel on livecounts.io
+func (a *App) SearchYoutubeChannel(query string) (*LiveCountsSearchResponse, error) {
+	url := fmt.Sprintf("https://api.livecounts.io/youtube-live-subscriber-counter/search/%s", query)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Add some headers to avoid being blocked
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+	req.Header.Set("Origin", "https://livecounts.io")
+	req.Header.Set("Referer", "https://livecounts.io/")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to search channel: status %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var searchResp LiveCountsSearchResponse
+	if err := json.Unmarshal(body, &searchResp); err != nil {
+		return nil, err
+	}
+
+	return &searchResp, nil
+}
+
 // OBSStatus represents the health of the stream
 type OBSStatus struct {
 	Connected      bool    `json:"connected"`

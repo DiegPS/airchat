@@ -10,6 +10,8 @@ export function GetOBSAudioInputs():Promise<Record<string, main.OBSAudioInput>>;
 
 export function GetYoutubeStats(arg1:string):Promise<main.YoutubeStats>;
 
+export function SearchYoutubeChannel(arg1:string):Promise<main.LiveCountsSearchResponse>;
+
 export function SetClickThrough(arg1:boolean):Promise<void>;
 
 export function SetOBSInputMute(arg1:string,arg2:boolean):Promise<void>;
