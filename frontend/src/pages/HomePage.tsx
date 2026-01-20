@@ -1,5 +1,6 @@
 import { SetupScreen } from '../components/SetupScreen';
 import { TitleBar } from '../components/TitleBar';
+import { useNavigate } from 'react-router-dom';
 
 interface HomePageProps {
     channelId: string;
@@ -10,6 +11,8 @@ interface HomePageProps {
 }
 
 export function HomePage({ channelId, onChannelIdChange, onStart, onPreview, error }: HomePageProps) {
+    const navigate = useNavigate();
+
     return (
         <>
             <TitleBar show={true} />
@@ -18,6 +21,7 @@ export function HomePage({ channelId, onChannelIdChange, onStart, onPreview, err
                 onChannelIdChange={onChannelIdChange}
                 onStart={onStart}
                 onPreview={onPreview}
+                onVtuber={() => navigate('/vtuber')}
                 error={error}
             />
         </>

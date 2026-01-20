@@ -18,6 +18,7 @@ interface SetupScreenProps {
     onChannelIdChange: (id: string) => void;
     onStart: () => void;
     onPreview: () => void;
+    onVtuber?: () => void;
     error: string | null;
 }
 
@@ -26,6 +27,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
     onChannelIdChange,
     onStart,
     onPreview,
+    onVtuber,
     error
 }) => {
     const [isSearchMode, setIsSearchMode] = useState(false);
@@ -158,6 +160,12 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
                     <>
                         <div className="divider"><span>OR</span></div>
                         <button onClick={onPreview} className="btn-secondary">Preview Design</button>
+                        {onVtuber && (
+                            <>
+                                <div className="divider"><span>OR</span></div>
+                                <button onClick={onVtuber} className="btn-secondary">VTuber Mode 🎭</button>
+                            </>
+                        )}
                     </>
                 )}
                 
