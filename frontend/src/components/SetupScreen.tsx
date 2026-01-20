@@ -18,7 +18,7 @@ interface SetupScreenProps {
     onChannelIdChange: (id: string) => void;
     onStart: () => void;
     onPreview: () => void;
-    error: string;
+    error: string | null;
 }
 
 export const SetupScreen: React.FC<SetupScreenProps> = ({

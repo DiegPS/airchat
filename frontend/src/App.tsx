@@ -1,19 +1,15 @@
 import { useState, useEffect } from 'react';
+import { HashRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import './App.css';
 import { SettingsProvider } from './context/SettingsContext';
 import { useChat } from './hooks/useChat';
 import { useTTS } from './hooks/useTTS';
-import { SetupScreen } from './components/SetupScreen';
-import { Sidebar } from './components/Sidebar';
-import { PreviewArea } from './components/PreviewArea';
-import { TitleBar } from './components/TitleBar';
-
-
-
-import { StreamHUD } from './components/StreamHUD';
+import { HomePage } from './pages/HomePage';
+import { ChatPage } from './pages/ChatPage';
 import { SetClickThrough } from '../wailsjs/go/main/App';
 
 function AppContent() {
+    const navigate = useNavigate();
     const {
         messages,
         isStarted,
@@ -33,6 +29,15 @@ function AppContent() {
 
     const [showUI, setShowUI] = useState(true);
     const isSetup = !isStarted && !isPreviewMode;
+
+    // Navigate based on setup state
+    useEffect(() => {
+        if (isSetup) {
+            navigate('/');
+        } else {
+            navigate('/chat');
+        }
+    }, [isSetup, navigate]);
 
     // Reset UI visibility when entering setup mode or starting a new session
     useEffect(() => {
@@ -59,51 +64,46 @@ function AppContent() {
         return () => window.removeEventListener('keydown', handleKeyPress);
     }, [isSetup]);
 
-    if (isSetup) {
-        return (
-            <>
-                <TitleBar show={true} />
-                <SetupScreen
-                    channelId={channelId}
-                    onChannelIdChange={setChannelId}
-                    onStart={startChat}
-                    onPreview={startPreview}
-                    error={error}
-                />
-            </>
-        );
-    }
-
     return (
-        <>
-            <TitleBar show={showUI} />
-            <div className={`dashboard-layout ${!showUI ? 'sidebar-hidden' : ''}`}>
-                <Sidebar
-                    showSidebar={showUI}
-                    channelId={channelId}
-                    liveId={liveId}
-                    isPreviewMode={isPreviewMode}
-                    onStop={stopChat}
-                />
-                <PreviewArea
-                    messages={messages}
-                    scrollRef={scrollToBottomRef}
-                    channelId={channelId}
-                    isPreviewMode={isPreviewMode}
-                />
-                {obsStatus && obsStatus.connected && (
-                    <StreamHUD status={obsStatus} />
-                )}
-            </div>
-        </>
+        <Routes>
+            <Route 
+                path="/" 
+                element={
+                    <HomePage
+                        channelId={channelId}
+                        onChannelIdChange={setChannelId}
+                        onStart={startChat}
+                        onPreview={startPreview}
+                        error={error}
+                    />
+                } 
+            />
+            <Route 
+                path="/chat" 
+                element={
+                    <ChatPage
+                        showUI={showUI}
+                        channelId={channelId}
+                        liveId={liveId}
+                        isPreviewMode={isPreviewMode}
+                        messages={messages}
+                        scrollRef={scrollToBottomRef}
+                        onStop={stopChat}
+                        obsStatus={obsStatus}
+                    />
+                } 
+            />
+        </Routes>
     );
 }
 
 function App() {
     return (
-        <SettingsProvider>
-            <AppContent />
-        </SettingsProvider>
+        <HashRouter>
+            <SettingsProvider>
+                <AppContent />
+            </SettingsProvider>
+        </HashRouter>
     );
 }
 
