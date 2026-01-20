@@ -222,8 +222,8 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
     },
     {
         id: 'obs-hud',
-        title: 'Heads-Up Display (HUD)',
-        showIf: (s) => s.obsEnabled,
+        title: 'HUD Settings',
+        showIf: (s) => s.obsEnabled && s.obsConnected,
         items: [
             {
                 key: 'obsHudPosition',
