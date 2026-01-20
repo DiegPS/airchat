@@ -256,6 +256,8 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
             },
             { key: 'obsHudShowBitrate', label: 'Show Bitrate', type: 'toggle' },
             { key: 'obsHudShowFps', label: 'Show FPS', type: 'toggle' },
+            { key: 'obsHudShowMic', label: 'Show Microphone Controls', type: 'toggle' },
+            { key: 'obsHudShowDesktop', label: 'Show Desktop Audio Controls', type: 'toggle' },
         ]
     }
 ];

@@ -15,6 +15,7 @@ import (
 	youtubechat "github.com/DiegPS/youtube-chat"
 	"github.com/DiegPS/youtube-chat/types"
 	"github.com/andreykaipov/goobs"
+	"github.com/andreykaipov/goobs/api/requests/inputs"
 	"github.com/lxn/win"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -142,6 +143,91 @@ func (a *App) DisconnectOBS() {
 		close(a.obsStop)
 		a.obsStop = nil
 	}
+}
+
+// OBSAudioInput represents an audio input source
+type OBSAudioInput struct {
+	Name   string  `json:"name"`
+	Muted  bool    `json:"muted"`
+	Volume float64 `json:"volume"` // Volume in dB
+}
+
+// GetOBSAudioInputs gets the special audio inputs (Mic and Desktop)
+func (a *App) GetOBSAudioInputs() (map[string]OBSAudioInput, error) {
+	if a.obsClient == nil {
+		return nil, fmt.Errorf("not connected to OBS")
+	}
+
+	// Get special inputs
+	specialInputs, err := a.obsClient.Inputs.GetSpecialInputs()
+	if err != nil {
+		return nil, err
+	}
+
+	result := make(map[string]OBSAudioInput)
+
+	// Check Mic/Aux (usually microphone)
+	if specialInputs.Mic1 != "" {
+		micName := specialInputs.Mic1
+		muted, vol, err := a.getInputAudioState(micName)
+		if err == nil {
+			result["microphone"] = OBSAudioInput{Name: micName, Muted: muted, Volume: vol}
+		}
+	}
+
+	// Check Desktop Audio
+	if specialInputs.Desktop1 != "" {
+		desktopName := specialInputs.Desktop1
+		muted, vol, err := a.getInputAudioState(desktopName)
+		if err == nil {
+			result["desktop"] = OBSAudioInput{Name: desktopName, Muted: muted, Volume: vol}
+		}
+	}
+
+	return result, nil
+}
+
+// Helper to get audio state
+func (a *App) getInputAudioState(inputName string) (bool, float64, error) {
+	muteResp, err := a.obsClient.Inputs.GetInputMute(&inputs.GetInputMuteParams{
+		InputName: &inputName,
+	})
+	if err != nil {
+		return false, 0, err
+	}
+
+	volResp, err := a.obsClient.Inputs.GetInputVolume(&inputs.GetInputVolumeParams{
+		InputName: &inputName,
+	})
+	if err != nil {
+		return muteResp.InputMuted, 0, err
+	}
+
+	return muteResp.InputMuted, volResp.InputVolumeDb, nil
+}
+
+// SetOBSInputMute mutes or unmutes an audio input
+func (a *App) SetOBSInputMute(inputName string, muted bool) error {
+	if a.obsClient == nil {
+		return fmt.Errorf("not connected to OBS")
+	}
+	_, err := a.obsClient.Inputs.SetInputMute(&inputs.SetInputMuteParams{
+		InputName:  &inputName,
+		InputMuted: &muted,
+	})
+	return err
+}
+
+// SetOBSInputVolume sets the volume of an audio input (in dB)
+func (a *App) SetOBSInputVolume(inputName string, volumeDb float64) error {
+	if a.obsClient == nil {
+		return fmt.Errorf("not connected to OBS")
+	}
+	_, err := a.obsClient.Inputs.SetInputVolume(&inputs.SetInputVolumeParams{
+		InputName:     &inputName,
+		InputVolumeDb: &volumeDb,
+	})
+	return err
 }
 
 func (a *App) monitorOBS(client *goobs.Client, stopSignal chan struct{}) {

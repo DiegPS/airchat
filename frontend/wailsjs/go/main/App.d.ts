@@ -6,9 +6,15 @@ export function ConnectOBS(arg1:string,arg2:string):Promise<void>;
 
 export function DisconnectOBS():Promise<void>;
 
+export function GetOBSAudioInputs():Promise<Record<string, main.OBSAudioInput>>;
+
 export function GetYoutubeStats(arg1:string):Promise<main.YoutubeStats>;
 
 export function SetClickThrough(arg1:boolean):Promise<void>;
+
+export function SetOBSInputMute(arg1:string,arg2:boolean):Promise<void>;
+
+export function SetOBSInputVolume(arg1:string,arg2:number):Promise<void>;
 
 export function StartChat(arg1:string):Promise<void>;
 

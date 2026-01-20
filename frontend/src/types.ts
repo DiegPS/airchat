@@ -75,4 +75,6 @@ export interface ChatSettings {
   obsHudScale: number;
   obsHudShowFps: boolean;
   obsHudShowBitrate: boolean;
+  obsHudShowMic: boolean;
+  obsHudShowDesktop: boolean;
 }

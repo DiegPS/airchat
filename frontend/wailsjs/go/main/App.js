@@ -10,12 +10,24 @@ export function DisconnectOBS() {
   return window['go']['main']['App']['DisconnectOBS']();
 }
 
+export function GetOBSAudioInputs() {
+  return window['go']['main']['App']['GetOBSAudioInputs']();
+}
+
 export function GetYoutubeStats(arg1) {
   return window['go']['main']['App']['GetYoutubeStats'](arg1);
 }
 
 export function SetClickThrough(arg1) {
   return window['go']['main']['App']['SetClickThrough'](arg1);
+}
+
+export function SetOBSInputMute(arg1, arg2) {
+  return window['go']['main']['App']['SetOBSInputMute'](arg1, arg2);
+}
+
+export function SetOBSInputVolume(arg1, arg2) {
+  return window['go']['main']['App']['SetOBSInputVolume'](arg1, arg2);
 }
 
 export function StartChat(arg1) {

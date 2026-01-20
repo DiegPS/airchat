@@ -41,7 +41,9 @@ const defaultSettings: ChatSettings = {
     obsHudOpacity: 0.7,
     obsHudScale: 1.0,
     obsHudShowFps: true,
-    obsHudShowBitrate: true
+    obsHudShowBitrate: true,
+    obsHudShowMic: true,
+    obsHudShowDesktop: false
 };
 
 interface SettingsContextType {
