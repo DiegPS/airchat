@@ -43,7 +43,10 @@ const defaultSettings: ChatSettings = {
     obsHudShowFps: true,
     obsHudShowBitrate: true,
     obsHudShowMic: true,
-    obsHudShowDesktop: false
+    obsHudShowDesktop: false,
+    ttsEnabled: false,
+    ttsProvider: 'browser',
+    ttsVoice: '',
 };
 
 interface SettingsContextType {

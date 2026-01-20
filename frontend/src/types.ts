@@ -77,4 +77,7 @@ export interface ChatSettings {
   obsHudShowBitrate: boolean;
   obsHudShowMic: boolean;
   obsHudShowDesktop: boolean;
+  ttsEnabled: boolean;
+  ttsProvider: string;
+  ttsVoice: string;
 }

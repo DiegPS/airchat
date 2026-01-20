@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChatSettings } from '../types';
 import { SettingConfig } from '../config/settingsSchema';
+import { useSettings } from '../context/SettingsContext';
 
 interface SettingControlProps {
     config: SettingConfig;
@@ -133,5 +134,121 @@ export const SettingControl: React.FC<SettingControlProps> = ({ config, value, o
         );
     }
 
+    if (config.type === 'voice-select') {
+        const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+
+        useEffect(() => {
+            const loadVoices = () => {
+                const available = window.speechSynthesis.getVoices();
+                setVoices(available);
+            };
+
+            loadVoices();
+            if (window.speechSynthesis.onvoiceschanged !== undefined) {
+                window.speechSynthesis.onvoiceschanged = loadVoices;
+            }
+        }, []);
+
+        return (
+            <div className="setting-group animate-in">
+                <label>{config.label}</label>
+                <select
+                    value={value as string}
+                    onChange={(e) => onChange(e.target.value)}
+                    style={{
+                        background: 'rgba(255, 255, 255, 0.1)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        color: 'white',
+                        padding: '8px',
+                        borderRadius: '8px',
+                        outline: 'none',
+                        cursor: 'pointer',
+                        width: '100%'
+                    }}
+                >
+                    <option value="" style={{ background: '#222' }}>Default Voice</option>
+                    {voices.map((voice) => (
+                        <option key={voice.name} value={voice.name} style={{ background: '#222' }}>
+                            {voice.name} ({voice.lang})
+                        </option>
+                    ))}
+                </select>
+            </div>
+        );
+    }
+
+    if (config.type === 'tts-test') {
+        const [text, setText] = useState('Hello, this is a test.');
+        
+        const handleTest = () => {
+             if (!window.speechSynthesis) return;
+             
+             // Stop previous
+             window.speechSynthesis.cancel();
+             
+             const utterance = new SpeechSynthesisUtterance(text);
+             // Use the selected voice from the current value (which is likely passed differently or we can't access it easily here without context)
+             // Wait, 'value' passed to this control IS the value of the config.key. 
+             // But for 'tts-test' key, the value might be irrelevant or we need to access the stored 'ttsVoice'.
+             // This component receives 'value' corresponding to 'config.key'.
+             // We need to access the global settings or pass the voice.
+             // Since we don't have direct access to 'all settings' here easily without context modification,
+             // we will assume the user has selected a voice and it is stored. 
+             // Actually, this specific control might need to know the selected voice.
+             // Let's rely on the browser's default if not, but better: 
+             // We can check if settings are available or just let the user pick in the voice selector.
+             // Wait, how do I get the selected voice here? 
+             // I'll make this control just trigger the speak. 
+             // BUT, I need the selected voice name. 
+             // The simplest way is to read the settings from context again OR 
+             // assume the voice-select updated the global state and we can access it using the hook if we wrap this.
+             // But SettingControl is a dumb component. 
+             // However, I can import useSettings here.
+        };
+
+        return <TTSTestControl />;
+    }
+
     return null;
 };
+
+const TTSTestControl: React.FC = () => {
+    const { settings } = useSettings(); 
+    const [text, setText] = useState('Welcome to the stream!');
+
+    const speak = () => {
+        if (!window.speechSynthesis) return;
+        window.speechSynthesis.cancel();
+        
+        const utterance = new SpeechSynthesisUtterance(text);
+        
+        if (settings.ttsVoice) {
+            const voices = window.speechSynthesis.getVoices();
+            const selectedVoice = voices.find(v => v.name === settings.ttsVoice);
+            if (selectedVoice) utterance.voice = selectedVoice;
+        }
+        
+        window.speechSynthesis.speak(utterance);
+    };
+
+    return (
+        <div className="setting-group animate-in" style={{ gap: '10px' }}>
+             <div style={{ display: 'flex', gap: '8px' }}>
+                <input 
+                    type="text" 
+                    value={text} 
+                    onChange={e => setText(e.target.value)}
+                    className="setting-input"
+                    placeholder="Type to test..."
+                />
+                <button 
+                    onClick={speak}
+                    className="btn-primary"
+                    style={{ padding: '0.5rem 1rem', whiteSpace: 'nowrap' }}
+                >
+                    Test 🔊
+                </button>
+             </div>
+        </div>
+    )
+}

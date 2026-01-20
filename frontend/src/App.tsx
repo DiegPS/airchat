@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import './App.css';
 import { SettingsProvider } from './context/SettingsContext';
 import { useChat } from './hooks/useChat';
+import { useTTS } from './hooks/useTTS';
 import { SetupScreen } from './components/SetupScreen';
 import { Sidebar } from './components/Sidebar';
 import { PreviewArea } from './components/PreviewArea';
@@ -27,6 +28,8 @@ function AppContent() {
         scrollToBottomRef,
         obsStatus
     } = useChat();
+
+    useTTS(isStarted);
 
     const [showUI, setShowUI] = useState(true);
     const isSetup = !isStarted && !isPreviewMode;

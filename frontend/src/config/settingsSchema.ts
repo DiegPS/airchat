@@ -1,6 +1,6 @@
 import { ChatSettings } from '../types';
 
-export type SettingType = 'toggle' | 'range' | 'color' | 'select' | 'text' | 'number' | 'button';
+export type SettingType = 'toggle' | 'range' | 'color' | 'select' | 'text' | 'number' | 'button' | 'voice-select' | 'tts-test';
 
 export interface SettingConfig {
     key: keyof ChatSettings;
@@ -258,6 +258,38 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
             { key: 'obsHudShowFps', label: 'Show FPS', type: 'toggle' },
             { key: 'obsHudShowMic', label: 'Show Microphone Controls', type: 'toggle' },
             { key: 'obsHudShowDesktop', label: 'Show Desktop Audio Controls', type: 'toggle' },
+        ]
+    },
+    {
+        id: 'tts',
+        title: 'Text to Speech (TTS)',
+        items: [
+            { key: 'ttsEnabled', label: 'Enable TTS', type: 'toggle' },
+            {
+                key: 'ttsProvider',
+                label: 'Provider',
+                type: 'select',
+                options: [
+                    { label: 'Browser API', value: 'browser' },
+                    { label: 'Google Cloud TTS', value: 'google' },
+                    { label: 'Amazon Polly', value: 'polly' },
+                    { label: 'Microsoft Azure', value: 'azure' },
+                    { label: 'ElevenLabs', value: 'elevenlabs' }
+                ],
+                showIf: (s) => s.ttsEnabled
+            },
+            {
+                key: 'ttsVoice',
+                label: 'Voice',
+                type: 'voice-select',
+                showIf: (s) => s.ttsEnabled && s.ttsProvider === 'browser'
+            },
+            {
+                key: 'ttsVoiceTest' as any,
+                label: 'Test Voice',
+                type: 'tts-test',
+                showIf: (s) => s.ttsEnabled && s.ttsProvider === 'browser'
+            }
         ]
     }
 ];

@@ -4,6 +4,14 @@ import { StartChat, StopChat, ConnectOBS, DisconnectOBS } from "../../wailsjs/go
 import { ChatItem } from '../types';
 import { useSettings } from '../context/SettingsContext';
 
+const usePrevious = <T,>(value: T): T | undefined => {
+    const ref = useRef<T>();
+    useEffect(() => {
+        ref.current = value;
+    });
+    return ref.current;
+};
+
 export interface OBSStatus {
     connected: boolean;
     outputActive: boolean;
@@ -17,6 +25,7 @@ export interface OBSStatus {
 
 export const useChat = () => {
     const { settings, updateSettings } = useSettings();
+    const prevProvider = usePrevious(settings.ttsProvider);
     const [messages, setMessages] = useState<ChatItem[]>([]);
     const [isStarted, setIsStarted] = useState(false);
     const [error, setError] = useState('');
@@ -31,6 +40,13 @@ export const useChat = () => {
     useEffect(() => {
         isStartedRef.current = isStarted;
     }, [isStarted]);
+
+    // Reset ttsVoice when provider changes
+    useEffect(() => {
+        if (prevProvider && prevProvider !== settings.ttsProvider) {
+            updateSettings({ ttsVoice: '' });
+        }
+    }, [settings.ttsProvider, prevProvider, updateSettings]);
 
     const scrollToBottom = () => {
         scrollToBottomRef.current?.scrollIntoView({ behavior: "smooth" });
