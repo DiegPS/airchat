@@ -1,15 +1,29 @@
 import { useState, useEffect, useRef } from 'react';
 import { EventsOn, EventsOff } from "../../wailsjs/runtime";
-import { StartChat, StopChat } from "../../wailsjs/go/main/App";
+import { StartChat, StopChat, ConnectOBS, DisconnectOBS } from "../../wailsjs/go/main/App";
 import { ChatItem } from '../types';
+import { useSettings } from '../context/SettingsContext';
+
+export interface OBSStatus {
+    connected: boolean;
+    outputActive: boolean;
+    reconnecting: boolean;
+    bitrateKbps: number;
+    fps: number;
+    dropPercentage: number;
+    congestion: number;
+    statusColor: string;
+}
 
 export const useChat = () => {
+    const { settings, updateSettings } = useSettings();
     const [messages, setMessages] = useState<ChatItem[]>([]);
     const [isStarted, setIsStarted] = useState(false);
     const [error, setError] = useState('');
     const [liveId, setLiveId] = useState('');
     const [isPreviewMode, setIsPreviewMode] = useState(false);
     const [channelId, setChannelId] = useState('');
+    const [obsStatus, setObsStatus] = useState<OBSStatus | null>(null);
 
     const isStartedRef = useRef(isStarted);
     const scrollToBottomRef = useRef<HTMLDivElement>(null);
@@ -50,13 +64,52 @@ export const useChat = () => {
             setIsStarted(false);
         });
 
+        EventsOn("obs_status", (status: OBSStatus) => {
+            setObsStatus(status);
+        });
+
         return () => {
             EventsOff("chat_message");
             EventsOff("chat_started");
             EventsOff("chat_error");
             EventsOff("chat_ended");
+            EventsOff("obs_status");
         };
     }, []);
+
+    // Handle OBS Connection based on Button State (obsConnected)
+    // Handle OBS Connection based on Button State (obsConnected)
+    useEffect(() => {
+        if (settings.obsEnabled && settings.obsConnected) {
+            updateSettings({ obsStatusMessage: 'Connecting...' });
+
+            ConnectOBS(settings.obsHost || 'localhost:4455', settings.obsPassword)
+                .then(() => {
+                    // Start was successful, wait for events
+                })
+                .catch((err) => {
+                    console.error("OBS Connect Error:", err);
+                    updateSettings({
+                        obsStatusMessage: `Error: ${err}`,
+                        obsConnected: false
+                    });
+                });
+        } else {
+            DisconnectOBS().catch(console.error);
+            setObsStatus(null);
+            updateSettings({ obsStatusMessage: 'Disconnected' });
+        }
+    }, [settings.obsEnabled, settings.obsConnected, settings.obsHost, settings.obsPassword]);
+
+    // Update status message on successful data
+    useEffect(() => {
+        if (obsStatus && obsStatus.connected) {
+            updateSettings({ obsStatusMessage: 'Connected' });
+        } else if (settings.obsConnected && obsStatus && !obsStatus.connected) {
+            // If we expect to be connected but receive a disconnection status
+            updateSettings({ obsStatusMessage: 'Disconnected (Lost connection)' });
+        }
+    }, [obsStatus, settings.obsConnected]);
 
     const startChat = async () => {
         if (!channelId) {
@@ -116,6 +169,7 @@ export const useChat = () => {
         startChat,
         startPreview,
         stopChat,
-        scrollToBottomRef
+        scrollToBottomRef,
+        obsStatus
     };
 };

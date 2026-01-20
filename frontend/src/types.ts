@@ -63,4 +63,10 @@ export interface ChatSettings {
   showSubGoal: boolean;
   subGoalTitle: string;
   subGoalTarget: number;
+  // OBS Settings
+  obsEnabled: boolean;
+  obsHost: string;
+  obsPassword: string;
+  obsConnected: boolean; // Virtual state for UI button
+  obsStatusMessage: string;
 }

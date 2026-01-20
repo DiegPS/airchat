@@ -9,6 +9,7 @@ import { TitleBar } from './components/TitleBar';
 
 
 
+import { StreamHUD } from './components/StreamHUD';
 import { SetClickThrough } from '../wailsjs/go/main/App';
 
 function AppContent() {
@@ -23,7 +24,8 @@ function AppContent() {
         startChat,
         startPreview,
         stopChat,
-        scrollToBottomRef
+        scrollToBottomRef,
+        obsStatus
     } = useChat();
 
     const [showUI, setShowUI] = useState(true);
@@ -86,6 +88,9 @@ function AppContent() {
                     channelId={channelId}
                     isPreviewMode={isPreviewMode}
                 />
+                {!showUI && obsStatus && obsStatus.connected && (
+                    <StreamHUD status={obsStatus} />
+                )}
             </div>
         </>
     );

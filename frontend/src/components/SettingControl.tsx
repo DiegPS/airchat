@@ -97,6 +97,9 @@ export const SettingControl: React.FC<SettingControlProps> = ({ config, value, o
                     value={value as string}
                     onChange={(e) => onChange(e.target.value)}
                     className="setting-input"
+                    readOnly={config.readOnly}
+                    disabled={config.readOnly}
+                    style={config.readOnly ? { opacity: 0.7, cursor: 'default' } : undefined}
                 />
             </div>
         );
@@ -112,6 +115,26 @@ export const SettingControl: React.FC<SettingControlProps> = ({ config, value, o
                     onChange={(e) => onChange(Number(e.target.value))}
                     className="setting-input"
                 />
+            </div>
+        );
+    }
+
+    if (config.type === 'button') {
+        const isConnected = value === true;
+        return (
+            <div className="setting-group animate-in" style={{ marginTop: '8px' }}>
+                <button
+                    onClick={() => onChange(!value)}
+                    className={isConnected ? 'btn-disconnect' : 'btn-primary'}
+                    style={{
+                        width: '100%',
+                        padding: '10px',
+                        fontSize: '0.9rem',
+                        marginTop: '0'
+                    }}
+                >
+                    {isConnected ? 'Disconnect OBS' : 'Connect OBS'}
+                </button>
             </div>
         );
     }

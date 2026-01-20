@@ -9,8 +9,12 @@ import (
 	"sync"
 	"syscall"
 
+	"math"
+	"time"
+
 	youtubechat "github.com/DiegPS/youtube-chat"
 	"github.com/DiegPS/youtube-chat/types"
+	"github.com/andreykaipov/goobs"
 	"github.com/lxn/win"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -22,6 +26,9 @@ type App struct {
 	lcMu       sync.Mutex
 	stopSignal chan struct{}
 	hwnd       win.HWND
+
+	obsClient *goobs.Client
+	obsStop   chan struct{}
 }
 
 // NewApp creates a new App application struct
@@ -84,6 +91,154 @@ func (a *App) startup(ctx context.Context) {
 	a.hwnd = win.FindWindow(nil, syscall.StringToUTF16Ptr("airchat"))
 	if a.hwnd != 0 {
 		win.SetWindowLong(a.hwnd, win.GWL_EXSTYLE, win.GetWindowLong(a.hwnd, win.GWL_EXSTYLE)|win.WS_EX_LAYERED)
+	}
+}
+
+// OBSStatus represents the health of the stream
+type OBSStatus struct {
+	Connected      bool    `json:"connected"`
+	OutputActive   bool    `json:"outputActive"`
+	Reconnecting   bool    `json:"reconnecting"`
+	BitrateKbps    float64 `json:"bitrateKbps"`
+	FPS            float64 `json:"fps"`
+	DropPercentage float64 `json:"dropPercentage"`
+	Congestion     float64 `json:"congestion"`
+	StatusColor    string  `json:"statusColor"` // "GREEN", "YELLOW", "RED", "GRAY"
+}
+
+// ConnectOBS connects to the OBS WebSocket and starts monitoring
+func (a *App) ConnectOBS(host, password string) error {
+	if host == "" {
+		host = "localhost:4455"
+	}
+
+	client, err := goobs.New(host, goobs.WithPassword(password))
+	if err != nil {
+		return err
+	}
+
+	if a.obsClient != nil {
+		_ = a.obsClient.Disconnect()
+		if a.obsStop != nil {
+			close(a.obsStop)
+		}
+	}
+
+	a.obsClient = client
+	a.obsStop = make(chan struct{})
+
+	go a.monitorOBS(client, a.obsStop)
+
+	return nil
+}
+
+// DisconnectOBS disconnects from OBS
+func (a *App) DisconnectOBS() {
+	if a.obsClient != nil {
+		_ = a.obsClient.Disconnect()
+		a.obsClient = nil
+	}
+	if a.obsStop != nil {
+		close(a.obsStop)
+		a.obsStop = nil
+	}
+}
+
+func (a *App) monitorOBS(client *goobs.Client, stopSignal chan struct{}) {
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
+
+	// Baselines
+	var (
+		prevBytes   float64
+		prevSkipped float64
+		prevTotal   float64
+		prevT       = time.Now()
+		hadPrev     bool
+	)
+
+	for {
+		select {
+		case <-stopSignal:
+			return
+		case <-ticker.C:
+			// 1) Stream status
+			ss, err := client.Stream.GetStreamStatus()
+			if err != nil {
+				runtime.EventsEmit(a.ctx, "obs_status", OBSStatus{Connected: false})
+				continue
+			}
+
+			// 2) FPS (render)
+			stats, err := client.General.GetStats()
+			if err != nil {
+				continue
+			}
+
+			now := time.Now()
+			dt := now.Sub(prevT).Seconds()
+			if dt <= 0 {
+				dt = 1
+			}
+
+			// Reset baseline if stream restarted
+			if hadPrev && (ss.OutputBytes < prevBytes || ss.OutputSkippedFrames < prevSkipped || ss.OutputTotalFrames < prevTotal) {
+				hadPrev = false
+			}
+
+			var kbps, dropPct float64
+			var bytesDelta, skippedDelta, totalDelta float64
+
+			if hadPrev {
+				bytesDelta = ss.OutputBytes - prevBytes
+				skippedDelta = ss.OutputSkippedFrames - prevSkipped
+				totalDelta = ss.OutputTotalFrames - prevTotal
+
+				kbps = (bytesDelta * 8.0 / dt) / 1000.0
+				if totalDelta > 0 {
+					dropPct = (skippedDelta / totalDelta) * 100.0
+				}
+				// Sanitize
+				if kbps < 0 || math.IsNaN(kbps) || math.IsInf(kbps, 0) {
+					kbps = 0
+				}
+				if dropPct < 0 || math.IsNaN(dropPct) || math.IsInf(dropPct, 0) {
+					dropPct = 0
+				}
+			}
+
+			// Color logic
+			statusColor := "GREEN"
+			if !ss.OutputActive {
+				statusColor = "GRAY" // Not streaming
+			} else if ss.OutputReconnecting {
+				statusColor = "RED" // Reconnecting
+			} else if dropPct >= 2.0 {
+				statusColor = "RED" // High drops
+			} else if dropPct >= 0.5 || (hadPrev && bytesDelta == 0) {
+				statusColor = "YELLOW" // Warning
+			}
+
+			payload := OBSStatus{
+				Connected:      true,
+				OutputActive:   ss.OutputActive,
+				Reconnecting:   ss.OutputReconnecting,
+				BitrateKbps:    kbps,
+				FPS:            stats.ActiveFps,
+				DropPercentage: dropPct,
+				Congestion:     ss.OutputCongestion,
+				StatusColor:    statusColor,
+			}
+
+			runtime.EventsEmit(a.ctx, "obs_status", payload)
+
+			// Update baseline
+			prevBytes = ss.OutputBytes
+			prevSkipped = ss.OutputSkippedFrames
+			prevTotal = ss.OutputTotalFrames
+			prevT = now
+			hadPrev = true
+		}
 	}
 }
 

@@ -1,6 +1,6 @@
 import { ChatSettings } from '../types';
 
-export type SettingType = 'toggle' | 'range' | 'color' | 'select' | 'text' | 'number';
+export type SettingType = 'toggle' | 'range' | 'color' | 'select' | 'text' | 'number' | 'button';
 
 export interface SettingConfig {
     key: keyof ChatSettings;
@@ -15,6 +15,8 @@ export interface SettingConfig {
     formatDisplay?: (value: any) => string;
     // Función opcional para decidir si este control se muestra
     showIf?: (settings: ChatSettings) => boolean;
+    // Campo de solo lectura
+    readOnly?: boolean;
 }
 
 export interface SettingsSection {
@@ -184,6 +186,38 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
                 type: 'number',
                 showIf: (s) => s.showSubGoal
             },
+        ]
+    },
+    {
+        id: 'obs',
+        title: 'OBS Integration',
+        items: [
+            { key: 'obsEnabled', label: 'Enable Integration', type: 'toggle' },
+            {
+                key: 'obsHost',
+                label: 'WebSocket Host',
+                type: 'text',
+                showIf: (s) => s.obsEnabled
+            },
+            {
+                key: 'obsPassword',
+                label: 'WebSocket Password',
+                type: 'text',
+                showIf: (s) => s.obsEnabled
+            },
+            {
+                key: 'obsConnected',
+                label: 'Connection',
+                type: 'button',
+                showIf: (s) => s.obsEnabled
+            },
+            {
+                key: 'obsStatusMessage',
+                label: 'Status',
+                type: 'text',
+                readOnly: true,
+                showIf: (s) => s.obsEnabled
+            }
         ]
     }
 ];

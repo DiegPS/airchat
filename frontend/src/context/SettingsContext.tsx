@@ -31,7 +31,12 @@ const defaultSettings: ChatSettings = {
     textAlign: 'left',
     showSubGoal: false,
     subGoalTitle: 'Sub Goal',
-    subGoalTarget: 1000
+    subGoalTarget: 1000,
+    obsEnabled: false,
+    obsHost: 'localhost:4455',
+    obsPassword: '',
+    obsConnected: false,
+    obsStatusMessage: 'Ready'
 };
 
 interface SettingsContextType {
