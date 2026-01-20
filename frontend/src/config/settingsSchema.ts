@@ -219,5 +219,43 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
                 showIf: (s) => s.obsEnabled
             }
         ]
+    },
+    {
+        id: 'obs-hud',
+        title: 'Heads-Up Display (HUD)',
+        showIf: (s) => s.obsEnabled,
+        items: [
+            {
+                key: 'obsHudPosition',
+                label: 'Position',
+                type: 'select',
+                options: [
+                    { label: 'Top Left', value: 'top-left' },
+                    { label: 'Top Right', value: 'top-right' },
+                    { label: 'Bottom Left', value: 'bottom-left' },
+                    { label: 'Bottom Right', value: 'bottom-right' }
+                ]
+            },
+            {
+                key: 'obsHudScale',
+                label: 'Size (Scale)',
+                type: 'range',
+                min: 0.5,
+                max: 2.0,
+                step: 0.1,
+                formatDisplay: (v) => `${Math.round(v * 100)}%`
+            },
+            {
+                key: 'obsHudOpacity',
+                label: 'Background Opacity',
+                type: 'range',
+                min: 0,
+                max: 1,
+                step: 0.1,
+                formatDisplay: (v) => `${Math.round(v * 100)}%`
+            },
+            { key: 'obsHudShowBitrate', label: 'Show Bitrate', type: 'toggle' },
+            { key: 'obsHudShowFps', label: 'Show FPS', type: 'toggle' },
+        ]
     }
 ];

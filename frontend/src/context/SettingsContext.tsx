@@ -36,7 +36,12 @@ const defaultSettings: ChatSettings = {
     obsHost: 'localhost:4455',
     obsPassword: '',
     obsConnected: false,
-    obsStatusMessage: 'Ready'
+    obsStatusMessage: 'Ready',
+    obsHudPosition: 'bottom-right',
+    obsHudOpacity: 0.7,
+    obsHudScale: 1.0,
+    obsHudShowFps: true,
+    obsHudShowBitrate: true
 };
 
 interface SettingsContextType {

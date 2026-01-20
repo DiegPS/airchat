@@ -69,4 +69,10 @@ export interface ChatSettings {
   obsPassword: string;
   obsConnected: boolean; // Virtual state for UI button
   obsStatusMessage: string;
+  // OBS HUD Customization
+  obsHudPosition: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+  obsHudOpacity: number;
+  obsHudScale: number;
+  obsHudShowFps: boolean;
+  obsHudShowBitrate: boolean;
 }

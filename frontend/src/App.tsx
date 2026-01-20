@@ -88,7 +88,7 @@ function AppContent() {
                     channelId={channelId}
                     isPreviewMode={isPreviewMode}
                 />
-                {!showUI && obsStatus && obsStatus.connected && (
+                {obsStatus && obsStatus.connected && (
                     <StreamHUD status={obsStatus} />
                 )}
             </div>
