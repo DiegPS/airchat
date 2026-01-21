@@ -84,7 +84,16 @@ export const useTTS = (isStarted: boolean) => {
             if (message.Message.length === 0) return;
 
             const author = message.Author.Name;
-            const content = message.Message.map(m => m.Text).join(' ');
+            let content = message.Message.map(m => m.Text).join(' ');
+            
+            // Check for command mode
+            if (settings.ttsCommandMode && settings.ttsCommandPrefix) {
+                const prefix = settings.ttsCommandPrefix.trim();
+                if (!content.startsWith(prefix)) return;
+                // Remove the command prefix from the message
+                content = content.substring(prefix.length).trim();
+                if (!content) return;
+            }
             
             const cleanContent = cleanText(content);
             if (!cleanContent.trim()) return;
@@ -106,5 +115,5 @@ export const useTTS = (isStarted: boolean) => {
              if (cancelSubscription) cancelSubscription();
              stopTTS();
         };
-    }, [settings.ttsEnabled, settings.ttsProvider, addToQueue, isStarted, stopTTS]);
+    }, [settings.ttsEnabled, settings.ttsProvider, settings.ttsCommandMode, settings.ttsCommandPrefix, addToQueue, isStarted, stopTTS]);
 };

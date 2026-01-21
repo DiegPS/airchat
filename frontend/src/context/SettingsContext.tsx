@@ -45,6 +45,8 @@ const defaultSettings: ChatSettings = {
     obsHudShowMic: true,
     obsHudShowDesktop: false,
     ttsEnabled: false,
+    ttsCommandMode: false,
+    ttsCommandPrefix: '!voice',
     ttsProvider: 'browser',
     ttsVoice: '',
 };

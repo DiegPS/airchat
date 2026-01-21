@@ -265,6 +265,13 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
         title: 'Text to Speech (TTS)',
         items: [
             { key: 'ttsEnabled', label: 'Enable TTS', type: 'toggle' },
+            { key: 'ttsCommandMode', label: 'Only read messages with command', type: 'toggle', showIf: (s) => s.ttsEnabled },
+            {
+                key: 'ttsCommandPrefix',
+                label: 'Command Prefix',
+                type: 'text',
+                showIf: (s) => s.ttsEnabled && s.ttsCommandMode
+            },
             {
                 key: 'ttsProvider',
                 label: 'Provider',

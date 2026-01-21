@@ -78,6 +78,8 @@ export interface ChatSettings {
   obsHudShowMic: boolean;
   obsHudShowDesktop: boolean;
   ttsEnabled: boolean;
+  ttsCommandMode: boolean;
+  ttsCommandPrefix: string;
   ttsProvider: string;
   ttsVoice: string;
 }
