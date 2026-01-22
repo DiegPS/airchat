@@ -66,6 +66,11 @@ export const PreviewArea: React.FC<PreviewAreaProps> = ({ messages, scrollRef, c
                                         {msg.IsModerator && <span className="badge mod-badge">MOD</span>}
                                     </>
                                 )}
+                                {settings.showTimestamp && (
+                                    <span className="timestamp" style={{ marginLeft: '8px', opacity: 0.6, fontSize: '0.85em' }}>
+                                        {new Date(msg.Timestamp).toLocaleTimeString()}
+                                    </span>
+                                )}
                             </div>
                             <div
                                 className="message-text"

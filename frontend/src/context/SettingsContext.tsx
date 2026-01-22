@@ -6,8 +6,7 @@ const defaultSettings: ChatSettings = {
     bgOpacity: 0.1,
     messageOpacity: 0.4,
     showAvatars: true,
-    showBadges: true,
-    chromaMode: false,
+    showBadges: true,    showTimestamp: false,    chromaMode: false,
     chromaColor: '#00c853',
     textStroke: 0,
     textStrokeColor: '#000000',
@@ -47,8 +46,14 @@ const defaultSettings: ChatSettings = {
     ttsEnabled: false,
     ttsCommandMode: false,
     ttsCommandPrefix: '!voice',
+    ttsSeparatorText: 'says:',
+    ttsRandomVoice: false,
     ttsProvider: 'browser',
     ttsVoice: '',
+    supertonicVoiceStyle: 'M1.json',
+    supertonicLang: 'en',
+    supertonicTotalStep: 5,
+    supertonicSpeed: 1.05,
 };
 
 interface SettingsContextType {

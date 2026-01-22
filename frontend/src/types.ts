@@ -36,6 +36,7 @@ export interface ChatSettings {
   messageOpacity: number;
   showAvatars: boolean;
   showBadges: boolean;
+  showTimestamp: boolean;
   chromaMode: boolean;
   chromaColor: string;
   textStroke: number;
@@ -80,6 +81,13 @@ export interface ChatSettings {
   ttsEnabled: boolean;
   ttsCommandMode: boolean;
   ttsCommandPrefix: string;
+  ttsSeparatorText: string;
+  ttsRandomVoice: boolean;
   ttsProvider: string;
   ttsVoice: string;
+  // Supertonic TTS Settings
+  supertonicVoiceStyle: string;
+  supertonicLang: string;
+  supertonicTotalStep: number;
+  supertonicSpeed: number;
 }

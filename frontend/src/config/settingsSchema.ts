@@ -83,6 +83,7 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
             },
             { key: 'showAvatars', label: 'Show Avatars', type: 'toggle' },
             { key: 'showBadges', label: 'Show Badges', type: 'toggle' },
+            { key: 'showTimestamp', label: 'Show Timestamps', type: 'toggle' },
         ]
     },
     {
@@ -273,11 +274,24 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
                 showIf: (s) => s.ttsEnabled && s.ttsCommandMode
             },
             {
+                key: 'ttsSeparatorText',
+                label: 'Separator Text (e.g., "says:")',
+                type: 'text',
+                showIf: (s) => s.ttsEnabled
+            },
+            {
+                key: 'ttsRandomVoice',
+                label: 'Random Voice per Message',
+                type: 'toggle',
+                showIf: (s) => s.ttsEnabled
+            },
+            {
                 key: 'ttsProvider',
                 label: 'Provider',
                 type: 'select',
                 options: [
                     { label: 'Browser API', value: 'browser' },
+                    { label: 'Supertonic 2 (Neural TTS)', value: 'supertonic' },
                     { label: 'Google Cloud TTS', value: 'google' },
                     { label: 'Amazon Polly', value: 'polly' },
                     { label: 'Microsoft Azure', value: 'azure' },
@@ -289,13 +303,65 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
                 key: 'ttsVoice',
                 label: 'Voice',
                 type: 'voice-select',
-                showIf: (s) => s.ttsEnabled && s.ttsProvider === 'browser'
+                showIf: (s) => s.ttsEnabled && s.ttsProvider === 'browser',
+                readOnly: false
             },
             {
                 key: 'ttsVoiceTest' as any,
                 label: 'Test Voice',
                 type: 'tts-test',
                 showIf: (s) => s.ttsEnabled && s.ttsProvider === 'browser'
+            },
+            {
+                key: 'supertonicVoiceStyle',
+                label: 'Voice Style',
+                type: 'select',
+                readOnly: false,
+                options: [
+                    { label: 'Male 1 (M1)', value: 'M1.json' },
+                    { label: 'Male 2 (M2)', value: 'M2.json' },
+                    { label: 'Male 3 (M3)', value: 'M3.json' },
+                    { label: 'Male 4 (M4)', value: 'M4.json' },
+                    { label: 'Male 5 (M5)', value: 'M5.json' },
+                    { label: 'Female 1 (F1)', value: 'F1.json' },
+                    { label: 'Female 2 (F2)', value: 'F2.json' },
+                    { label: 'Female 3 (F3)', value: 'F3.json' },
+                    { label: 'Female 4 (F4)', value: 'F4.json' },
+                    { label: 'Female 5 (F5)', value: 'F5.json' }
+                ],
+                showIf: (s) => s.ttsEnabled && s.ttsProvider === 'supertonic'
+            },
+            {
+                key: 'supertonicLang',
+                label: 'Language',
+                type: 'select',
+                options: [
+                    { label: 'English (en)', value: 'en' },
+                    { label: '한국어 (ko)', value: 'ko' },
+                    { label: 'Español (es)', value: 'es' },
+                    { label: 'Português (pt)', value: 'pt' },
+                    { label: 'Français (fr)', value: 'fr' }
+                ],
+                showIf: (s) => s.ttsEnabled && s.ttsProvider === 'supertonic'
+            },
+            {
+                key: 'supertonicTotalStep',
+                label: 'Quality Steps (higher = better)',
+                type: 'range',
+                min: 1,
+                max: 20,
+                step: 1,
+                showIf: (s) => s.ttsEnabled && s.ttsProvider === 'supertonic'
+            },
+            {
+                key: 'supertonicSpeed',
+                label: 'Speed',
+                type: 'range',
+                min: 0.5,
+                max: 2.0,
+                step: 0.05,
+                formatDisplay: (v) => `${v.toFixed(2)}x`,
+                showIf: (s) => s.ttsEnabled && s.ttsProvider === 'supertonic'
             }
         ]
     }
