@@ -92,24 +92,7 @@ export const StreamHUD: React.FC<{ status: OBSStatus | null }> = ({ status }) =>
                             </>
                         )}
 
-                        {settings.obsHudShowScene && status.currentScene && (
-                            <>
-                                <div style={{ width: '1px', height: '24px', background: 'rgba(255,255,255,0.2)' }} />
-                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', maxWidth: '120px' }}>
-                                    <span style={{
-                                        color: '#fff',
-                                        fontWeight: 600,
-                                        whiteSpace: 'nowrap',
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis',
-                                        maxWidth: '100%'
-                                    }}>
-                                        {status.currentScene}
-                                    </span>
-                                    <span style={{ color: '#aaa', fontSize: '0.7em' }}>SCENE</span>
-                                </div>
-                            </>
-                        )}
+
 
                         {status.dropPercentage > 0 && (
                             <>
@@ -126,6 +109,25 @@ export const StreamHUD: React.FC<{ status: OBSStatus | null }> = ({ status }) =>
                         <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#888' }} />
                         <span>OFFLINE</span>
                     </div>
+                )}
+
+                {settings.obsHudShowScene && status.currentScene && (
+                    <>
+                        <div style={{ width: '1px', height: '24px', background: 'rgba(255,255,255,0.2)' }} />
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', maxWidth: '120px' }}>
+                            <span style={{
+                                color: '#fff',
+                                fontWeight: 600,
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                maxWidth: '100%'
+                            }}>
+                                {status.currentScene}
+                            </span>
+                            <span style={{ color: '#aaa', fontSize: '0.7em' }}>SCENE</span>
+                        </div>
+                    </>
                 )}
             </div>
 
