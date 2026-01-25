@@ -13,16 +13,29 @@ export interface MessageItem {
   EmojiItem?: EmojiItem;
 }
 
+export interface Badge {
+  Thumbnail: ImageItem;
+  Label: string;
+}
+
+export interface SuperChat {
+  Amount: string;
+  Color: string;
+  Sticker?: ImageItem;
+}
+
 export interface Author {
   Name: string;
   Thumbnail: ImageItem;
   ChannelID: string;
+  Badge?: Badge;
 }
 
 export interface ChatItem {
   ID: string;
   Author: Author;
-  Message: MessageItem[];
+  Message: MessageItem[] | null;
+  SuperChat?: SuperChat;
   IsMembership: boolean;
   IsVerified: boolean;
   IsOwner: boolean;
@@ -57,6 +70,7 @@ export interface ChatSettings {
   borderRadius: number;
   textShadow: boolean;
   showBubble: boolean;
+  maxMessages: number;
   animation: string;
   animationDuration: number;
   textAlign: string;
@@ -78,6 +92,7 @@ export interface ChatSettings {
   obsHudShowBitrate: boolean;
   obsHudShowMic: boolean;
   obsHudShowDesktop: boolean;
+  obsHudShowScene: boolean;
   ttsEnabled: boolean;
   ttsCommandMode: boolean;
   ttsCommandPrefix: string;

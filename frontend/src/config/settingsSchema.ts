@@ -121,6 +121,15 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
                 showIf: (s) => s.showBubble
             },
             { key: 'messageGap', label: 'Vertical Gap', type: 'range', min: 0, max: 30, unit: 'px' },
+            {
+                key: 'maxMessages',
+                label: 'Max Messages',
+                type: 'range',
+                min: 10,
+                max: 500,
+                step: 10,
+                formatDisplay: (v) => `${v}`
+            },
             { key: 'textShadow', label: 'Drop Shadow', type: 'toggle' },
         ]
     },
@@ -259,6 +268,7 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
             { key: 'obsHudShowFps', label: 'Show FPS', type: 'toggle' },
             { key: 'obsHudShowMic', label: 'Show Microphone Controls', type: 'toggle' },
             { key: 'obsHudShowDesktop', label: 'Show Desktop Audio Controls', type: 'toggle' },
+            { key: 'obsHudShowScene', label: 'Show Current Scene', type: 'toggle' },
         ]
     },
     {

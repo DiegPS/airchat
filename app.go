@@ -146,6 +146,7 @@ type OBSStatus struct {
 	DropPercentage float64 `json:"dropPercentage"`
 	Congestion     float64 `json:"congestion"`
 	StatusColor    string  `json:"statusColor"` // "GREEN", "YELLOW", "RED", "GRAY"
+	CurrentScene   string  `json:"currentScene"`
 }
 
 // ConnectOBS connects to the OBS WebSocket and starts monitoring
@@ -302,6 +303,13 @@ func (a *App) monitorOBS(client *goobs.Client, stopSignal chan struct{}) {
 				continue
 			}
 
+			// 3) Get Current Scene
+			sceneResp, err := client.Scenes.GetCurrentProgramScene()
+			currentScene := ""
+			if err == nil {
+				currentScene = sceneResp.CurrentProgramSceneName
+			}
+
 			now := time.Now()
 			dt := now.Sub(prevT).Seconds()
 			if dt <= 0 {
@@ -355,6 +363,7 @@ func (a *App) monitorOBS(client *goobs.Client, stopSignal chan struct{}) {
 				DropPercentage: dropPct,
 				Congestion:     ss.OutputCongestion,
 				StatusColor:    statusColor,
+				CurrentScene:   currentScene,
 			}
 
 			runtime.EventsEmit(a.ctx, "obs_status", payload)

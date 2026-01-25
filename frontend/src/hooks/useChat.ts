@@ -21,6 +21,7 @@ export interface OBSStatus {
     dropPercentage: number;
     congestion: number;
     statusColor: string;
+    currentScene: string;
 }
 
 export const useChat = () => {
@@ -58,10 +59,24 @@ export const useChat = () => {
         }
     }, [messages, isStarted, isPreviewMode]);
 
+    // Truncate messages immediately when the limit setting changes
+    useEffect(() => {
+        setMessages(prev => {
+            const limit = settings.maxMessages || 100;
+            if (prev.length > limit) {
+                return prev.slice(-limit);
+            }
+            return prev;
+        });
+    }, [settings.maxMessages]);
+
     useEffect(() => {
         EventsOn("chat_message", (message: ChatItem) => {
             if (!isStartedRef.current) return;
-            setMessages(prev => [...prev.slice(-100), message]);
+            setMessages(prev => {
+                const limit = settings.maxMessages || 100;
+                return [...prev.slice(-(limit - 1)), message];
+            });
         });
 
         EventsOn("chat_started", (id: string) => {

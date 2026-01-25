@@ -10,7 +10,7 @@ export const useTTS = (isStarted: boolean) => {
     const isSpeakingRef = useRef(false);
     const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
     const ttsStartTimeRef = useRef<number | null>(null);
-    
+
     // Initialize Supertonic hook
     const { state: supertonicState, generateSpeech } = useSupertonic();
 
@@ -84,9 +84,9 @@ export const useTTS = (isStarted: boolean) => {
         }
 
         const utterance = new SpeechSynthesisUtterance(text);
-        
+
         const voices = window.speechSynthesis.getVoices();
-        
+
         if (settings.ttsRandomVoice && voices.length > 0) {
             // Select random voice
             const randomVoice = voices[Math.floor(Math.random() * voices.length)];
@@ -98,11 +98,11 @@ export const useTTS = (isStarted: boolean) => {
         }
 
         currentUtteranceRef.current = utterance;
-        
+
         utterance.onend = () => {
-             isSpeakingRef.current = false;
-             currentUtteranceRef.current = null;
-             processQueue();
+            isSpeakingRef.current = false;
+            currentUtteranceRef.current = null;
+            processQueue();
         };
 
         utterance.onerror = (e) => {
@@ -113,12 +113,12 @@ export const useTTS = (isStarted: boolean) => {
         }
 
         window.speechSynthesis.speak(utterance);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [settings.ttsVoice, settings.ttsProvider, settings.supertonicLang, settings.supertonicVoiceStyle, settings.supertonicTotalStep, settings.supertonicSpeed, supertonicState.isReady, generateSpeech]);
 
     const addToQueue = useCallback((text: string) => {
-         queueRef.current.push(text);
-         processQueue();
+        queueRef.current.push(text);
+        processQueue();
     }, [processQueue]);
 
     const cleanText = (text: string) => {
@@ -129,15 +129,15 @@ export const useTTS = (isStarted: boolean) => {
     const cleanUsername = (username: string) => {
         // Remove @ at the beginning
         let cleaned = username.startsWith('@') ? username.slice(1) : username;
-        
+
         // Remove all numbers
         const withoutNumbers = cleaned.replace(/\d+/g, '');
-        
+
         // If the result is empty or only whitespace, the username was all numbers
         if (!withoutNumbers.trim()) {
             return 'Only Numbers';
         }
-        
+
         return withoutNumbers.trim();
     };
 
@@ -164,36 +164,36 @@ export const useTTS = (isStarted: boolean) => {
         const handleMessage = (message: ChatItem) => {
             if (!isStarted) return;
             if (!settings.ttsEnabled) return;
-            
+
             // Ignore messages that arrived before TTS was enabled
             if (ttsStartTimeRef.current === null) {
                 ttsStartTimeRef.current = Date.now();
                 return;
             }
-            
+
             // Parse message timestamp and ignore old messages
             const messageTime = new Date(message.Timestamp).getTime();
             if (messageTime < ttsStartTimeRef.current) {
                 return;
             }
-            
+
             // Check provider-specific readiness
             if (settings.ttsProvider === 'supertonic' && !supertonicState.isReady) {
                 console.log("TTS: Supertonic not ready yet, skipping message");
                 return;
             }
-            
+
             if (settings.ttsProvider === 'browser' && !window.speechSynthesis) {
                 console.warn("TTS: Browser does not support speechSynthesis");
                 return;
             }
-            
+
             // Basic heuristic to skip system messages or commands if any
-            if (message.Message.length === 0) return;
+            if (!message.Message || message.Message.length === 0) return;
 
             const author = cleanUsername(message.Author.Name);
             let content = message.Message.map(m => m.Text).join(' ');
-            
+
             // Check for command mode
             if (settings.ttsCommandMode && settings.ttsCommandPrefix) {
                 const prefix = settings.ttsCommandPrefix.trim();
@@ -202,7 +202,7 @@ export const useTTS = (isStarted: boolean) => {
                 content = content.substring(prefix.length).trim();
                 if (!content) return;
             }
-            
+
             const cleanContent = cleanText(content);
             if (!cleanContent.trim()) return;
 
@@ -213,7 +213,7 @@ export const useTTS = (isStarted: boolean) => {
         };
 
         let cancelSubscription: (() => void) | undefined;
-        
+
         try {
             cancelSubscription = EventsOn("chat_message", handleMessage);
         } catch (err) {
@@ -221,8 +221,8 @@ export const useTTS = (isStarted: boolean) => {
         }
 
         return () => {
-             if (cancelSubscription) cancelSubscription();
-             stopTTS();
+            if (cancelSubscription) cancelSubscription();
+            stopTTS();
         };
     }, [settings.ttsEnabled, settings.ttsProvider, settings.ttsCommandMode, settings.ttsCommandPrefix, settings.ttsSeparatorText, settings.ttsRandomVoice, addToQueue, isStarted, stopTTS, supertonicState.isReady]);
 };
