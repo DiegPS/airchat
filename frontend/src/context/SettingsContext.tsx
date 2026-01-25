@@ -11,6 +11,7 @@ const defaultSettings: ChatSettings = {
     textStroke: 0,
     textStrokeColor: '#000000',
     threeDEnabled: false,
+    hideScrollbar: false,
     perspective: 1000,
     rotateX: 0,
     rotateY: 0,
@@ -67,12 +68,25 @@ interface SettingsContextType {
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 export const SettingsProvider = ({ children }: { children: ReactNode }) => {
-    const [settings, setSettings] = useState<ChatSettings>(defaultSettings);
+    // 1. Initialize from localStorage (lazy initialization)
+    const [settings, setSettings] = useState<ChatSettings>(() => {
+        try {
+            const saved = localStorage.getItem('AIRCHAT_SETTINGS');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                // Merge with defaultSettings to ensure new keys are added if missing in localStorage
+                return { ...defaultSettings, ...parsed };
+            }
+        } catch (e) {
+            console.error("Failed to load settings from localStorage:", e);
+        }
+        return defaultSettings;
+    });
 
-    // Patch missing keys on mount/update (fixes HMR/Migration issues)
+    // 2. Save to localStorage whenever settings change
     React.useEffect(() => {
-        setSettings(prev => ({ ...defaultSettings, ...prev }));
-    }, []);
+        localStorage.setItem('AIRCHAT_SETTINGS', JSON.stringify(settings));
+    }, [settings]);
 
     const updateSettings = (newSettings: Partial<ChatSettings>) => {
         setSettings(prev => ({ ...prev, ...newSettings }));

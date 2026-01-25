@@ -469,6 +469,15 @@ body {
   padding-top: 0;
 }
 
+/* Hide Scrollbar CSS */
+.preview-area.no-scrollbar .chat-overlay::-webkit-scrollbar {
+  display: none;
+}
+.preview-area.no-scrollbar .chat-overlay {
+  -ms-overflow-style: none;  /* IE */
+  scrollbar-width: none;  /* Firefox */
+}
+
 .preview-area.chroma-active,
 .preview-area.no-grid {
   background-image: none !important;

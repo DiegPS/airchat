@@ -15,7 +15,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = ({ messages, scrollRef, c
 
     return (
         <main
-            className={`preview-area ${settings.chromaMode ? 'chroma-active' : ''} ${!settings.showGrid ? 'no-grid' : ''}`}
+            className={`preview-area ${settings.chromaMode ? 'chroma-active' : ''} ${!settings.showGrid ? 'no-grid' : ''} ${settings.hideScrollbar ? 'no-scrollbar' : ''}`}
             style={{
                 backgroundColor: settings.chromaMode ? settings.chromaColor : `rgba(0,0,0,${settings.bgOpacity})`,
                 perspective: settings.threeDEnabled ? `${settings.perspective}px` : 'none'

@@ -55,6 +55,7 @@ export interface ChatSettings {
   textStroke: number;
   textStrokeColor: string;
   threeDEnabled: boolean;
+  hideScrollbar: boolean;
   perspective: number;
   rotateX: number;
   rotateY: number;

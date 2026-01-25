@@ -34,6 +34,7 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
         items: [
             { key: 'chromaMode', label: 'Chroma Key Mode', type: 'toggle' },
             { key: 'showGrid', label: 'Show Preview Grid', type: 'toggle' },
+            { key: 'hideScrollbar', label: 'Hide Scrollbar', type: 'toggle' },
             {
                 key: 'chromaColor',
                 label: 'Chroma Color',
