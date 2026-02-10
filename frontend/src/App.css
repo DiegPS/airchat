@@ -473,9 +473,12 @@ body {
 .preview-area.no-scrollbar .chat-overlay::-webkit-scrollbar {
   display: none;
 }
+
 .preview-area.no-scrollbar .chat-overlay {
-  -ms-overflow-style: none;  /* IE */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE */
+  scrollbar-width: none;
+  /* Firefox */
 }
 
 .preview-area.chroma-active,
@@ -551,6 +554,15 @@ body {
 .mod-badge {
   background: var(--mod-color);
   color: #fff;
+}
+
+.custom-badge {
+  font-size: 1.25rem;
+  padding: 0 4px;
+  background: transparent;
+  vertical-align: middle;
+  display: inline-flex;
+  align-items: center;
 }
 
 .message-text {

@@ -94,7 +94,10 @@ export interface ChatSettings {
   obsHudShowMic: boolean;
   obsHudShowDesktop: boolean;
   obsHudShowScene: boolean;
+
+  // TTS Settings
   ttsEnabled: boolean;
+  ttsMembersOnly: boolean; // New setting
   ttsCommandMode: boolean;
   ttsCommandPrefix: string;
   ttsSeparatorText: string;

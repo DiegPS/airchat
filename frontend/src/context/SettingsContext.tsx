@@ -47,6 +47,7 @@ const defaultSettings: ChatSettings = {
     obsHudShowDesktop: false,
     obsHudShowScene: false,
     ttsEnabled: false,
+    ttsMembersOnly: false,
     ttsCommandMode: false,
     ttsCommandPrefix: '!voice',
     ttsSeparatorText: 'says:',

@@ -165,6 +165,12 @@ export const useTTS = (isStarted: boolean) => {
             if (!isStarted) return;
             if (!settings.ttsEnabled) return;
 
+            // Check if members-only mode is active
+            if (settings.ttsMembersOnly) {
+                const isMember = message.IsMembership || !!message.Author.Badge;
+                if (!isMember) return;
+            }
+
             // Ignore messages that arrived before TTS was enabled
             if (ttsStartTimeRef.current === null) {
                 ttsStartTimeRef.current = Date.now();
