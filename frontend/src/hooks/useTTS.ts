@@ -11,6 +11,8 @@ export const useTTS = (isStarted: boolean) => {
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
     const ttsStartTimeRef = useRef<number | null>(null);
+    const generationIdRef = useRef(0);
+    const processedMessagesRef = useRef<Set<string>>(new Set());
 
     // Initialize Supertonic hook
     const { state: supertonicState, generateSpeech } = useSupertonic();
@@ -39,6 +41,7 @@ export const useTTS = (isStarted: boolean) => {
                 voiceStyle = voiceOptions[Math.floor(Math.random() * voiceOptions.length)];
             }
 
+            const currentGenId = ++generationIdRef.current;
             generateSpeech({
                 text,
                 lang: settings.supertonicLang,
@@ -49,6 +52,10 @@ export const useTTS = (isStarted: boolean) => {
                     console.log(`Supertonic TTS: Denoising ${step}/${total}`);
                 }
             }).then((result) => {
+                if (currentGenId !== generationIdRef.current) {
+                    URL.revokeObjectURL(result.audioUrl);
+                    return;
+                }
                 // Play the generated audio
                 const audio = new Audio(result.audioUrl);
                 audioRef.current = audio;
@@ -171,6 +178,8 @@ export const useTTS = (isStarted: boolean) => {
         queueRef.current = [];
         isSpeakingRef.current = false;
         currentUtteranceRef.current = null;
+        generationIdRef.current++;
+        processedMessagesRef.current.clear();
     }, []);
 
     useEffect(() => {
@@ -187,6 +196,16 @@ export const useTTS = (isStarted: boolean) => {
         const handleMessage = (message: ChatItem) => {
             if (!isStarted) return;
             if (!settings.ttsEnabled) return;
+
+            if (message.ID) {
+                if (processedMessagesRef.current.has(message.ID)) return;
+                processedMessagesRef.current.add(message.ID);
+                
+                if (processedMessagesRef.current.size > 200) {
+                    const arr = Array.from(processedMessagesRef.current);
+                    processedMessagesRef.current = new Set(arr.slice(arr.length - 100));
+                }
+            }
 
             // Check if members-only mode is active
             if (settings.ttsMembersOnly) {
@@ -246,7 +265,6 @@ export const useTTS = (isStarted: boolean) => {
 
         return () => {
             if (cancelSubscription) cancelSubscription();
-            stopTTS();
         };
-    }, [settings.ttsEnabled, settings.ttsProvider, settings.ttsCommandMode, settings.ttsCommandPrefix, settings.ttsSeparatorText, settings.ttsRandomVoice, addToQueue, isStarted, stopTTS, supertonicState.isReady]);
+    }, [settings.ttsEnabled, settings.ttsProvider, settings.ttsCommandMode, settings.ttsCommandPrefix, settings.ttsSeparatorText, settings.ttsRandomVoice, addToQueue, isStarted, supertonicState.isReady]);
 };

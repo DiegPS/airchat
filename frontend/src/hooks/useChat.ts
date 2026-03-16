@@ -74,6 +74,10 @@ export const useChat = () => {
         EventsOn("chat_message", (message: ChatItem) => {
             if (!isStartedRef.current) return;
             setMessages(prev => {
+                // Prevent duplicate messages in UI if YouTube's API resends the same batch
+                if (message.ID && prev.some(m => m.ID === message.ID)) {
+                    return prev;
+                }
                 const limit = settings.maxMessages || 100;
                 return [...prev.slice(-(limit - 1)), message];
             });
