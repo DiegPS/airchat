@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ChatSettings } from '../types';
 import { SettingConfig } from '../config/settingsSchema';
 import { useSettings } from '../context/SettingsContext';
+import { useSupertonic } from '../hooks/supertonic2/useSupertonic';
 
 interface SettingControlProps {
     config: SettingConfig;
@@ -214,21 +215,72 @@ export const SettingControl: React.FC<SettingControlProps> = ({ config, value, o
 
 const TTSTestControl: React.FC = () => {
     const { settings } = useSettings(); 
+    const { state: supertonicState, generateSpeech } = useSupertonic();
     const [text, setText] = useState('Welcome to the stream!');
+    const [isTesting, setIsTesting] = useState(false);
 
-    const speak = () => {
-        if (!window.speechSynthesis) return;
-        window.speechSynthesis.cancel();
+    const speak = async () => {
+        if (!text.trim() || isTesting) return;
         
-        const utterance = new SpeechSynthesisUtterance(text);
-        
-        if (settings.ttsVoice) {
-            const voices = window.speechSynthesis.getVoices();
-            const selectedVoice = voices.find(v => v.name === settings.ttsVoice);
-            if (selectedVoice) utterance.voice = selectedVoice;
+        setIsTesting(true);
+
+        try {
+            if (settings.ttsProvider === 'supertonic') {
+                if (!supertonicState.isReady) {
+                    console.warn("Supertonic is not ready yet");
+                    setIsTesting(false);
+                    return;
+                }
+
+                let voiceStyle = settings.supertonicVoiceStyle;
+                if (settings.ttsRandomVoice) {
+                    const voiceOptions = ['M1.json', 'M2.json', 'M3.json', 'M4.json', 'M5.json', 'F1.json', 'F2.json', 'F3.json', 'F4.json', 'F5.json'];
+                    voiceStyle = voiceOptions[Math.floor(Math.random() * voiceOptions.length)];
+                }
+
+                const result = await generateSpeech({
+                    text,
+                    lang: settings.supertonicLang,
+                    voiceStyle: voiceStyle,
+                    totalStep: settings.supertonicTotalStep,
+                    speed: settings.supertonicSpeed
+                });
+
+                const audio = new Audio(result.audioUrl);
+                audio.onended = () => {
+                    URL.revokeObjectURL(result.audioUrl);
+                    setIsTesting(false);
+                };
+                audio.onerror = () => {
+                    URL.revokeObjectURL(result.audioUrl);
+                    setIsTesting(false);
+                };
+                audio.play().catch(() => setIsTesting(false));
+                
+            } else {
+                if (!window.speechSynthesis) {
+                    setIsTesting(false);
+                    return;
+                }
+                window.speechSynthesis.cancel();
+                
+                const utterance = new SpeechSynthesisUtterance(text);
+                
+                if (settings.ttsVoice) {
+                    const voices = window.speechSynthesis.getVoices();
+                    const selectedVoice = voices.find(v => v.name === settings.ttsVoice);
+                    if (selectedVoice) utterance.voice = selectedVoice;
+                }
+                
+                utterance.onend = () => setIsTesting(false);
+                utterance.onerror = () => setIsTesting(false);
+                
+                window.speechSynthesis.speak(utterance);
+            }
+        } catch (error) {
+            console.error("Test TTS Error:", error);
+            setIsTesting(false);
         }
-        
-        window.speechSynthesis.speak(utterance);
     };
 
     return (
@@ -240,13 +292,20 @@ const TTSTestControl: React.FC = () => {
                     onChange={e => setText(e.target.value)}
                     className="setting-input"
                     placeholder="Type to test..."
+                    disabled={isTesting}
                 />
                 <button 
                     onClick={speak}
                     className="btn-primary"
-                    style={{ padding: '0.5rem 1rem', whiteSpace: 'nowrap' }}
+                    disabled={isTesting}
+                    style={{ 
+                        padding: '0.5rem 1rem', 
+                        whiteSpace: 'nowrap',
+                        opacity: isTesting ? 0.7 : 1,
+                        cursor: isTesting ? 'not-allowed' : 'pointer'
+                    }}
                 >
-                    Test 🔊
+                    {isTesting ? 'Playing...' : 'Test 🔊'}
                 </button>
              </div>
         </div>

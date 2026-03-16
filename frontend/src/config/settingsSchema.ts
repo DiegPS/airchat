@@ -322,7 +322,7 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
                 key: 'ttsVoiceTest' as any,
                 label: 'Test Voice',
                 type: 'tts-test',
-                showIf: (s) => s.ttsEnabled && s.ttsProvider === 'browser'
+                showIf: (s) => s.ttsEnabled && (s.ttsProvider === 'browser' || s.ttsProvider === 'supertonic')
             },
             {
                 key: 'supertonicVoiceStyle',
