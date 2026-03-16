@@ -210,7 +210,20 @@ export const useTTS = (isStarted: boolean) => {
             // Check if members-only mode is active
             if (settings.ttsMembersOnly) {
                 const isMember = message.IsMembership || !!message.Author.Badge;
-                if (!isMember) return;
+                let isCustomAllowed = false;
+
+                if (settings.ttsAllowCustomUsers && settings.ttsCustomUsersList) {
+                    const allowedUsers = settings.ttsCustomUsersList.split(',').map(u => u.trim().toLowerCase());
+                    const currentAuthorRaw = message.Author.Name.toLowerCase().trim();
+                    const currentAuthor = currentAuthorRaw.startsWith('@') ? currentAuthorRaw.slice(1) : currentAuthorRaw;
+                    const cleanAuthor = cleanUsername(message.Author.Name).toLowerCase();
+
+                    if (allowedUsers.includes(currentAuthor) || allowedUsers.includes(cleanAuthor)) {
+                        isCustomAllowed = true;
+                    }
+                }
+
+                if (!isMember && !isCustomAllowed) return;
             }
 
             // Ignore messages that arrived before TTS was enabled
@@ -266,5 +279,5 @@ export const useTTS = (isStarted: boolean) => {
         return () => {
             if (cancelSubscription) cancelSubscription();
         };
-    }, [settings.ttsEnabled, settings.ttsProvider, settings.ttsCommandMode, settings.ttsCommandPrefix, settings.ttsSeparatorText, settings.ttsRandomVoice, addToQueue, isStarted, supertonicState.isReady]);
+    }, [settings.ttsEnabled, settings.ttsMembersOnly, settings.ttsAllowCustomUsers, settings.ttsCustomUsersList, settings.ttsProvider, settings.ttsCommandMode, settings.ttsCommandPrefix, settings.ttsSeparatorText, settings.ttsRandomVoice, addToQueue, isStarted, supertonicState.isReady]);
 };

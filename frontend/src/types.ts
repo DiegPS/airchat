@@ -98,6 +98,8 @@ export interface ChatSettings {
   // TTS Settings
   ttsEnabled: boolean;
   ttsMembersOnly: boolean; // New setting
+  ttsAllowCustomUsers: boolean;
+  ttsCustomUsersList: string;
   ttsCommandMode: boolean;
   ttsCommandPrefix: string;
   ttsSeparatorText: string;

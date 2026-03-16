@@ -1,6 +1,6 @@
 import { ChatSettings } from '../types';
 
-export type SettingType = 'toggle' | 'range' | 'color' | 'select' | 'text' | 'number' | 'button' | 'voice-select' | 'tts-test';
+export type SettingType = 'toggle' | 'range' | 'color' | 'select' | 'text' | 'textarea' | 'number' | 'button' | 'voice-select' | 'tts-test';
 
 export interface SettingConfig {
     key: keyof ChatSettings;
@@ -278,6 +278,13 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
         items: [
             { key: 'ttsEnabled', label: 'Enable TTS', type: 'toggle' },
             { key: 'ttsMembersOnly', label: 'Members Only', type: 'toggle', showIf: (s) => s.ttsEnabled },
+            { key: 'ttsAllowCustomUsers', label: 'Allow Custom Users (Bypass Members Mode)', type: 'toggle', showIf: (s) => s.ttsEnabled && s.ttsMembersOnly },
+            { 
+                key: 'ttsCustomUsersList', 
+                label: 'Custom Usernames (comma separated)', 
+                type: 'textarea', 
+                showIf: (s) => s.ttsEnabled && s.ttsMembersOnly && s.ttsAllowCustomUsers 
+            },
             { key: 'ttsCommandMode', label: 'Only read messages with command', type: 'toggle', showIf: (s) => s.ttsEnabled },
             {
                 key: 'ttsCommandPrefix',

@@ -107,6 +107,23 @@ export const SettingControl: React.FC<SettingControlProps> = ({ config, value, o
         );
     }
 
+    if (config.type === 'textarea') {
+        return (
+            <div className="setting-group animate-in">
+                <label>{config.label}</label>
+                <textarea
+                    value={value as string || ''}
+                    onChange={(e) => onChange(e.target.value)}
+                    className="setting-input"
+                    rows={3}
+                    readOnly={config.readOnly}
+                    disabled={config.readOnly}
+                    style={{...(config.readOnly ? { opacity: 0.7, cursor: 'default' } : {}), resize: 'vertical'}}
+                />
+            </div>
+        );
+    }
+
     if (config.type === 'number') {
         return (
             <div className="setting-group animate-in">
