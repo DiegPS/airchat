@@ -8,6 +8,7 @@ export const useTTS = (isStarted: boolean) => {
     const { settings } = useSettings();
     const queueRef = useRef<string[]>([]);
     const isSpeakingRef = useRef(false);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
     const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
     const ttsStartTimeRef = useRef<number | null>(null);
 
@@ -26,8 +27,8 @@ export const useTTS = (isStarted: boolean) => {
         if (settings.ttsProvider === 'supertonic') {
             if (!supertonicState.isReady) {
                 console.warn("TTS: Supertonic is not ready yet");
+                queueRef.current.unshift(text);
                 isSpeakingRef.current = false;
-                processQueue();
                 return;
             }
 
@@ -50,22 +51,32 @@ export const useTTS = (isStarted: boolean) => {
             }).then((result) => {
                 // Play the generated audio
                 const audio = new Audio(result.audioUrl);
+                audioRef.current = audio;
                 audio.onended = () => {
                     URL.revokeObjectURL(result.audioUrl);
-                    isSpeakingRef.current = false;
-                    processQueue();
+                    if (audioRef.current === audio) {
+                        audioRef.current = null;
+                        isSpeakingRef.current = false;
+                        processQueue();
+                    }
                 };
                 audio.onerror = (e) => {
                     console.error("TTS Audio Playback Error:", e);
                     URL.revokeObjectURL(result.audioUrl);
-                    isSpeakingRef.current = false;
-                    processQueue();
+                    if (audioRef.current === audio) {
+                        audioRef.current = null;
+                        isSpeakingRef.current = false;
+                        processQueue();
+                    }
                 };
                 audio.play().catch(err => {
                     console.error("TTS Audio Play Error:", err);
                     URL.revokeObjectURL(result.audioUrl);
-                    isSpeakingRef.current = false;
-                    processQueue();
+                    if (audioRef.current === audio) {
+                        audioRef.current = null;
+                        isSpeakingRef.current = false;
+                        processQueue();
+                    }
                 });
             }).catch((error) => {
                 console.error("Supertonic TTS Error:", error);
@@ -121,6 +132,13 @@ export const useTTS = (isStarted: boolean) => {
         processQueue();
     }, [processQueue]);
 
+    // Process queue when Supertonic becomes ready
+    useEffect(() => {
+        if (settings.ttsProvider === 'supertonic' && supertonicState.isReady) {
+            processQueue();
+        }
+    }, [supertonicState.isReady, settings.ttsProvider, processQueue]);
+
     const cleanText = (text: string) => {
         // Remove URLs
         return text.replace(/(?:https?|ftp):\/\/[\n\S]+/g, 'link');
@@ -144,6 +162,11 @@ export const useTTS = (isStarted: boolean) => {
     const stopTTS = useCallback(() => {
         if (window.speechSynthesis) {
             window.speechSynthesis.cancel();
+        }
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.src = "";
+            audioRef.current = null;
         }
         queueRef.current = [];
         isSpeakingRef.current = false;
@@ -184,11 +207,6 @@ export const useTTS = (isStarted: boolean) => {
             }
 
             // Check provider-specific readiness
-            if (settings.ttsProvider === 'supertonic' && !supertonicState.isReady) {
-                console.log("TTS: Supertonic not ready yet, skipping message");
-                return;
-            }
-
             if (settings.ttsProvider === 'browser' && !window.speechSynthesis) {
                 console.warn("TTS: Browser does not support speechSynthesis");
                 return;
@@ -202,10 +220,10 @@ export const useTTS = (isStarted: boolean) => {
 
             // Check for command mode
             if (settings.ttsCommandMode && settings.ttsCommandPrefix) {
-                const prefix = settings.ttsCommandPrefix.trim();
-                if (!content.startsWith(prefix)) return;
+                const prefix = settings.ttsCommandPrefix.trim().toLowerCase();
+                if (!content.toLowerCase().startsWith(prefix)) return;
                 // Remove the command prefix from the message
-                content = content.substring(prefix.length).trim();
+                content = content.substring(settings.ttsCommandPrefix.trim().length).trim();
                 if (!content) return;
             }
 
