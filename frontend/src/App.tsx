@@ -1,17 +1,15 @@
 import { useState, useEffect } from 'react';
-import { HashRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { HashRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import './App.css';
 import { SettingsProvider } from './context/SettingsContext';
 import { useChat } from './hooks/useChat';
 import { useTTS } from './hooks/useTTS';
 import { HomePage } from './pages/HomePage';
 import { ChatPage } from './pages/ChatPage';
-import { VtuberPage } from './pages/VtuberPage';
 import { SetClickThrough } from '../wailsjs/go/main/App';
 
 function AppContent() {
     const navigate = useNavigate();
-    const location = useLocation();
     const {
         messages,
         isStarted,
@@ -32,17 +30,14 @@ function AppContent() {
     const [showUI, setShowUI] = useState(true);
     const isSetup = !isStarted && !isPreviewMode;
 
-    // Navigate based on setup state (but don't interfere with manual navigation)
+    // Navigate based on setup state
     useEffect(() => {
-        // Don't auto-navigate if we're on the vtuber page
-        if (location.pathname === '/vtuber') return;
-        
         if (isSetup) {
             navigate('/');
         } else {
             navigate('/chat');
         }
-    }, [isSetup, navigate, location.pathname]);
+    }, [isSetup, navigate]);
 
     // Reset UI visibility when entering setup mode or starting a new session
     useEffect(() => {
@@ -97,10 +92,6 @@ function AppContent() {
                         obsStatus={obsStatus}
                     />
                 } 
-            />
-            <Route 
-                path="/vtuber" 
-                element={<VtuberPage />} 
             />
         </Routes>
     );
