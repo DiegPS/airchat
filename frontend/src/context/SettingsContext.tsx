@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useMemo, useCallback, ReactNode } from 'react';
 import { ChatSettings } from '../types';
 
 const defaultSettings: ChatSettings = {
@@ -91,16 +91,21 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         localStorage.setItem('AIRCHAT_SETTINGS', JSON.stringify(settings));
     }, [settings]);
 
-    const updateSettings = (newSettings: Partial<ChatSettings>) => {
+    const updateSettings = useCallback((newSettings: Partial<ChatSettings>) => {
         setSettings(prev => ({ ...prev, ...newSettings }));
-    };
+    }, []);
 
-    const resetSettings = () => {
+    const resetSettings = useCallback(() => {
         setSettings(defaultSettings);
-    };
+    }, []);
+
+    const value = useMemo(
+        () => ({ settings, updateSettings, resetSettings }),
+        [settings, updateSettings, resetSettings]
+    );
 
     return (
-        <SettingsContext.Provider value={{ settings, updateSettings, resetSettings }}>
+        <SettingsContext.Provider value={value}>
             {children}
         </SettingsContext.Provider>
     );
