@@ -28,8 +28,9 @@ type App struct {
 	stopSignal chan struct{}
 	hwnd       win.HWND
 
-	obsClient *goobs.Client
-	obsStop   chan struct{}
+	obsClient   *goobs.Client
+	obsStop     chan struct{}
+	obsClientMu sync.RWMutex // protects obsClient and obsStop
 }
 
 // NewApp creates a new App application struct
@@ -155,35 +156,53 @@ func (a *App) ConnectOBS(host, password string) error {
 		host = "localhost:4455"
 	}
 
+	// Network call outside the lock — can take hundreds of ms.
 	client, err := goobs.New(host, goobs.WithPassword(password))
 	if err != nil {
 		return err
 	}
 
-	if a.obsClient != nil {
-		_ = a.obsClient.Disconnect()
-		if a.obsStop != nil {
-			close(a.obsStop)
-		}
+	sig := make(chan struct{})
+
+	// Swap in the new client/signal atomically and collect the old ones for cleanup.
+	a.obsClientMu.Lock()
+	oldClient := a.obsClient
+	oldStop := a.obsStop
+	a.obsClient = client
+	a.obsStop = sig
+	a.obsClientMu.Unlock()
+
+	// Clean up the previous session outside the lock so cleanup work doesn't
+	// block readers.
+	if oldStop != nil {
+		close(oldStop)
+	}
+	if oldClient != nil {
+		_ = oldClient.Disconnect()
 	}
 
-	a.obsClient = client
-	a.obsStop = make(chan struct{})
-
-	go a.monitorOBS(client, a.obsStop)
+	go a.monitorOBS(client, sig)
 
 	return nil
 }
 
 // DisconnectOBS disconnects from OBS
 func (a *App) DisconnectOBS() {
-	if a.obsClient != nil {
-		_ = a.obsClient.Disconnect()
-		a.obsClient = nil
+	// Grab and nil out the fields atomically so no other goroutine can observe
+	// a non-nil client that is mid-disconnect.
+	a.obsClientMu.Lock()
+	client := a.obsClient
+	sig := a.obsStop
+	a.obsClient = nil
+	a.obsStop = nil
+	a.obsClientMu.Unlock()
+
+	// Cleanup outside the lock.
+	if sig != nil {
+		close(sig)
 	}
-	if a.obsStop != nil {
-		close(a.obsStop)
-		a.obsStop = nil
+	if client != nil {
+		_ = client.Disconnect()
 	}
 }
 
@@ -196,12 +215,16 @@ type OBSAudioInput struct {
 
 // GetOBSAudioInputs gets the special audio inputs (Mic and Desktop)
 func (a *App) GetOBSAudioInputs() (map[string]OBSAudioInput, error) {
-	if a.obsClient == nil {
+	a.obsClientMu.RLock()
+	client := a.obsClient
+	a.obsClientMu.RUnlock()
+
+	if client == nil {
 		return nil, fmt.Errorf("not connected to OBS")
 	}
 
 	// Get special inputs
-	specialInputs, err := a.obsClient.Inputs.GetSpecialInputs()
+	specialInputs, err := client.Inputs.GetSpecialInputs()
 	if err != nil {
 		return nil, err
 	}
@@ -211,7 +234,7 @@ func (a *App) GetOBSAudioInputs() (map[string]OBSAudioInput, error) {
 	// Check Mic/Aux (usually microphone)
 	if specialInputs.Mic1 != "" {
 		micName := specialInputs.Mic1
-		muted, vol, err := a.getInputAudioState(micName)
+		muted, vol, err := getInputAudioState(client, micName)
 		if err == nil {
 			result["microphone"] = OBSAudioInput{Name: micName, Muted: muted, Volume: vol}
 		}
@@ -220,7 +243,7 @@ func (a *App) GetOBSAudioInputs() (map[string]OBSAudioInput, error) {
 	// Check Desktop Audio
 	if specialInputs.Desktop1 != "" {
 		desktopName := specialInputs.Desktop1
-		muted, vol, err := a.getInputAudioState(desktopName)
+		muted, vol, err := getInputAudioState(client, desktopName)
 		if err == nil {
 			result["desktop"] = OBSAudioInput{Name: desktopName, Muted: muted, Volume: vol}
 		}
@@ -229,16 +252,17 @@ func (a *App) GetOBSAudioInputs() (map[string]OBSAudioInput, error) {
 	return result, nil
 }
 
-// Helper to get audio state
-func (a *App) getInputAudioState(inputName string) (bool, float64, error) {
-	muteResp, err := a.obsClient.Inputs.GetInputMute(&inputs.GetInputMuteParams{
+// getInputAudioState is a pure helper — it receives the already-snapshotted client
+// so callers don't need to hold any lock while this runs.
+func getInputAudioState(client *goobs.Client, inputName string) (bool, float64, error) {
+	muteResp, err := client.Inputs.GetInputMute(&inputs.GetInputMuteParams{
 		InputName: &inputName,
 	})
 	if err != nil {
 		return false, 0, err
 	}
 
-	volResp, err := a.obsClient.Inputs.GetInputVolume(&inputs.GetInputVolumeParams{
+	volResp, err := client.Inputs.GetInputVolume(&inputs.GetInputVolumeParams{
 		InputName: &inputName,
 	})
 	if err != nil {
@@ -250,10 +274,14 @@ func (a *App) getInputAudioState(inputName string) (bool, float64, error) {
 
 // SetOBSInputMute mutes or unmutes an audio input
 func (a *App) SetOBSInputMute(inputName string, muted bool) error {
-	if a.obsClient == nil {
+	a.obsClientMu.RLock()
+	client := a.obsClient
+	a.obsClientMu.RUnlock()
+
+	if client == nil {
 		return fmt.Errorf("not connected to OBS")
 	}
-	_, err := a.obsClient.Inputs.SetInputMute(&inputs.SetInputMuteParams{
+	_, err := client.Inputs.SetInputMute(&inputs.SetInputMuteParams{
 		InputName:  &inputName,
 		InputMuted: &muted,
 	})
@@ -262,10 +290,14 @@ func (a *App) SetOBSInputMute(inputName string, muted bool) error {
 
 // SetOBSInputVolume sets the volume of an audio input (in dB)
 func (a *App) SetOBSInputVolume(inputName string, volumeDb float64) error {
-	if a.obsClient == nil {
+	a.obsClientMu.RLock()
+	client := a.obsClient
+	a.obsClientMu.RUnlock()
+
+	if client == nil {
 		return fmt.Errorf("not connected to OBS")
 	}
-	_, err := a.obsClient.Inputs.SetInputVolume(&inputs.SetInputVolumeParams{
+	_, err := client.Inputs.SetInputVolume(&inputs.SetInputVolumeParams{
 		InputName:     &inputName,
 		InputVolumeDb: &volumeDb,
 	})
@@ -402,9 +434,16 @@ func (a *App) StartChat(channelID string) error {
 	a.lcMu.Lock()
 	defer a.lcMu.Unlock()
 
+	// Stop any existing session and clean up immediately so that any error path
+	// below leaves the struct in a consistent nil state, preventing a double-close
+	// panic on the next call.
 	if a.lc != nil {
 		a.lc.Stop("Starting new session")
+		a.lc = nil
+	}
+	if a.stopSignal != nil {
 		close(a.stopSignal)
+		a.stopSignal = nil
 	}
 
 	lc, err := youtubechat.NewLiveChat(types.YoutubeId{ChannelID: channelID}, 1000)
@@ -412,15 +451,16 @@ func (a *App) StartChat(channelID string) error {
 		return err
 	}
 
-	a.lc = lc
-	a.stopSignal = make(chan struct{})
-
-	ok := a.lc.Start()
+	sig := make(chan struct{})
+	ok := lc.Start()
 	if !ok {
 		return fmt.Errorf("failed to start live chat observation")
 	}
 
-	go a.handleChatEvents(lc, a.stopSignal)
+	a.lc = lc
+	a.stopSignal = sig
+
+	go a.handleChatEvents(lc, sig)
 
 	return nil
 }
