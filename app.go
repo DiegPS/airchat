@@ -105,26 +105,26 @@ func (a *App) StartPreviewChat() {
 			"IsOwner": true, "IsModerator": false, "IsMembership": false, "IsVerified": false,
 			"Timestamp": now.Format(time.RFC3339),
 		},
-		// Twitch — mod + emote BTTV monkaS
+		// Twitch — mod + emote BTTV KKona (global real)
 		{
 			"Platform": "twitch", "ID": "p6",
 			"Author":  map[string]interface{}{"Name": "ModTwitch", "ChannelID": "F", "Thumbnail": map[string]interface{}{"URL": "", "Alt": "M"}},
 			"Message": []map[string]interface{}{
 				txt("BTTV emote: "),
-				emote("https://cdn.betterttv.net/emote/56e9f494fff3cc5c35e5287e/1x", "monkaS", true),
+				emote("https://cdn.betterttv.net/emote/566ca04265dbbdab32ec054a/1x", "KKona", true),
 			},
 			"IsOwner": false, "IsModerator": true, "IsMembership": false, "IsVerified": false,
 			"Timestamp": now.Format(time.RFC3339),
 		},
-		// Twitch — sub + BTTV OMEGALUL + 7TV GIGACHAD
+		// Twitch — sub + BTTV haHAA + 7TV PETPET (ambos emotes globales reales)
 		{
 			"Platform": "twitch", "ID": "p7",
 			"Author":  map[string]interface{}{"Name": "SubTwitch", "ChannelID": "G", "Thumbnail": map[string]interface{}{"URL": "", "Alt": "S"}},
 			"Message": []map[string]interface{}{
 				txt("Mix BTTV+7TV: "),
-				emote("https://cdn.betterttv.net/emote/583089f4737a8a4d28b9d5d3/1x", "OMEGALUL", true),
+				emote("https://cdn.betterttv.net/emote/555981336ba1901877765555/1x", "haHAA", true),
 				txt(" "),
-				emote("https://cdn.7tv.app/emote/60ae4fc00e35477cc26e1e7a/1x.webp", "GIGACHAD", true),
+				emote("https://cdn.7tv.app/emote/01FE3XY508000AA32JP519W2EW/1x.webp", "PETPET", true),
 			},
 			"IsOwner": false, "IsModerator": false, "IsMembership": true, "IsVerified": false,
 			"Timestamp": now.Format(time.RFC3339),
