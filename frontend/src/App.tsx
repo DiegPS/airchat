@@ -13,11 +13,15 @@ function AppContent() {
     const {
         messages,
         isStarted,
+        isTwitchStarted,
         error,
+        twitchError,
         liveId,
         isPreviewMode,
         channelId,
         setChannelId,
+        twitchChannel,
+        setTwitchChannel,
         startChat,
         startPreview,
         stopChat,
@@ -25,10 +29,10 @@ function AppContent() {
         obsStatus
     } = useChat();
 
-    useTTS(isStarted);
+    useTTS(isStarted || isTwitchStarted);
 
     const [showUI, setShowUI] = useState(true);
-    const isSetup = !isStarted && !isPreviewMode;
+    const isSetup = !isStarted && !isTwitchStarted && !isPreviewMode;
 
     // Navigate based on setup state
     useEffect(() => {
@@ -72,9 +76,12 @@ function AppContent() {
                     <HomePage
                         channelId={channelId}
                         onChannelIdChange={setChannelId}
+                        twitchChannel={twitchChannel}
+                        onTwitchChannelChange={setTwitchChannel}
                         onStart={startChat}
                         onPreview={startPreview}
                         error={error}
+                        twitchError={twitchError}
                     />
                 } 
             />

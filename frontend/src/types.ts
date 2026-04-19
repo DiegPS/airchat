@@ -33,6 +33,7 @@ export interface Author {
 
 export interface ChatItem {
   ID: string;
+  Platform?: 'youtube' | 'twitch' | 'kick';
   Author: Author;
   Message: MessageItem[] | null;
   SuperChat?: SuperChat;
@@ -94,6 +95,10 @@ export interface ChatSettings {
   obsHudShowMic: boolean;
   obsHudShowDesktop: boolean;
   obsHudShowScene: boolean;
+
+  // Platform Settings
+  showPlatformBadge: boolean;
+  twitchBubbleAccent: boolean;
 
   // TTS Settings
   ttsEnabled: boolean;

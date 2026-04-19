@@ -5,6 +5,7 @@ go 1.25.5
 require (
 	github.com/DiegPS/youtube-chat v0.0.0-20251228221711-e7813eecf099
 	github.com/andreykaipov/goobs v1.5.6
+	github.com/gempir/go-twitch-irc/v3 v3.3.0
 	github.com/lxn/win v0.0.0-20210218163916-a377121e959e
 	github.com/wailsapp/wails/v2 v2.11.0
 )

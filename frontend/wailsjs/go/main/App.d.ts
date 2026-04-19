@@ -20,4 +20,8 @@ export function SetOBSInputVolume(arg1:string,arg2:number):Promise<void>;
 
 export function StartChat(arg1:string):Promise<void>;
 
+export function StartTwitchChat(arg1:string):Promise<void>;
+
 export function StopChat():Promise<void>;
+
+export function StopTwitchChat():Promise<void>;

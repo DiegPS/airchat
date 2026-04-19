@@ -44,6 +44,14 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
         ]
     },
     {
+        id: 'platforms',
+        title: 'Platform Display',
+        items: [
+            { key: 'showPlatformBadge', label: 'Show Platform Icon (YouTube/Twitch)', type: 'toggle' },
+            { key: 'twitchBubbleAccent', label: 'Twitch Purple Accent', type: 'toggle' },
+        ]
+    },
+    {
         id: 'style',
         title: 'Style Settings',
         items: [

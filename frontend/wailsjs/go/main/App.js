@@ -38,6 +38,14 @@ export function StartChat(arg1) {
   return window['go']['main']['App']['StartChat'](arg1);
 }
 
+export function StartTwitchChat(arg1) {
+  return window['go']['main']['App']['StartTwitchChat'](arg1);
+}
+
 export function StopChat() {
   return window['go']['main']['App']['StopChat']();
+}
+
+export function StopTwitchChat() {
+  return window['go']['main']['App']['StopTwitchChat']();
 }

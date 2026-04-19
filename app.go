@@ -16,6 +16,7 @@ import (
 	"github.com/DiegPS/youtube-chat/types"
 	"github.com/andreykaipov/goobs"
 	"github.com/andreykaipov/goobs/api/requests/inputs"
+	twitch "github.com/gempir/go-twitch-irc/v3"
 	"github.com/lxn/win"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -31,6 +32,23 @@ type App struct {
 	obsClient   *goobs.Client
 	obsStop     chan struct{}
 	obsClientMu sync.RWMutex // protects obsClient and obsStop
+
+	twitchClient *twitch.Client
+	twitchMu     sync.Mutex
+	twitchStop   chan struct{}
+}
+
+// withPlatform serializes data to a map and injects the Platform field.
+// This lets us emit a unified chat_message event across all platforms.
+func withPlatform(platform string, data interface{}) map[string]interface{} {
+	b, _ := json.Marshal(data)
+	var m map[string]interface{}
+	_ = json.Unmarshal(b, &m)
+	if m == nil {
+		m = make(map[string]interface{})
+	}
+	m["Platform"] = platform
+	return m
 }
 
 // NewApp creates a new App application struct
@@ -480,6 +498,114 @@ func (a *App) StopChat() {
 	}
 }
 
+// StartTwitchChat connects anonymously to a Twitch channel's chat.
+// Runs independently — if it fails, YouTube chat is unaffected.
+func (a *App) StartTwitchChat(channelName string) error {
+	if channelName == "" {
+		return fmt.Errorf("channel name is required")
+	}
+
+	client := twitch.NewAnonymousClient()
+	sig := make(chan struct{})
+
+	client.OnPrivateMessage(func(msg twitch.PrivateMessage) {
+		select {
+		case <-sig:
+			return
+		default:
+		}
+		isMod := msg.User.Badges["moderator"] > 0
+		isBroadcaster := msg.User.Badges["broadcaster"] > 0
+		isSub := msg.User.Badges["subscriber"] > 0 || msg.User.Badges["founder"] > 0
+
+		payload := map[string]interface{}{
+			"Platform": "twitch",
+			"ID":       msg.ID,
+			"Author": map[string]interface{}{
+				"Name":      msg.User.DisplayName,
+				"ChannelID": msg.User.ID,
+				"Thumbnail": map[string]interface{}{
+					"URL": "",
+					"Alt": msg.User.DisplayName,
+				},
+			},
+			"Message": []map[string]interface{}{
+				{"Text": msg.Message},
+			},
+			"IsMembership": isSub,
+			"IsVerified":   false,
+			"IsOwner":      isBroadcaster,
+			"IsModerator":  isMod,
+			"Timestamp":    msg.Time.Format(time.RFC3339),
+		}
+		runtime.EventsEmit(a.ctx, "chat_message", payload)
+	})
+
+	client.OnConnect(func() {
+		runtime.EventsEmit(a.ctx, "twitch_started", channelName)
+	})
+
+	client.Join(channelName)
+
+	// Swap in the new client atomically and collect old for cleanup.
+	a.twitchMu.Lock()
+	oldClient := a.twitchClient
+	oldStop := a.twitchStop
+	a.twitchClient = client
+	a.twitchStop = sig
+	a.twitchMu.Unlock()
+
+	if oldStop != nil {
+		close(oldStop)
+	}
+	if oldClient != nil {
+		oldClient.Disconnect()
+	}
+
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				runtime.EventsEmit(a.ctx, "twitch_error", fmt.Sprintf("panic: %v", r))
+			}
+		}()
+
+		// Disconnect when stop signal fires.
+		go func() {
+			<-sig
+			client.Disconnect()
+		}()
+
+		if err := client.Connect(); err != nil {
+			// Only surface the error if it wasn't an intentional stop.
+			select {
+			case <-sig:
+			default:
+				runtime.EventsEmit(a.ctx, "twitch_error", err.Error())
+			}
+		}
+		runtime.EventsEmit(a.ctx, "twitch_ended", channelName)
+	}()
+
+	return nil
+}
+
+// StopTwitchChat disconnects from Twitch chat cleanly.
+func (a *App) StopTwitchChat() {
+	a.twitchMu.Lock()
+	client := a.twitchClient
+	sig := a.twitchStop
+	a.twitchClient = nil
+	a.twitchStop = nil
+	a.twitchMu.Unlock()
+
+	if sig != nil {
+		close(sig) // triggers the goroutine's watcher to call Disconnect
+	}
+	if client != nil {
+		client.Disconnect()
+	}
+}
+
 func (a *App) handleChatEvents(lc *youtubechat.LiveChat, stopSignal chan struct{}) {
 	for {
 		select {
@@ -491,7 +617,7 @@ func (a *App) handleChatEvents(lc *youtubechat.LiveChat, stopSignal chan struct{
 			runtime.EventsEmit(a.ctx, "chat_ended", reason)
 			return
 		case chatItem := <-lc.ChatChan:
-			runtime.EventsEmit(a.ctx, "chat_message", chatItem)
+			runtime.EventsEmit(a.ctx, "chat_message", withPlatform("youtube", chatItem))
 		case err := <-lc.ErrorChan:
 			runtime.EventsEmit(a.ctx, "chat_error", err.Error())
 		}
