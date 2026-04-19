@@ -111,9 +111,14 @@ export const PreviewArea: React.FC<PreviewAreaProps> = ({ messages, scrollRef, c
                     const isMembershipEvent = msg.IsMembership && (!msg.Message || msg.Message.length === 0);
                     const isTwitch = msg.Platform === 'twitch';
 
+                    // YouTube sends SuperChat color as AARRGGBB hex (no #), strip alpha and add #
+                    const superChatColor = msg.SuperChat?.Color
+                        ? `#${msg.SuperChat.Color.replace('#', '').slice(-6)}`
+                        : null;
+
                     let bgColor = settings.showBubble ? `rgba(0,0,0,${settings.messageOpacity})` : 'transparent';
-                    if (isSuperChat && msg.SuperChat?.Color) {
-                        bgColor = msg.SuperChat.Color;
+                    if (isSuperChat && superChatColor) {
+                        bgColor = superChatColor;
                     } else if (isMembershipEvent) {
                         bgColor = '#0f9d58';
                     } else if (isTwitch && settings.twitchBubbleAccent && settings.showBubble) {

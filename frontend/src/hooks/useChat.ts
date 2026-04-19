@@ -4,6 +4,7 @@ import { StartChat, StopChat, ConnectOBS, DisconnectOBS, StartTwitchChat, StopTw
 import { ChatItem } from '../types';
 import { useSettings } from '../context/SettingsContext';
 
+
 const usePrevious = <T,>(value: T): T | undefined => {
     const ref = useRef<T>();
     useEffect(() => {
@@ -178,18 +179,19 @@ export const useChat = () => {
         setIsPreviewMode(true);
         const now = new Date().toISOString();
         const dummyMessages: ChatItem[] = [
+            // --- YouTube ---
             {
                 ID: "1",
                 Platform: "youtube",
-                Author: { Name: "StreamOwner", Thumbnail: { URL: "https://i.pravatar.cc/100?u=owner", Alt: "O" }, ChannelID: "A" },
-                Message: [{ Text: "Bienvenidos al stream! 🎉 Hoy vamos a ver la nueva temporada" }],
+                Author: { Name: "ElStreamer", Thumbnail: { URL: "https://i.pravatar.cc/100?u=yt-owner", Alt: "E" }, ChannelID: "A" },
+                Message: [{ Text: "📺 Mensaje del dueño del canal (YouTube)" }],
                 IsMembership: false, IsVerified: false, IsOwner: true, IsModerator: false, Timestamp: now
             },
             {
                 ID: "2",
-                Platform: "twitch",
-                Author: { Name: "TwitchMod", Thumbnail: { URL: "https://i.pravatar.cc/100?u=mod", Alt: "M" }, ChannelID: "B" },
-                Message: [{ Text: "Chateando desde Twitch! 😮" }],
+                Platform: "youtube",
+                Author: { Name: "ModYT", Thumbnail: { URL: "https://i.pravatar.cc/100?u=yt-mod", Alt: "M" }, ChannelID: "B" },
+                Message: [{ Text: "🛡️ Moderador de YouTube — mantén el chat sano!" }],
                 IsMembership: false, IsVerified: false, IsOwner: false, IsModerator: true, Timestamp: now
             },
             {
@@ -197,41 +199,56 @@ export const useChat = () => {
                 Platform: "youtube",
                 Author: {
                     Name: "MiembroFiel",
-                    Thumbnail: { URL: "https://i.pravatar.cc/100?u=member", Alt: "F" },
+                    Thumbnail: { URL: "https://i.pravatar.cc/100?u=yt-member", Alt: "F" },
                     ChannelID: "C",
-                    Badge: { Thumbnail: { URL: "https://i.pravatar.cc/20?u=badge", Alt: "6m" }, Label: "6 months" }
+                    Badge: { Thumbnail: { URL: "https://i.pravatar.cc/20?u=badge", Alt: "6m" }, Label: "6 meses" }
                 },
-                Message: [{ Text: "Llevo 6 meses de miembro y el contenido sigue mejorando 🔥" }],
+                Message: [{ Text: "🟢 Miembro de YouTube con badge de 6 meses" }],
                 IsMembership: true, IsVerified: false, IsOwner: false, IsModerator: false, Timestamp: now
             },
             {
                 ID: "4",
-                Platform: "twitch",
-                Author: { Name: "TwitchSub", Thumbnail: { URL: "https://i.pravatar.cc/100?u=sub", Alt: "S" }, ChannelID: "D" },
-                Message: [{ Text: "Sub del mes! resub x3 🎉" }],
-                IsMembership: true, IsVerified: false, IsOwner: false, IsModerator: false, Timestamp: now
+                Platform: "youtube",
+                Author: { Name: "SuperDonador", Thumbnail: { URL: "https://i.pravatar.cc/100?u=yt-super", Alt: "S" }, ChannelID: "D" },
+                Message: [{ Text: "💰 Super Chat de YouTube — el color lo manda YouTube automáticamente" }],
+                SuperChat: { Amount: "💰 Donación", Color: "1DE9B6" },
+                IsMembership: false, IsVerified: false, IsOwner: false, IsModerator: false, Timestamp: now
             },
             {
                 ID: "5",
                 Platform: "youtube",
-                Author: { Name: "SuperFan2000", Thumbnail: { URL: "https://i.pravatar.cc/100?u=super", Alt: "S" }, ChannelID: "E" },
-                Message: [{ Text: "Esto merece un superchat!" }],
-                SuperChat: { Amount: "$10.00", Color: "#1565C0" },
-                IsMembership: false, IsVerified: false, IsOwner: false, IsModerator: false, Timestamp: now
+                Author: { Name: "VerificadoYT", Thumbnail: { URL: "https://i.pravatar.cc/100?u=yt-verified", Alt: "V" }, ChannelID: "E" },
+                Message: [{ Text: "✅ Viewer verificado de YouTube" }],
+                IsMembership: false, IsVerified: true, IsOwner: false, IsModerator: false, Timestamp: now
             },
+            // --- Twitch ---
             {
                 ID: "6",
                 Platform: "twitch",
-                Author: { Name: "Viewer_Twitch", Thumbnail: { URL: "https://i.pravatar.cc/100?u=viewer2", Alt: "V" }, ChannelID: "F" },
-                Message: [{ Text: "Qué tal se ve el chat con ambas plataformas? 👀" }],
-                IsMembership: false, IsVerified: false, IsOwner: false, IsModerator: false, Timestamp: now
+                Author: { Name: "ElStreamerTwitch", Thumbnail: { URL: "", Alt: "E" }, ChannelID: "F" },
+                Message: [{ Text: "🟣 Broadcaster de Twitch (sin foto — usa iniciales)" }],
+                IsMembership: false, IsVerified: false, IsOwner: true, IsModerator: false, Timestamp: now
             },
             {
                 ID: "7",
-                Platform: "youtube",
-                Author: { Name: "YTViewer", Thumbnail: { URL: "https://i.pravatar.cc/100?u=viewer3", Alt: "Y" }, ChannelID: "G" },
-                Message: [{ Text: "ajusta el sidebar para personalizar el diseño ⚙️" }],
-                IsMembership: false, IsVerified: true, IsOwner: false, IsModerator: false, Timestamp: now
+                Platform: "twitch",
+                Author: { Name: "ModTwitch", Thumbnail: { URL: "", Alt: "M" }, ChannelID: "G" },
+                Message: [{ Text: "🛡️ Moderador de Twitch" }],
+                IsMembership: false, IsVerified: false, IsOwner: false, IsModerator: true, Timestamp: now
+            },
+            {
+                ID: "8",
+                Platform: "twitch",
+                Author: { Name: "SubTwitch", Thumbnail: { URL: "", Alt: "S" }, ChannelID: "H" },
+                Message: [{ Text: "💜 Suscriptor de Twitch (resub x3) 🎉" }],
+                IsMembership: true, IsVerified: false, IsOwner: false, IsModerator: false, Timestamp: now
+            },
+            {
+                ID: "9",
+                Platform: "twitch",
+                Author: { Name: "ViewerTwitch", Thumbnail: { URL: "", Alt: "V" }, ChannelID: "I" },
+                Message: [{ Text: "👾 Viewer normal de Twitch — sin foto de perfil disponible" }],
+                IsMembership: false, IsVerified: false, IsOwner: false, IsModerator: false, Timestamp: now
             },
         ];
         setMessages(dummyMessages);
