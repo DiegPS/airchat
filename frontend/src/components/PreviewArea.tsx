@@ -182,22 +182,27 @@ export const PreviewArea: React.FC<PreviewAreaProps> = ({ messages, scrollRef, c
                                             )}
                                         </>
                                     )}
+                                    {isSuperChat && superChatColor && (
+                                        <span style={{
+                                            background: `${superChatColor}26`,
+                                            color: superChatColor,
+                                            border: `1px solid ${superChatColor}80`,
+                                            fontWeight: 700,
+                                            fontSize: '0.75em',
+                                            padding: '1px 7px',
+                                            borderRadius: '4px',
+                                            textShadow: `0 2px 8px ${superChatColor}`,
+                                            letterSpacing: '0.02em',
+                                        }}>
+                                            {msg.SuperChat?.Amount}
+                                        </span>
+                                    )}
                                     {settings.showTimestamp && (
                                         <span className="timestamp" style={{ marginLeft: '8px', opacity: 0.6, fontSize: '0.85em' }}>
                                             {new Date(msg.Timestamp).toLocaleTimeString()}
                                         </span>
                                     )}
                                 </div>
-
-                                {isSuperChat && (
-                                    <div className="superchat-amount" style={{
-                                        fontWeight: 'bold',
-                                        marginBottom: '4px',
-                                        textShadow: superChatColor ? `0 2px 8px ${superChatColor}` : undefined,
-                                    }}>
-                                        {msg.SuperChat?.Amount}
-                                    </div>
-                                )}
 
                                 <div
                                     className="message-text"

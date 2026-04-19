@@ -211,7 +211,7 @@ export const useChat = () => {
                 Platform: "youtube",
                 Author: { Name: "SuperDonador", Thumbnail: { URL: "https://i.pravatar.cc/100?u=yt-super", Alt: "S" }, ChannelID: "D" },
                 Message: [{ Text: "💰 Super Chat de YouTube — el color lo manda YouTube automáticamente" }],
-                SuperChat: { Amount: "💰 Donación", Color: "1DE9B6" },
+                SuperChat: { Amount: "$4.99", Color: "1DE9B6" },
                 IsMembership: false, IsVerified: false, IsOwner: false, IsModerator: false, Timestamp: now
             },
             {

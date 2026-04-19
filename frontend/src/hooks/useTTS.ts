@@ -209,7 +209,7 @@ export const useTTS = (isStarted: boolean) => {
 
             // Check if members-only mode is active
             if (settings.ttsMembersOnly) {
-                const isMember = message.IsMembership || !!message.Author.Badge;
+                const isMember = message.IsMembership || !!message.Author.Badge || !!message.SuperChat;
                 let isCustomAllowed = false;
 
                 if (settings.ttsAllowCustomUsers && settings.ttsCustomUsersList) {
