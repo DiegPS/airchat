@@ -117,18 +117,20 @@ export const PreviewArea: React.FC<PreviewAreaProps> = ({ messages, scrollRef, c
                         : null;
 
                     let bgColor = settings.showBubble ? `rgba(0,0,0,${settings.messageOpacity})` : 'transparent';
-                    if (isSuperChat && superChatColor) {
-                        bgColor = superChatColor;
-                    } else if (isMembershipEvent) {
+                    if (isMembershipEvent) {
                         bgColor = '#0f9d58';
                     } else if (isTwitch && settings.twitchBubbleAccent && settings.showBubble) {
                         // Twitch purple tint, preserving the opacity setting
                         bgColor = `rgba(97, 25, 210, ${settings.messageOpacity})`;
                     }
 
-                    const borderStyle = isTwitch && settings.twitchBubbleAccent && settings.showBubble
+                    const borderStyle = isSuperChat && superChatColor
+                        ? `3px solid ${superChatColor}80`
+                        : isTwitch && settings.twitchBubbleAccent && settings.showBubble
                         ? '1px solid rgba(145, 70, 255, 0.35)'
                         : settings.showBubble ? '1px solid rgba(255, 255, 255, 0.1)' : 'none';
+
+                    const borderSide = isSuperChat && superChatColor ? 'left' : undefined;
 
                     return (
                         <div
@@ -137,7 +139,9 @@ export const PreviewArea: React.FC<PreviewAreaProps> = ({ messages, scrollRef, c
                             style={{
                                 backgroundColor: bgColor,
                                 borderRadius: `${settings.borderRadius}px`,
-                                border: borderStyle,
+                                ...(borderSide
+                                    ? { border: 'none', borderBottom: borderStyle }
+                                    : { border: borderStyle }),
                                 padding: settings.showBubble ? '12px 18px' : '4px 0',
                                 boxShadow: settings.showBubble ? '0 8px 32px rgba(0, 0, 0, 0.3)' : 'none',
                                 animation: settings.animation ? `${settings.animation} ${settings.animationDuration}s cubic-bezier(0.16, 1, 0.3, 1) both` : 'none',
@@ -186,7 +190,11 @@ export const PreviewArea: React.FC<PreviewAreaProps> = ({ messages, scrollRef, c
                                 </div>
 
                                 {isSuperChat && (
-                                    <div className="superchat-amount" style={{ fontWeight: 'bold', marginBottom: '4px' }}>
+                                    <div className="superchat-amount" style={{
+                                        fontWeight: 'bold',
+                                        marginBottom: '4px',
+                                        textShadow: superChatColor ? `0 2px 8px ${superChatColor}` : undefined,
+                                    }}>
                                         {msg.SuperChat?.Amount}
                                     </div>
                                 )}
