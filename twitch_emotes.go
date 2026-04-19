@@ -167,51 +167,48 @@ func buildEmoteMap() emoteMap {
 // emotes are matched word-by-word in the remaining text segments.
 // If any emote URL is missing the word is left as plain text (fallback).
 func parseTwitchMessage(text string, ircEmotes []*twitch.Emote, emotes emoteMap) []twitchMessagePart {
-	// Sort native emotes by start position
-	sort.Slice(ircEmotes, func(i, j int) bool {
-		if len(ircEmotes[i].Positions) == 0 {
-			return false
+	// Expand every emote occurrence into a flat list (same emote can appear N times
+	// with N positions in one IRC entry — we need to handle all of them).
+	type occurrence struct {
+		id, name   string
+		start, end int
+	}
+	var all []occurrence
+	for _, e := range ircEmotes {
+		for _, pos := range e.Positions {
+			all = append(all, occurrence{e.ID, e.Name, pos.Start, pos.End})
 		}
-		if len(ircEmotes[j].Positions) == 0 {
-			return true
-		}
-		return ircEmotes[i].Positions[0].Start < ircEmotes[j].Positions[0].Start
-	})
+	}
+	sort.Slice(all, func(i, j int) bool { return all[i].start < all[j].start })
 
 	runes := []rune(text)
 	var parts []twitchMessagePart
 	cursor := 0
 
-	for _, emote := range ircEmotes {
-		if len(emote.Positions) == 0 {
-			continue
-		}
-		pos := emote.Positions[0]
-		start, end := pos.Start, pos.End
-
-		if start > len(runes) || end >= len(runes) {
+	for _, occ := range all {
+		if occ.start > len(runes) || occ.end >= len(runes) {
 			continue
 		}
 
 		// Text segment before this emote
-		if start > cursor {
-			segment := string(runes[cursor:start])
+		if occ.start > cursor {
+			segment := string(runes[cursor:occ.start])
 			parts = append(parts, splitByThirdParty(segment, emotes)...)
 		}
 
 		// Native Twitch emote
-		url := fmt.Sprintf("https://static-cdn.jtvnw.net/emoticons/v2/%s/default/dark/1.0", emote.ID)
+		url := fmt.Sprintf("https://static-cdn.jtvnw.net/emoticons/v2/%s/default/dark/1.0", occ.id)
 		parts = append(parts, twitchMessagePart{
 			"Text": "",
 			"EmojiItem": map[string]interface{}{
 				"URL":           url,
-				"Alt":           emote.Name,
-				"EmojiText":     emote.Name,
+				"Alt":           occ.name,
+				"EmojiText":     occ.name,
 				"IsCustomEmoji": false,
 			},
 		})
 
-		cursor = end + 1
+		cursor = occ.end + 1
 	}
 
 	// Remaining text after last native emote
