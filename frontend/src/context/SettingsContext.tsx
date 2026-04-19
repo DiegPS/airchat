@@ -48,6 +48,7 @@ const defaultSettings: ChatSettings = {
     obsHudShowScene: false,
     showPlatformBadge: true,
     twitchBubbleAccent: true,
+    kickBubbleAccent: true,
     ttsEnabled: false,
     ttsMembersOnly: false,
     ttsAllowCustomUsers: false,

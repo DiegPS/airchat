@@ -15,6 +15,7 @@ import (
 	youtubechat "github.com/DiegPS/youtube-chat"
 	"github.com/DiegPS/youtube-chat/types"
 	"github.com/andreykaipov/goobs"
+	kickchat "github.com/DiegPS/kick-chat"
 	"github.com/andreykaipov/goobs/api/requests/inputs"
 	twitch "github.com/gempir/go-twitch-irc/v3"
 	"github.com/lxn/win"
@@ -38,6 +39,10 @@ type App struct {
 	twitchStop     chan struct{}
 	twitchEmotes   emoteMap
 	twitchEmotesMu sync.RWMutex
+
+	kickClient *kickchat.Client
+	kickMu     sync.Mutex
+	kickCancel context.CancelFunc
 }
 
 // StartPreviewChat emits hardcoded mock messages that exercise the full
@@ -711,6 +716,103 @@ func (a *App) StopTwitchChat() {
 	}
 	if client != nil {
 		client.Disconnect()
+	}
+}
+
+// StartKickChat connects anonymously to a Kick channel's chat.
+// Runs independently — if it fails, other platforms are unaffected.
+func (a *App) StartKickChat(slug string) error {
+	if slug == "" {
+		return fmt.Errorf("channel slug is required")
+	}
+
+	kickCtx, cancel := context.WithCancel(a.ctx)
+	client, err := kickchat.NewClient(kickCtx)
+	if err != nil {
+		cancel()
+		return fmt.Errorf("kick: failed to connect: %w", err)
+	}
+
+	// Atomic swap — collect old for cleanup outside the lock.
+	a.kickMu.Lock()
+	oldClient := a.kickClient
+	oldCancel := a.kickCancel
+	a.kickClient = client
+	a.kickCancel = cancel
+	a.kickMu.Unlock()
+
+	if oldCancel != nil {
+		oldCancel()
+	}
+	if oldClient != nil {
+		oldClient.Close()
+	}
+
+	// Resolve slug → chatroom ID and subscribe (HTTP + WS, can be slow).
+	if err := client.JoinChannelBySlug(slug); err != nil {
+		cancel()
+		return err
+	}
+
+	runtime.EventsEmit(a.ctx, "kick_started", slug)
+
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				runtime.EventsEmit(a.ctx, "kick_error", fmt.Sprintf("panic: %v", r))
+			}
+		}()
+
+		for {
+			select {
+			case msg, ok := <-client.Messages():
+				if !ok {
+					runtime.EventsEmit(a.ctx, "kick_ended", slug)
+					return
+				}
+				isOwner, isMod, isSub, isVerified := kickRoles(msg.Sender.Identity.Badges)
+				payload := map[string]interface{}{
+					"Platform": "kick",
+					"ID":       msg.ID,
+					"Author": map[string]interface{}{
+						"Name":      msg.Sender.Username,
+						"ChannelID": fmt.Sprintf("%d", msg.Sender.ID),
+						"Thumbnail": map[string]interface{}{
+							"URL": "",
+							"Alt": msg.Sender.Username,
+						},
+					},
+					"Message":      parseKickMessage(msg.Content, msg.Emotes),
+					"IsMembership": isSub,
+					"IsVerified":   isVerified,
+					"IsOwner":      isOwner,
+					"IsModerator":  isMod,
+					"Timestamp":    msg.CreatedAt.Format(time.RFC3339),
+				}
+				runtime.EventsEmit(a.ctx, "chat_message", payload)
+			case err := <-client.Errors():
+				runtime.EventsEmit(a.ctx, "kick_error", err.Error())
+			}
+		}
+	}()
+
+	return nil
+}
+
+// StopKickChat disconnects from Kick chat cleanly.
+func (a *App) StopKickChat() {
+	a.kickMu.Lock()
+	client := a.kickClient
+	cancel := a.kickCancel
+	a.kickClient = nil
+	a.kickCancel = nil
+	a.kickMu.Unlock()
+
+	if cancel != nil {
+		cancel()
+	}
+	if client != nil {
+		client.Close()
 	}
 }
 

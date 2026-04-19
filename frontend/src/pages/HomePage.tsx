@@ -6,13 +6,16 @@ interface HomePageProps {
     onChannelIdChange: (value: string) => void;
     twitchChannel: string;
     onTwitchChannelChange: (value: string) => void;
+    kickChannel: string;
+    onKickChannelChange: (value: string) => void;
     onStart: () => void;
     onPreview: () => void;
     error: string | null;
     twitchError: string;
+    kickError: string;
 }
 
-export function HomePage({ channelId, onChannelIdChange, twitchChannel, onTwitchChannelChange, onStart, onPreview, error, twitchError }: HomePageProps) {
+export function HomePage({ channelId, onChannelIdChange, twitchChannel, onTwitchChannelChange, kickChannel, onKickChannelChange, onStart, onPreview, error, twitchError, kickError }: HomePageProps) {
     return (
         <>
             <TitleBar show={true} />
@@ -21,10 +24,13 @@ export function HomePage({ channelId, onChannelIdChange, twitchChannel, onTwitch
                 onChannelIdChange={onChannelIdChange}
                 twitchChannel={twitchChannel}
                 onTwitchChannelChange={onTwitchChannelChange}
+                kickChannel={kickChannel}
+                onKickChannelChange={onKickChannelChange}
                 onStart={onStart}
                 onPreview={onPreview}
                 error={error}
                 twitchError={twitchError}
+                kickError={kickError}
             />
         </>
     );

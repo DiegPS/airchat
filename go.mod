@@ -1,8 +1,9 @@
 module airchat
 
-go 1.25.5
+go 1.26.1
 
 require (
+	github.com/DiegPS/kick-chat v0.0.0-20260419051515-f4afca20aa95
 	github.com/DiegPS/youtube-chat v0.0.0-20251228221711-e7813eecf099
 	github.com/andreykaipov/goobs v1.5.6
 	github.com/gempir/go-twitch-irc/v3 v3.3.0

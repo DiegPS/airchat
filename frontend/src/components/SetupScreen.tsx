@@ -17,10 +17,13 @@ interface SetupScreenProps {
     onChannelIdChange: (id: string) => void;
     twitchChannel: string;
     onTwitchChannelChange: (name: string) => void;
+    kickChannel: string;
+    onKickChannelChange: (name: string) => void;
     onStart: () => void;
     onPreview: () => void;
     error: string | null;
     twitchError: string;
+    kickError: string;
 }
 
 export const SetupScreen: React.FC<SetupScreenProps> = ({
@@ -28,10 +31,13 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
     onChannelIdChange,
     twitchChannel,
     onTwitchChannelChange,
+    kickChannel,
+    onKickChannelChange,
     onStart,
     onPreview,
     error,
-    twitchError
+    twitchError,
+    kickError,
 }) => {
     const [isSearchMode, setIsSearchMode] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
@@ -66,7 +72,7 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
         setSearchQuery('');
     };
 
-    const canConnect = !!channelId || !!twitchChannel;
+    const canConnect = !!channelId || !!twitchChannel || !!kickChannel;
 
     return (
         <div className="container">
@@ -164,6 +170,27 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
                         />
                     </div>
                     {twitchError && <p className="error-message">{twitchError}</p>}
+                </div>
+
+                {/* Kick Section */}
+                <div style={{ marginBottom: '1.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.75rem' }}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="#53FC18" style={{ flexShrink: 0 }}>
+                            <path d="M3 2h3v7.5l5-5L13.5 7 9 11.5l5 5L11.5 19l-5.5-5.5V22H3V2zm13 0h3v20h-3V2z"/>
+                        </svg>
+                        <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>Kick</span>
+                        <span style={{ fontSize: '0.75rem', opacity: 0.5 }}>optional</span>
+                    </div>
+                    <div className="input-group">
+                        <input
+                            type="text"
+                            placeholder="channel name (e.g. edmatthews)"
+                            value={kickChannel}
+                            onChange={(e) => onKickChannelChange(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && canConnect && onStart()}
+                        />
+                    </div>
+                    {kickError && <p className="error-message">{kickError}</p>}
                 </div>
 
                 {/* Actions */}

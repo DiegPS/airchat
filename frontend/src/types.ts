@@ -99,6 +99,7 @@ export interface ChatSettings {
   // Platform Settings
   showPlatformBadge: boolean;
   twitchBubbleAccent: boolean;
+  kickBubbleAccent: boolean;
 
   // TTS Settings
   ttsEnabled: boolean;

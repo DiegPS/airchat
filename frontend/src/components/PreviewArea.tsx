@@ -15,6 +15,12 @@ const TwitchIcon = () => (
     </svg>
 );
 
+const KickIcon = () => (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="#53FC18" style={{ flexShrink: 0 }}>
+        <path d="M3 2h3v7.5l5-5L13.5 7 9 11.5l5 5L11.5 19l-5.5-5.5V22H3V2zm13 0h3v20h-3V2z"/>
+    </svg>
+);
+
 // Generates a deterministic hue from a username so each user gets a consistent color
 const nameToHue = (name: string) => {
     let hash = 0;
@@ -25,11 +31,17 @@ const nameToHue = (name: string) => {
 interface AvatarProps {
     url: string;
     name: string;
-    isTwitch: boolean;
+    platform?: 'youtube' | 'twitch' | 'kick';
     showPlatformBadge: boolean;
 }
 
-const Avatar: React.FC<AvatarProps> = ({ url, name, isTwitch, showPlatformBadge }) => {
+const PlatformIcon: React.FC<{ platform?: string }> = ({ platform }) => {
+    if (platform === 'twitch') return <TwitchIcon />;
+    if (platform === 'kick') return <KickIcon />;
+    return <YouTubeIcon />;
+};
+
+const Avatar: React.FC<AvatarProps> = ({ url, name, platform, showPlatformBadge }) => {
     const hue = nameToHue(name);
     const initials = name.slice(0, 2).toUpperCase();
 
@@ -65,7 +77,7 @@ const Avatar: React.FC<AvatarProps> = ({ url, name, isTwitch, showPlatformBadge 
                     alignItems: 'center',
                     justifyContent: 'center',
                 }}>
-                    {isTwitch ? <TwitchIcon /> : <YouTubeIcon />}
+                    <PlatformIcon platform={platform} />
                 </div>
             )}
         </div>
@@ -110,6 +122,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = ({ messages, scrollRef, c
                     const isSuperChat = !!msg.SuperChat;
                     const isMembershipEvent = msg.IsMembership && (!msg.Message || msg.Message.length === 0);
                     const isTwitch = msg.Platform === 'twitch';
+                    const isKick = msg.Platform === 'kick';
 
                     // YouTube sends SuperChat color as AARRGGBB hex (no #), strip alpha and add #
                     const superChatColor = msg.SuperChat?.Color
@@ -120,14 +133,17 @@ export const PreviewArea: React.FC<PreviewAreaProps> = ({ messages, scrollRef, c
                     if (isMembershipEvent) {
                         bgColor = '#0f9d58';
                     } else if (isTwitch && settings.twitchBubbleAccent && settings.showBubble) {
-                        // Twitch purple tint, preserving the opacity setting
                         bgColor = `rgba(97, 25, 210, ${settings.messageOpacity})`;
+                    } else if (isKick && settings.kickBubbleAccent && settings.showBubble) {
+                        bgColor = `rgba(30, 90, 10, ${settings.messageOpacity})`;
                     }
 
                     const borderStyle = isSuperChat && superChatColor
                         ? `3px solid ${superChatColor}80`
                         : isTwitch && settings.twitchBubbleAccent && settings.showBubble
                         ? '1px solid rgba(145, 70, 255, 0.35)'
+                        : isKick && settings.kickBubbleAccent && settings.showBubble
+                        ? '1px solid rgba(83, 252, 24, 0.25)'
                         : settings.showBubble ? '1px solid rgba(255, 255, 255, 0.1)' : 'none';
 
                     const borderSide = isSuperChat && superChatColor ? 'left' : undefined;
@@ -152,7 +168,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = ({ messages, scrollRef, c
                                 <Avatar
                                     url={msg.Author.Thumbnail.URL}
                                     name={msg.Author.Name}
-                                    isTwitch={isTwitch}
+                                    platform={msg.Platform}
                                     showPlatformBadge={settings.showPlatformBadge}
                                 />
                             )}
@@ -160,7 +176,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = ({ messages, scrollRef, c
                                 <div className="author-row">
                                     {settings.showPlatformBadge && !settings.showAvatars && (
                                         <span style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px' }}>
-                                            {isTwitch ? <TwitchIcon /> : <YouTubeIcon />}
+                                            <PlatformIcon platform={msg.Platform} />
                                         </span>
                                     )}
                                     <span className={`author-name ${msg.IsOwner ? 'owner' : ''} ${msg.IsModerator ? 'mod' : ''}`}>
@@ -171,8 +187,14 @@ export const PreviewArea: React.FC<PreviewAreaProps> = ({ messages, scrollRef, c
                                             {msg.IsOwner && <span className="badge owner-badge">OWNER</span>}
                                             {msg.IsModerator && <span className="badge mod-badge">MOD</span>}
                                             {msg.IsMembership && !isMembershipEvent && (
-                                                <span className="badge" style={{ background: isTwitch ? 'rgba(145,70,255,0.4)' : 'rgba(15,157,88,0.4)', color: '#fff', fontSize: '0.7em', padding: '1px 5px', borderRadius: '4px' }}>
-                                                    {isTwitch ? 'SUB' : 'MEMBER'}
+                                                <span className="badge" style={{
+                                                    background: isTwitch ? 'rgba(145,70,255,0.4)' : isKick ? 'rgba(83,252,24,0.25)' : 'rgba(15,157,88,0.4)',
+                                                    color: '#fff',
+                                                    fontSize: '0.7em',
+                                                    padding: '1px 5px',
+                                                    borderRadius: '4px'
+                                                }}>
+                                                    {isTwitch ? 'SUB' : isKick ? 'SUB' : 'MEMBER'}
                                                 </span>
                                             )}
                                             {msg.Author.Badge && (

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { EventsOn, EventsOff } from "../../wailsjs/runtime";
-import { StartChat, StopChat, ConnectOBS, DisconnectOBS, StartTwitchChat, StopTwitchChat, StartPreviewChat } from "../../wailsjs/go/main/App";
+import { StartChat, StopChat, ConnectOBS, DisconnectOBS, StartTwitchChat, StopTwitchChat, StartPreviewChat, StartKickChat, StopKickChat } from "../../wailsjs/go/main/App";
 import { ChatItem } from '../types';
 import { useSettings } from '../context/SettingsContext';
 
@@ -31,19 +31,22 @@ export const useChat = () => {
     const [messages, setMessages] = useState<ChatItem[]>([]);
     const [isStarted, setIsStarted] = useState(false);
     const [isTwitchStarted, setIsTwitchStarted] = useState(false);
+    const [isKickStarted, setIsKickStarted] = useState(false);
     const [error, setError] = useState('');
     const [twitchError, setTwitchError] = useState('');
+    const [kickError, setKickError] = useState('');
     const [liveId, setLiveId] = useState('');
     const [isPreviewMode, setIsPreviewMode] = useState(false);
     const [channelId, setChannelId] = useState('');
     const [twitchChannel, setTwitchChannel] = useState('');
+    const [kickChannel, setKickChannel] = useState('');
     const [obsStatus, setObsStatus] = useState<OBSStatus | null>(null);
 
     // Gate for accepting chat_message events — true if ANY platform is active
     const isActiveRef = useRef(false);
     useEffect(() => {
-        isActiveRef.current = isStarted || isTwitchStarted || isPreviewMode;
-    }, [isStarted, isTwitchStarted, isPreviewMode]);
+        isActiveRef.current = isStarted || isTwitchStarted || isKickStarted || isPreviewMode;
+    }, [isStarted, isTwitchStarted, isKickStarted, isPreviewMode]);
 
     const scrollToBottomRef = useRef<HTMLDivElement>(null);
 
@@ -59,10 +62,10 @@ export const useChat = () => {
     };
 
     useEffect(() => {
-        if (isStarted || isTwitchStarted || isPreviewMode) {
+        if (isStarted || isTwitchStarted || isKickStarted || isPreviewMode) {
             scrollToBottom();
         }
-    }, [messages, isStarted, isTwitchStarted, isPreviewMode]);
+    }, [messages, isStarted, isTwitchStarted, isKickStarted, isPreviewMode]);
 
     // Truncate messages when the limit setting changes
     useEffect(() => {
@@ -112,6 +115,20 @@ export const useChat = () => {
             setIsTwitchStarted(false);
         });
 
+        EventsOn("kick_started", () => {
+            setIsKickStarted(true);
+            setKickError('');
+        });
+
+        EventsOn("kick_error", (err: string) => {
+            setKickError(err);
+            setIsKickStarted(false);
+        });
+
+        EventsOn("kick_ended", () => {
+            setIsKickStarted(false);
+        });
+
         EventsOn("obs_status", (status: OBSStatus) => {
             setObsStatus(status);
         });
@@ -124,6 +141,9 @@ export const useChat = () => {
             EventsOff("twitch_started");
             EventsOff("twitch_error");
             EventsOff("twitch_ended");
+            EventsOff("kick_started");
+            EventsOff("kick_error");
+            EventsOff("kick_ended");
             EventsOff("obs_status");
         };
     }, []);
@@ -153,7 +173,7 @@ export const useChat = () => {
     }, [obsStatus, settings.obsConnected]);
 
     const startChat = async () => {
-        if (!channelId && !twitchChannel) {
+        if (!channelId && !twitchChannel && !kickChannel) {
             setError("Please enter at least one channel");
             return;
         }
@@ -172,6 +192,12 @@ export const useChat = () => {
             );
         }
 
+        if (kickChannel) {
+            tasks.push(
+                StartKickChat(kickChannel).catch((err: any) => setKickError(err.toString()))
+            );
+        }
+
         await Promise.all(tasks);
     };
 
@@ -185,29 +211,36 @@ export const useChat = () => {
             await Promise.all([
                 StopChat().catch(console.error),
                 StopTwitchChat().catch(console.error),
+                StopKickChat().catch(console.error),
             ]);
         }
         setIsStarted(false);
         setIsTwitchStarted(false);
+        setIsKickStarted(false);
         setIsPreviewMode(false);
         setMessages([]);
         setLiveId('');
         setError('');
         setTwitchError('');
+        setKickError('');
     };
 
     return {
         messages,
         isStarted,
         isTwitchStarted,
+        isKickStarted,
         error,
         twitchError,
+        kickError,
         liveId,
         isPreviewMode,
         channelId,
         setChannelId,
         twitchChannel,
         setTwitchChannel,
+        kickChannel,
+        setKickChannel,
         startChat,
         startPreview,
         stopChat,
