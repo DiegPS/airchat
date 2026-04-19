@@ -40,6 +40,113 @@ type App struct {
 	twitchEmotesMu sync.RWMutex
 }
 
+// StartPreviewChat emits hardcoded mock messages that exercise the full
+// pipeline (Go → event → frontend render), including real emote URLs.
+func (a *App) StartPreviewChat() {
+	now := time.Now()
+
+	img := func(url, alt, text string, custom bool) map[string]interface{} {
+		return map[string]interface{}{
+			"URL": url, "Alt": alt, "EmojiText": text, "IsCustomEmoji": custom,
+		}
+	}
+	txt := func(t string) map[string]interface{} { return map[string]interface{}{"Text": t} }
+	emote := func(url, name string, custom bool) map[string]interface{} {
+		return map[string]interface{}{"Text": "", "EmojiItem": img(url, name, name, custom)}
+	}
+	_ = img // used via emote helper
+
+	msgs := []map[string]interface{}{
+		// YouTube — owner
+		{
+			"Platform": "youtube", "ID": "p1",
+			"Author":       map[string]interface{}{"Name": "ElStreamer", "ChannelID": "A", "Thumbnail": map[string]interface{}{"URL": "https://i.pravatar.cc/100?u=yt-owner", "Alt": "E"}},
+			"Message":      []map[string]interface{}{txt("📺 Mensaje del dueño del canal (YouTube)")},
+			"IsOwner": true, "IsModerator": false, "IsMembership": false, "IsVerified": false,
+			"Timestamp": now.Format(time.RFC3339),
+		},
+		// YouTube — mod
+		{
+			"Platform": "youtube", "ID": "p2",
+			"Author":      map[string]interface{}{"Name": "ModYT", "ChannelID": "B", "Thumbnail": map[string]interface{}{"URL": "https://i.pravatar.cc/100?u=yt-mod", "Alt": "M"}},
+			"Message":     []map[string]interface{}{txt("🛡️ Moderador de YouTube")},
+			"IsOwner": false, "IsModerator": true, "IsMembership": false, "IsVerified": false,
+			"Timestamp": now.Format(time.RFC3339),
+		},
+		// YouTube — member con badge
+		{
+			"Platform": "youtube", "ID": "p3",
+			"Author": map[string]interface{}{
+				"Name": "MiembroFiel", "ChannelID": "C",
+				"Thumbnail": map[string]interface{}{"URL": "https://i.pravatar.cc/100?u=yt-member", "Alt": "F"},
+				"Badge": map[string]interface{}{"Label": "6 meses", "Thumbnail": map[string]interface{}{"URL": "https://i.pravatar.cc/20?u=badge", "Alt": "6m"}},
+			},
+			"Message":      []map[string]interface{}{txt("🟢 Miembro 6 meses")},
+			"IsOwner": false, "IsModerator": false, "IsMembership": true, "IsVerified": false,
+			"Timestamp": now.Format(time.RFC3339),
+		},
+		// YouTube — SuperChat
+		{
+			"Platform": "youtube", "ID": "p4",
+			"Author":    map[string]interface{}{"Name": "SuperDonador", "ChannelID": "D", "Thumbnail": map[string]interface{}{"URL": "https://i.pravatar.cc/100?u=yt-super", "Alt": "S"}},
+			"Message":   []map[string]interface{}{txt("💰 Super Chat de YouTube")},
+			"SuperChat": map[string]interface{}{"Amount": "$4.99", "Color": "1DE9B6"},
+			"IsOwner": false, "IsModerator": false, "IsMembership": false, "IsVerified": false,
+			"Timestamp": now.Format(time.RFC3339),
+		},
+		// Twitch — broadcaster sin foto + emote nativo Kappa
+		{
+			"Platform": "twitch", "ID": "p5",
+			"Author":  map[string]interface{}{"Name": "ElStreamerTwitch", "ChannelID": "E", "Thumbnail": map[string]interface{}{"URL": "", "Alt": "E"}},
+			"Message": []map[string]interface{}{
+				txt("🟣 Broadcaster "),
+				emote("https://static-cdn.jtvnw.net/emoticons/v2/25/default/dark/1.0", "Kappa", false),
+			},
+			"IsOwner": true, "IsModerator": false, "IsMembership": false, "IsVerified": false,
+			"Timestamp": now.Format(time.RFC3339),
+		},
+		// Twitch — mod + emote BTTV monkaS
+		{
+			"Platform": "twitch", "ID": "p6",
+			"Author":  map[string]interface{}{"Name": "ModTwitch", "ChannelID": "F", "Thumbnail": map[string]interface{}{"URL": "", "Alt": "M"}},
+			"Message": []map[string]interface{}{
+				txt("BTTV emote: "),
+				emote("https://cdn.betterttv.net/emote/56e9f494fff3cc5c35e5287e/1x", "monkaS", true),
+			},
+			"IsOwner": false, "IsModerator": true, "IsMembership": false, "IsVerified": false,
+			"Timestamp": now.Format(time.RFC3339),
+		},
+		// Twitch — sub + BTTV OMEGALUL + 7TV GIGACHAD
+		{
+			"Platform": "twitch", "ID": "p7",
+			"Author":  map[string]interface{}{"Name": "SubTwitch", "ChannelID": "G", "Thumbnail": map[string]interface{}{"URL": "", "Alt": "S"}},
+			"Message": []map[string]interface{}{
+				txt("Mix BTTV+7TV: "),
+				emote("https://cdn.betterttv.net/emote/583089f4737a8a4d28b9d5d3/1x", "OMEGALUL", true),
+				txt(" "),
+				emote("https://cdn.7tv.app/emote/60ae4fc00e35477cc26e1e7a/1x.webp", "GIGACHAD", true),
+			},
+			"IsOwner": false, "IsModerator": false, "IsMembership": true, "IsVerified": false,
+			"Timestamp": now.Format(time.RFC3339),
+		},
+		// Twitch — viewer normal sin foto
+		{
+			"Platform": "twitch", "ID": "p8",
+			"Author":  map[string]interface{}{"Name": "ViewerTwitch", "ChannelID": "H", "Thumbnail": map[string]interface{}{"URL": "", "Alt": "V"}},
+			"Message": []map[string]interface{}{txt("👾 Viewer normal — sin foto de perfil")},
+			"IsOwner": false, "IsModerator": false, "IsMembership": false, "IsVerified": false,
+			"Timestamp": now.Format(time.RFC3339),
+		},
+	}
+
+	go func() {
+		for _, msg := range msgs {
+			runtime.EventsEmit(a.ctx, "chat_message", msg)
+			time.Sleep(150 * time.Millisecond)
+		}
+	}()
+}
+
 // withPlatform serializes data to a map and injects the Platform field.
 // This lets us emit a unified chat_message event across all platforms.
 func withPlatform(platform string, data interface{}) map[string]interface{} {

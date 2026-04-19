@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { EventsOn, EventsOff } from "../../wailsjs/runtime";
-import { StartChat, StopChat, ConnectOBS, DisconnectOBS, StartTwitchChat, StopTwitchChat } from "../../wailsjs/go/main/App";
+import { StartChat, StopChat, ConnectOBS, DisconnectOBS, StartTwitchChat, StopTwitchChat, StartPreviewChat } from "../../wailsjs/go/main/App";
 import { ChatItem } from '../types';
 import { useSettings } from '../context/SettingsContext';
 
@@ -177,81 +177,7 @@ export const useChat = () => {
 
     const startPreview = () => {
         setIsPreviewMode(true);
-        const now = new Date().toISOString();
-        const dummyMessages: ChatItem[] = [
-            // --- YouTube ---
-            {
-                ID: "1",
-                Platform: "youtube",
-                Author: { Name: "ElStreamer", Thumbnail: { URL: "https://i.pravatar.cc/100?u=yt-owner", Alt: "E" }, ChannelID: "A" },
-                Message: [{ Text: "📺 Mensaje del dueño del canal (YouTube)" }],
-                IsMembership: false, IsVerified: false, IsOwner: true, IsModerator: false, Timestamp: now
-            },
-            {
-                ID: "2",
-                Platform: "youtube",
-                Author: { Name: "ModYT", Thumbnail: { URL: "https://i.pravatar.cc/100?u=yt-mod", Alt: "M" }, ChannelID: "B" },
-                Message: [{ Text: "🛡️ Moderador de YouTube — mantén el chat sano!" }],
-                IsMembership: false, IsVerified: false, IsOwner: false, IsModerator: true, Timestamp: now
-            },
-            {
-                ID: "3",
-                Platform: "youtube",
-                Author: {
-                    Name: "MiembroFiel",
-                    Thumbnail: { URL: "https://i.pravatar.cc/100?u=yt-member", Alt: "F" },
-                    ChannelID: "C",
-                    Badge: { Thumbnail: { URL: "https://i.pravatar.cc/20?u=badge", Alt: "6m" }, Label: "6 meses" }
-                },
-                Message: [{ Text: "🟢 Miembro de YouTube con badge de 6 meses" }],
-                IsMembership: true, IsVerified: false, IsOwner: false, IsModerator: false, Timestamp: now
-            },
-            {
-                ID: "4",
-                Platform: "youtube",
-                Author: { Name: "SuperDonador", Thumbnail: { URL: "https://i.pravatar.cc/100?u=yt-super", Alt: "S" }, ChannelID: "D" },
-                Message: [{ Text: "💰 Super Chat de YouTube — el color lo manda YouTube automáticamente" }],
-                SuperChat: { Amount: "$4.99", Color: "1DE9B6" },
-                IsMembership: false, IsVerified: false, IsOwner: false, IsModerator: false, Timestamp: now
-            },
-            {
-                ID: "5",
-                Platform: "youtube",
-                Author: { Name: "VerificadoYT", Thumbnail: { URL: "https://i.pravatar.cc/100?u=yt-verified", Alt: "V" }, ChannelID: "E" },
-                Message: [{ Text: "✅ Viewer verificado de YouTube" }],
-                IsMembership: false, IsVerified: true, IsOwner: false, IsModerator: false, Timestamp: now
-            },
-            // --- Twitch ---
-            {
-                ID: "6",
-                Platform: "twitch",
-                Author: { Name: "ElStreamerTwitch", Thumbnail: { URL: "", Alt: "E" }, ChannelID: "F" },
-                Message: [{ Text: "🟣 Broadcaster de Twitch (sin foto — usa iniciales)" }],
-                IsMembership: false, IsVerified: false, IsOwner: true, IsModerator: false, Timestamp: now
-            },
-            {
-                ID: "7",
-                Platform: "twitch",
-                Author: { Name: "ModTwitch", Thumbnail: { URL: "", Alt: "M" }, ChannelID: "G" },
-                Message: [{ Text: "🛡️ Moderador de Twitch" }],
-                IsMembership: false, IsVerified: false, IsOwner: false, IsModerator: true, Timestamp: now
-            },
-            {
-                ID: "8",
-                Platform: "twitch",
-                Author: { Name: "SubTwitch", Thumbnail: { URL: "", Alt: "S" }, ChannelID: "H" },
-                Message: [{ Text: "💜 Suscriptor de Twitch (resub x3) 🎉" }],
-                IsMembership: true, IsVerified: false, IsOwner: false, IsModerator: false, Timestamp: now
-            },
-            {
-                ID: "9",
-                Platform: "twitch",
-                Author: { Name: "ViewerTwitch", Thumbnail: { URL: "", Alt: "V" }, ChannelID: "I" },
-                Message: [{ Text: "👾 Viewer normal de Twitch — sin foto de perfil disponible" }],
-                IsMembership: false, IsVerified: false, IsOwner: false, IsModerator: false, Timestamp: now
-            },
-        ];
-        setMessages(dummyMessages);
+        StartPreviewChat().catch(console.error);
     };
 
     const stopChat = async () => {

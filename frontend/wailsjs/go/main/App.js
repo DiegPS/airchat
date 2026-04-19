@@ -38,6 +38,10 @@ export function StartChat(arg1) {
   return window['go']['main']['App']['StartChat'](arg1);
 }
 
+export function StartPreviewChat() {
+  return window['go']['main']['App']['StartPreviewChat']();
+}
+
 export function StartTwitchChat(arg1) {
   return window['go']['main']['App']['StartTwitchChat'](arg1);
 }
