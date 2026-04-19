@@ -33,9 +33,11 @@ type App struct {
 	obsStop     chan struct{}
 	obsClientMu sync.RWMutex // protects obsClient and obsStop
 
-	twitchClient *twitch.Client
-	twitchMu     sync.Mutex
-	twitchStop   chan struct{}
+	twitchClient   *twitch.Client
+	twitchMu       sync.Mutex
+	twitchStop     chan struct{}
+	twitchEmotes   emoteMap
+	twitchEmotesMu sync.RWMutex
 }
 
 // withPlatform serializes data to a map and injects the Platform field.
@@ -529,9 +531,7 @@ func (a *App) StartTwitchChat(channelName string) error {
 					"Alt": msg.User.DisplayName,
 				},
 			},
-			"Message": []map[string]interface{}{
-				{"Text": msg.Message},
-			},
+			"Message":      a.getTwitchMessageParts(msg.Message, msg.Emotes),
 			"IsMembership": isSub,
 			"IsVerified":   false,
 			"IsOwner":      isBroadcaster,
@@ -543,6 +543,7 @@ func (a *App) StartTwitchChat(channelName string) error {
 
 	client.OnConnect(func() {
 		runtime.EventsEmit(a.ctx, "twitch_started", channelName)
+		go a.loadTwitchEmotes()
 	})
 
 	client.Join(channelName)
