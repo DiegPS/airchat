@@ -237,6 +237,7 @@ func splitByThirdParty(text string, emotes emoteMap) []twitchMessagePart {
 	words := strings.Fields(text)
 	var parts []twitchMessagePart
 	var acc strings.Builder
+	prevWasEmote := false
 
 	flushText := func() {
 		if acc.Len() > 0 {
@@ -257,11 +258,13 @@ func splitByThirdParty(text string, emotes emoteMap) []twitchMessagePart {
 					"IsCustomEmoji": true,
 				},
 			})
+			prevWasEmote = true
 		} else {
-			if i > 0 && acc.Len() > 0 {
+			if acc.Len() > 0 || (i > 0 && prevWasEmote) {
 				acc.WriteString(" ")
 			}
 			acc.WriteString(word)
+			prevWasEmote = false
 		}
 	}
 	flushText()
