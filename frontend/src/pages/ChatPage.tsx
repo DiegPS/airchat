@@ -16,6 +16,9 @@ interface ChatPageProps {
     isKickStarted: boolean;
     twitchChannel: string;
     kickChannel: string;
+    error: string;
+    twitchError: string;
+    kickError: string;
     messages: ChatItem[];
     scrollRef: React.RefObject<HTMLDivElement>;
     onStop: () => void;
@@ -34,6 +37,9 @@ export function ChatPage({
     isKickStarted,
     twitchChannel,
     kickChannel,
+    error,
+    twitchError,
+    kickError,
     messages,
     scrollRef,
     onStop,
@@ -54,6 +60,9 @@ export function ChatPage({
                     isKickStarted={isKickStarted}
                     twitchChannel={twitchChannel}
                     kickChannel={kickChannel}
+                    error={error}
+                    twitchError={twitchError}
+                    kickError={kickError}
                     onStop={onStop}
                 />
                 <PreviewArea

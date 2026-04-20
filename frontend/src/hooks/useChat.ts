@@ -44,6 +44,8 @@ export const useChat = () => {
 
     // Gate for accepting chat_message events — true if ANY platform is active
     const isActiveRef = useRef(false);
+    const settingsRef = useRef(settings);
+    useEffect(() => { settingsRef.current = settings; });
     useEffect(() => {
         isActiveRef.current = isStarted || isTwitchStarted || isKickStarted || isPreviewMode;
     }, [isStarted, isTwitchStarted, isKickStarted, isPreviewMode]);
@@ -79,9 +81,23 @@ export const useChat = () => {
     useEffect(() => {
         EventsOn("chat_message", (message: ChatItem) => {
             if (!isActiveRef.current) return;
+
+            const { blockedUsers, blockedWords } = settingsRef.current;
+
+            if (blockedUsers) {
+                const blocked = blockedUsers.split(',').map(u => u.trim().toLowerCase()).filter(Boolean);
+                if (blocked.includes(message.Author.Name.toLowerCase().trim())) return;
+            }
+
+            if (blockedWords && message.Message) {
+                const words = blockedWords.split(',').map(w => w.trim().toLowerCase()).filter(Boolean);
+                const content = message.Message.map(m => m.Text).join(' ').toLowerCase();
+                if (words.some(w => content.includes(w))) return;
+            }
+
             setMessages(prev => {
                 if (message.ID && prev.some(m => m.ID === message.ID)) return prev;
-                const limit = settings.maxMessages || 100;
+                const limit = settingsRef.current.maxMessages || 100;
                 return [...prev.slice(-(limit - 1)), message];
             });
         });
@@ -177,6 +193,10 @@ export const useChat = () => {
             setError("Please enter at least one channel");
             return;
         }
+
+        setError('');
+        setTwitchError('');
+        setKickError('');
 
         const tasks: Promise<void>[] = [];
 

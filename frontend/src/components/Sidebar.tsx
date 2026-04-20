@@ -13,6 +13,9 @@ interface SidebarProps {
     isKickStarted: boolean;
     twitchChannel: string;
     kickChannel: string;
+    error: string;
+    twitchError: string;
+    kickError: string;
     onStop: () => void;
 }
 
@@ -26,6 +29,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
     isKickStarted,
     twitchChannel,
     kickChannel,
+    error,
+    twitchError,
+    kickError,
     onStop
 }) => {
     const { settings, updateSettings } = useSettings();
@@ -61,6 +67,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 <span className="pulse-kick"></span>
                                 Kick · {kickChannel}
                             </div>
+                        )}
+                        {error && (
+                            <div className="platform-error">YouTube: {error}</div>
+                        )}
+                        {twitchError && (
+                            <div className="platform-error">Twitch: {twitchError}</div>
+                        )}
+                        {kickError && (
+                            <div className="platform-error">Kick: {kickError}</div>
                         )}
                     </div>
                 )}

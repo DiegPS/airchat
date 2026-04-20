@@ -109,6 +109,9 @@ function AppContent() {
                         isKickStarted={isKickStarted}
                         twitchChannel={twitchChannel}
                         kickChannel={kickChannel}
+                        error={error}
+                        twitchError={twitchError}
+                        kickError={kickError}
                         messages={messages}
                         scrollRef={scrollToBottomRef}
                         onStop={stopChat}
