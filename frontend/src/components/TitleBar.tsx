@@ -6,9 +6,13 @@ interface TitleBarProps {
     show?: boolean;
     onToggleSidebar?: () => void;
     sidebarVisible?: boolean;
+    isStarted?: boolean;
+    isTwitchStarted?: boolean;
+    isKickStarted?: boolean;
+    isPreviewMode?: boolean;
 }
 
-export function TitleBar({ show = true, onToggleSidebar, sidebarVisible = true }: TitleBarProps) {
+export function TitleBar({ show = true, onToggleSidebar, sidebarVisible = true, isStarted = false, isTwitchStarted = false, isKickStarted = false, isPreviewMode = false }: TitleBarProps) {
     const [isPinned, setIsPinned] = useState(false);
 
     const togglePin = () => {
@@ -20,6 +24,17 @@ export function TitleBar({ show = true, onToggleSidebar, sidebarVisible = true }
     return (
         <div className={`title-bar ${!show ? 'hidden' : ''}`}>
             <div className={`window-title ${!show ? 'visible' : ''}`}>AirChat</div>
+            <div className="title-bar-center">
+                {isPreviewMode ? (
+                    <span className="dot-preview"></span>
+                ) : (
+                    <>
+                        {isStarted && <span className="pulse"></span>}
+                        {isTwitchStarted && <span className="pulse-twitch"></span>}
+                        {isKickStarted && <span className="pulse-kick"></span>}
+                    </>
+                )}
+            </div>
             <div className="window-controls">
                 {onToggleSidebar && (
                     <button

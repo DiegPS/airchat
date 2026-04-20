@@ -42,7 +42,7 @@ export function ChatPage({
     const sidebarVisible = showUI && showSidebar;
     return (
         <>
-            <TitleBar show={showUI} onToggleSidebar={onToggleSidebar} sidebarVisible={showSidebar} />
+            <TitleBar show={showUI} onToggleSidebar={onToggleSidebar} sidebarVisible={showSidebar} isStarted={isStarted} isTwitchStarted={isTwitchStarted} isKickStarted={isKickStarted} isPreviewMode={isPreviewMode} />
             <div className={`dashboard-layout ${!sidebarVisible ? 'sidebar-hidden' : ''}`}>
                 <Sidebar
                     showSidebar={sidebarVisible}
