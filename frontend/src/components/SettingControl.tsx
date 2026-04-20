@@ -90,6 +90,44 @@ export const SettingControl: React.FC<SettingControlProps> = ({ config, value, o
         );
     }
 
+    if (config.type === 'password') {
+        const [showPassword, setShowPassword] = useState(false);
+        return (
+            <div className="setting-group animate-in">
+                <label>{config.label}</label>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={value as string}
+                        onChange={(e) => onChange(e.target.value)}
+                        className="setting-input"
+                        style={{ paddingRight: '36px', width: '100%' }}
+                    />
+                    <button
+                        type="button"
+                        onClick={() => setShowPassword(p => !p)}
+                        style={{
+                            position: 'absolute',
+                            right: '8px',
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: 'rgba(255,255,255,0.5)',
+                            padding: '0',
+                            display: 'flex',
+                            alignItems: 'center',
+                            fontSize: '16px',
+                            lineHeight: 1
+                        }}
+                        tabIndex={-1}
+                    >
+                        {showPassword ? '🙈' : '👁'}
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     if (config.type === 'text') {
         return (
             <div className="setting-group animate-in">

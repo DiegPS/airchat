@@ -1,6 +1,6 @@
 import { ChatSettings } from '../types';
 
-export type SettingType = 'toggle' | 'range' | 'color' | 'select' | 'text' | 'textarea' | 'number' | 'button' | 'voice-select' | 'tts-test';
+export type SettingType = 'toggle' | 'range' | 'color' | 'select' | 'text' | 'password' | 'textarea' | 'number' | 'button' | 'voice-select' | 'tts-test';
 
 export interface SettingConfig {
     key: keyof ChatSettings;
@@ -222,7 +222,7 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
             {
                 key: 'obsPassword',
                 label: 'WebSocket Password',
-                type: 'text',
+                type: 'password',
                 showIf: (s) => s.obsEnabled
             },
             {
