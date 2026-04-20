@@ -37,9 +37,9 @@ export const useChat = () => {
     const [kickError, setKickError] = useState('');
     const [liveId, setLiveId] = useState('');
     const [isPreviewMode, setIsPreviewMode] = useState(false);
-    const [channelId, setChannelId] = useState('');
-    const [twitchChannel, setTwitchChannel] = useState('');
-    const [kickChannel, setKickChannel] = useState('');
+    const [channelId, setChannelId] = useState(() => localStorage.getItem('airchat_last_youtube') ?? '');
+    const [twitchChannel, setTwitchChannel] = useState(() => localStorage.getItem('airchat_last_twitch') ?? '');
+    const [kickChannel, setKickChannel] = useState(() => localStorage.getItem('airchat_last_kick') ?? '');
     const [obsStatus, setObsStatus] = useState<OBSStatus | null>(null);
 
     // Gate for accepting chat_message events — true if ANY platform is active
@@ -181,18 +181,21 @@ export const useChat = () => {
         const tasks: Promise<void>[] = [];
 
         if (channelId) {
+            localStorage.setItem('airchat_last_youtube', channelId);
             tasks.push(
                 StartChat(channelId).catch((err: any) => setError(err.toString()))
             );
         }
 
         if (twitchChannel) {
+            localStorage.setItem('airchat_last_twitch', twitchChannel);
             tasks.push(
                 StartTwitchChat(twitchChannel).catch((err: any) => setTwitchError(err.toString()))
             );
         }
 
         if (kickChannel) {
+            localStorage.setItem('airchat_last_kick', kickChannel);
             tasks.push(
                 StartKickChat(kickChannel).catch((err: any) => setKickError(err.toString()))
             );
