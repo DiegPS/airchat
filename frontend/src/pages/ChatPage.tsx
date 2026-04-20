@@ -11,6 +11,11 @@ interface ChatPageProps {
     channelId: string;
     liveId: string;
     isPreviewMode: boolean;
+    isStarted: boolean;
+    isTwitchStarted: boolean;
+    isKickStarted: boolean;
+    twitchChannel: string;
+    kickChannel: string;
     messages: ChatItem[];
     scrollRef: React.RefObject<HTMLDivElement>;
     onStop: () => void;
@@ -24,6 +29,11 @@ export function ChatPage({
     channelId,
     liveId,
     isPreviewMode,
+    isStarted,
+    isTwitchStarted,
+    isKickStarted,
+    twitchChannel,
+    kickChannel,
     messages,
     scrollRef,
     onStop,
@@ -39,6 +49,11 @@ export function ChatPage({
                     channelId={channelId}
                     liveId={liveId}
                     isPreviewMode={isPreviewMode}
+                    isStarted={isStarted}
+                    isTwitchStarted={isTwitchStarted}
+                    isKickStarted={isKickStarted}
+                    twitchChannel={twitchChannel}
+                    kickChannel={kickChannel}
                     onStop={onStop}
                 />
                 <PreviewArea

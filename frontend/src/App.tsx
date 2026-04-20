@@ -104,6 +104,11 @@ function AppContent() {
                         channelId={channelId}
                         liveId={liveId}
                         isPreviewMode={isPreviewMode}
+                        isStarted={isStarted}
+                        isTwitchStarted={isTwitchStarted}
+                        isKickStarted={isKickStarted}
+                        twitchChannel={twitchChannel}
+                        kickChannel={kickChannel}
                         messages={messages}
                         scrollRef={scrollToBottomRef}
                         onStop={stopChat}

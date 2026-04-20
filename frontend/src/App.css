@@ -642,20 +642,19 @@ body {
 }
 
 @keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.5);
-    background: #ff0000;
-  }
-
-  70% {
-    box-shadow: 0 0 0 12px rgba(255, 0, 0, 0);
-    background: #cc0000;
-  }
-
-  100% {
-    box-shadow: 0 0 0 0 rgba(255, 0, 0, 0);
-    background: #ff0000;
-  }
+  0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.5); background: #ff0000; }
+  70% { box-shadow: 0 0 0 12px rgba(255, 0, 0, 0); background: #cc0000; }
+  100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); background: #ff0000; }
+}
+@keyframes pulse-twitch {
+  0% { box-shadow: 0 0 0 0 rgba(145, 70, 255, 0.5); background: #9146ff; }
+  70% { box-shadow: 0 0 0 12px rgba(145, 70, 255, 0); background: #7a2ff5; }
+  100% { box-shadow: 0 0 0 0 rgba(145, 70, 255, 0); background: #9146ff; }
+}
+@keyframes pulse-kick {
+  0% { box-shadow: 0 0 0 0 rgba(83, 252, 24, 0.5); background: #53fc18; }
+  70% { box-shadow: 0 0 0 12px rgba(83, 252, 24, 0); background: #3fd610; }
+  100% { box-shadow: 0 0 0 0 rgba(83, 252, 24, 0); background: #53fc18; }
 }
 
 .pulse {
@@ -663,6 +662,18 @@ body {
   height: 8px;
   border-radius: 50%;
   animation: pulse 2s infinite;
+}
+.pulse-twitch {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  animation: pulse-twitch 2s infinite;
+}
+.pulse-kick {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  animation: pulse-kick 2s infinite;
 }
 
 .dot-preview {

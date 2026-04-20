@@ -8,6 +8,11 @@ interface SidebarProps {
     channelId: string;
     liveId: string;
     isPreviewMode: boolean;
+    isStarted: boolean;
+    isTwitchStarted: boolean;
+    isKickStarted: boolean;
+    twitchChannel: string;
+    kickChannel: string;
     onStop: () => void;
 }
 
@@ -16,6 +21,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
     channelId,
     liveId,
     isPreviewMode,
+    isStarted,
+    isTwitchStarted,
+    isKickStarted,
+    twitchChannel,
+    kickChannel,
     onStop
 }) => {
     const { settings, updateSettings } = useSettings();
@@ -27,11 +37,33 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <h3>{isPreviewMode ? 'Design Preview' : 'Dashboard'}</h3>
                     <span className="shortcut-hint">Ctrl+B</span>
                 </div>
-                <p className="channel-display">{isPreviewMode ? 'DEMO MODE' : channelId}</p>
-                <div className="live-badge">
-                    <span className={isPreviewMode ? 'dot-preview' : 'pulse'}></span>
-                    {isPreviewMode ? 'Preview Mode Active' : `Live: ${liveId}`}
-                </div>
+                {isPreviewMode ? (
+                    <div className="live-badge">
+                        <span className="dot-preview"></span>
+                        Preview Mode Active
+                    </div>
+                ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {isStarted && (
+                            <div className="live-badge">
+                                <span className="pulse"></span>
+                                YouTube · {liveId || channelId}
+                            </div>
+                        )}
+                        {isTwitchStarted && (
+                            <div className="live-badge">
+                                <span className="pulse-twitch"></span>
+                                Twitch · {twitchChannel}
+                            </div>
+                        )}
+                        {isKickStarted && (
+                            <div className="live-badge">
+                                <span className="pulse-kick"></span>
+                                Kick · {kickChannel}
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
             <div className="settings-container">
