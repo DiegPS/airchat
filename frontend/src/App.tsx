@@ -36,6 +36,7 @@ function AppContent() {
     useTTS(isStarted || isTwitchStarted || isKickStarted);
 
     const [showUI, setShowUI] = useState(true);
+    const [showSidebar, setShowSidebar] = useState(true);
     const isSetup = !isStarted && !isTwitchStarted && !isKickStarted && !isPreviewMode;
 
     // Navigate based on setup state
@@ -51,6 +52,7 @@ function AppContent() {
     useEffect(() => {
         if (isSetup) {
             setShowUI(true);
+            setShowSidebar(true);
             SetClickThrough(false);
         }
     }, [isSetup]);
@@ -97,6 +99,8 @@ function AppContent() {
                 element={
                     <ChatPage
                         showUI={showUI}
+                        showSidebar={showSidebar}
+                        onToggleSidebar={() => setShowSidebar(p => !p)}
                         channelId={channelId}
                         liveId={liveId}
                         isPreviewMode={isPreviewMode}

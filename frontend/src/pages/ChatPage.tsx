@@ -6,6 +6,8 @@ import { ChatItem } from '../types';
 
 interface ChatPageProps {
     showUI: boolean;
+    showSidebar: boolean;
+    onToggleSidebar: () => void;
     channelId: string;
     liveId: string;
     isPreviewMode: boolean;
@@ -15,22 +17,25 @@ interface ChatPageProps {
     obsStatus: any;
 }
 
-export function ChatPage({ 
-    showUI, 
-    channelId, 
-    liveId, 
-    isPreviewMode, 
-    messages, 
-    scrollRef, 
+export function ChatPage({
+    showUI,
+    showSidebar,
+    onToggleSidebar,
+    channelId,
+    liveId,
+    isPreviewMode,
+    messages,
+    scrollRef,
     onStop,
-    obsStatus 
+    obsStatus
 }: ChatPageProps) {
+    const sidebarVisible = showUI && showSidebar;
     return (
         <>
-            <TitleBar show={showUI} />
-            <div className={`dashboard-layout ${!showUI ? 'sidebar-hidden' : ''}`}>
+            <TitleBar show={showUI} onToggleSidebar={onToggleSidebar} sidebarVisible={showSidebar} />
+            <div className={`dashboard-layout ${!sidebarVisible ? 'sidebar-hidden' : ''}`}>
                 <Sidebar
-                    showSidebar={showUI}
+                    showSidebar={sidebarVisible}
                     channelId={channelId}
                     liveId={liveId}
                     isPreviewMode={isPreviewMode}

@@ -4,9 +4,11 @@ import { useState } from 'react';
 
 interface TitleBarProps {
     show?: boolean;
+    onToggleSidebar?: () => void;
+    sidebarVisible?: boolean;
 }
 
-export function TitleBar({ show = true }: TitleBarProps) {
+export function TitleBar({ show = true, onToggleSidebar, sidebarVisible = true }: TitleBarProps) {
     const [isPinned, setIsPinned] = useState(false);
 
     const togglePin = () => {
@@ -19,6 +21,18 @@ export function TitleBar({ show = true }: TitleBarProps) {
         <div className={`title-bar ${!show ? 'hidden' : ''}`}>
             <div className={`window-title ${!show ? 'visible' : ''}`}>AirChat</div>
             <div className="window-controls">
+                {onToggleSidebar && (
+                    <button
+                        className={`control-btn ${!sidebarVisible ? 'pinned' : ''}`}
+                        onClick={onToggleSidebar}
+                        title={sidebarVisible ? 'Hide panel' : 'Show panel'}
+                    >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                            <line x1="9" y1="3" x2="9" y2="21"/>
+                        </svg>
+                    </button>
+                )}
                 <button
                     className={`control-btn ${isPinned ? 'pinned' : ''}`}
                     onClick={togglePin}
