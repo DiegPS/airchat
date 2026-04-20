@@ -282,6 +282,22 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
         ]
     },
     {
+        id: 'filters',
+        title: 'Filters',
+        items: [
+            {
+                key: 'blockedUsers',
+                label: 'Blocked Users (comma separated)',
+                type: 'textarea'
+            },
+            {
+                key: 'blockedWords',
+                label: 'Blocked Words (comma separated)',
+                type: 'textarea'
+            },
+        ]
+    },
+    {
         id: 'tts',
         title: 'Text to Speech (TTS)',
         items: [

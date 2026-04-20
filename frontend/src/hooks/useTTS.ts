@@ -207,6 +207,19 @@ export const useTTS = (isStarted: boolean) => {
                 }
             }
 
+            // Filter blocked users
+            if (settings.blockedUsers) {
+                const blocked = settings.blockedUsers.split(',').map(u => u.trim().toLowerCase()).filter(Boolean);
+                if (blocked.includes(message.Author.Name.toLowerCase().trim())) return;
+            }
+
+            // Filter blocked words
+            if (settings.blockedWords && message.Message) {
+                const words = settings.blockedWords.split(',').map(w => w.trim().toLowerCase()).filter(Boolean);
+                const content = message.Message.map(m => m.Text).join(' ').toLowerCase();
+                if (words.some(w => content.includes(w))) return;
+            }
+
             // Check if members-only mode is active
             if (settings.ttsMembersOnly) {
                 const isMember = message.IsMembership || !!message.Author.Badge || !!message.SuperChat;
@@ -279,5 +292,5 @@ export const useTTS = (isStarted: boolean) => {
         return () => {
             if (cancelSubscription) cancelSubscription();
         };
-    }, [settings.ttsEnabled, settings.ttsMembersOnly, settings.ttsAllowCustomUsers, settings.ttsCustomUsersList, settings.ttsProvider, settings.ttsCommandMode, settings.ttsCommandPrefix, settings.ttsSeparatorText, settings.ttsRandomVoice, addToQueue, isStarted, supertonicState.isReady]);
+    }, [settings.ttsEnabled, settings.blockedUsers, settings.blockedWords, settings.ttsMembersOnly, settings.ttsAllowCustomUsers, settings.ttsCustomUsersList, settings.ttsProvider, settings.ttsCommandMode, settings.ttsCommandPrefix, settings.ttsSeparatorText, settings.ttsRandomVoice, addToQueue, isStarted, supertonicState.isReady]);
 };

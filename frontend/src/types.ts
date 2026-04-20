@@ -101,6 +101,9 @@ export interface ChatSettings {
   twitchBubbleAccent: boolean;
   kickBubbleAccent: boolean;
 
+  // Filter Settings
+  blockedUsers: string;
+  blockedWords: string;
   // TTS Settings
   ttsEnabled: boolean;
   ttsMembersOnly: boolean; // New setting

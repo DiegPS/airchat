@@ -49,6 +49,8 @@ const defaultSettings: ChatSettings = {
     showPlatformBadge: true,
     twitchBubbleAccent: true,
     kickBubbleAccent: true,
+    blockedUsers: '',
+    blockedWords: '',
     ttsEnabled: false,
     ttsMembersOnly: false,
     ttsAllowCustomUsers: false,
