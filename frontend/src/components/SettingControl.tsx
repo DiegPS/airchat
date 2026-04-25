@@ -186,17 +186,7 @@ export const SettingControl: React.FC<SettingControlProps> = ({ config, value, o
     }
 
     if (config.type === 'button') {
-        const isConnected = value === true;
-        return (
-            <div className="setting-group animate-in">
-                <button
-                    onClick={() => onChange(!value)}
-                    className={isConnected ? 'btn-obs-disconnect' : 'btn-obs-connect'}
-                >
-                    {isConnected ? 'Disconnect OBS' : 'Connect OBS'}
-                </button>
-            </div>
-        );
+        return <OBSConnectButton value={value as boolean} onChange={onChange} />;
     }
 
     if (config.type === 'voice-select') {
@@ -275,6 +265,37 @@ export const SettingControl: React.FC<SettingControlProps> = ({ config, value, o
     }
 
     return null;
+};
+
+const OBSConnectButton: React.FC<{ value: boolean; onChange: (v: boolean) => void }> = ({ value, onChange }) => {
+    const { settings } = useSettings();
+    const statusMsg = settings.obsStatusMessage ?? '';
+    const isConnecting = statusMsg === 'Connecting...';
+    const isError = statusMsg.startsWith('Error:');
+    const isLostConnection = statusMsg === 'Disconnected (Lost connection)';
+
+    return (
+        <div className="setting-group animate-in">
+            <button
+                onClick={() => onChange(!value)}
+                disabled={isConnecting}
+                className={value ? 'btn-obs-disconnect' : 'btn-obs-connect'}
+                style={isConnecting ? { opacity: 0.7, cursor: 'not-allowed' } : undefined}
+            >
+                {isConnecting ? 'Connecting...' : value ? 'Disconnect OBS' : 'Connect OBS'}
+            </button>
+            {isError && (
+                <span style={{ fontSize: '0.75rem', color: '#ff6b6b', marginTop: '4px', display: 'block' }}>
+                    {statusMsg}
+                </span>
+            )}
+            {isLostConnection && (
+                <span style={{ fontSize: '0.75rem', color: '#ffa94d', marginTop: '4px', display: 'block' }}>
+                    Lost connection — click to reconnect
+                </span>
+            )}
+        </div>
+    );
 };
 
 const TTSTestControl: React.FC = () => {

@@ -231,13 +231,6 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
                 type: 'button',
                 showIf: (s) => s.obsEnabled
             },
-            {
-                key: 'obsStatusMessage',
-                label: 'Status',
-                type: 'text',
-                readOnly: true,
-                showIf: (s) => s.obsEnabled
-            }
         ]
     },
     {
