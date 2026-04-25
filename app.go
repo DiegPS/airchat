@@ -584,9 +584,8 @@ func (a *App) StartChat(channelID string) error {
 	}
 
 	sig := make(chan struct{})
-	ok := lc.Start()
-	if !ok {
-		return fmt.Errorf("failed to start live chat observation")
+	if err := lc.Start(); err != nil {
+		return err
 	}
 
 	a.lc = lc
