@@ -248,6 +248,21 @@ export const useChat = () => {
         setKickError('');
     };
 
+    const clearYoutubeChannel = () => {
+        setChannelId('');
+        localStorage.removeItem('airchat_last_youtube');
+    };
+
+    const clearTwitchChannel = () => {
+        setTwitchChannel('');
+        localStorage.removeItem('airchat_last_twitch');
+    };
+
+    const clearKickChannel = () => {
+        setKickChannel('');
+        localStorage.removeItem('airchat_last_kick');
+    };
+
     return {
         messages,
         isStarted,
@@ -260,10 +275,13 @@ export const useChat = () => {
         isPreviewMode,
         channelId,
         setChannelId,
+        clearYoutubeChannel,
         twitchChannel,
         setTwitchChannel,
+        clearTwitchChannel,
         kickChannel,
         setKickChannel,
+        clearKickChannel,
         startChat,
         startPreview,
         stopChat,

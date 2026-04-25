@@ -22,10 +22,13 @@ function AppContent() {
         isPreviewMode,
         channelId,
         setChannelId,
+        clearYoutubeChannel,
         twitchChannel,
         setTwitchChannel,
+        clearTwitchChannel,
         kickChannel,
         setKickChannel,
+        clearKickChannel,
         startChat,
         startPreview,
         stopChat,
@@ -82,10 +85,13 @@ function AppContent() {
                     <HomePage
                         channelId={channelId}
                         onChannelIdChange={setChannelId}
+                        onClearYoutube={clearYoutubeChannel}
                         twitchChannel={twitchChannel}
                         onTwitchChannelChange={setTwitchChannel}
+                        onClearTwitch={clearTwitchChannel}
                         kickChannel={kickChannel}
                         onKickChannelChange={setKickChannel}
+                        onClearKick={clearKickChannel}
                         onStart={startChat}
                         onPreview={startPreview}
                         error={error}

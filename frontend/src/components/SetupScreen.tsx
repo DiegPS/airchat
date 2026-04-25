@@ -15,10 +15,13 @@ interface SearchResponse {
 interface SetupScreenProps {
     channelId: string;
     onChannelIdChange: (id: string) => void;
+    onClearYoutube: () => void;
     twitchChannel: string;
     onTwitchChannelChange: (name: string) => void;
+    onClearTwitch: () => void;
     kickChannel: string;
     onKickChannelChange: (name: string) => void;
+    onClearKick: () => void;
     onStart: () => void;
     onPreview: () => void;
     error: string | null;
@@ -29,10 +32,13 @@ interface SetupScreenProps {
 export const SetupScreen: React.FC<SetupScreenProps> = ({
     channelId,
     onChannelIdChange,
+    onClearYoutube,
     twitchChannel,
     onTwitchChannelChange,
+    onClearTwitch,
     kickChannel,
     onKickChannelChange,
+    onClearKick,
     onStart,
     onPreview,
     error,
@@ -148,6 +154,9 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
                                 onChange={(e) => onChannelIdChange(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && canConnect && onStart()}
                             />
+                            {channelId && (
+                                <button onClick={onClearYoutube} title="Clear" style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', padding: '0 8px', fontSize: '1rem', lineHeight: 1 }}>✕</button>
+                            )}
                         </div>
                     )}
                     {error && <p className="error-message">{error}</p>}
@@ -168,6 +177,9 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
                             onChange={(e) => onTwitchChannelChange(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && canConnect && onStart()}
                         />
+                        {twitchChannel && (
+                            <button onClick={onClearTwitch} title="Clear" style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', padding: '0 8px', fontSize: '1rem', lineHeight: 1 }}>✕</button>
+                        )}
                     </div>
                     {twitchError && <p className="error-message">{twitchError}</p>}
                 </div>
@@ -189,6 +201,9 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
                             onChange={(e) => onKickChannelChange(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && canConnect && onStart()}
                         />
+                        {kickChannel && (
+                            <button onClick={onClearKick} title="Clear" style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', padding: '0 8px', fontSize: '1rem', lineHeight: 1 }}>✕</button>
+                        )}
                     </div>
                     {kickError && <p className="error-message">{kickError}</p>}
                 </div>
