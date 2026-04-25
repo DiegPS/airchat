@@ -164,19 +164,26 @@ export const useChat = () => {
         };
     }, []);
 
+    const obsErrorRef = useRef(false);
+
     // OBS connection reactive to settings
     useEffect(() => {
         if (settings.obsEnabled && settings.obsConnected) {
+            obsErrorRef.current = false;
             updateSettings({ obsStatusMessage: 'Connecting...' });
             ConnectOBS(settings.obsHost || 'localhost:4455', settings.obsPassword)
                 .catch((err) => {
+                    obsErrorRef.current = true;
                     console.error("OBS Connect Error:", err);
                     updateSettings({ obsStatusMessage: `Error: ${err}`, obsConnected: false });
                 });
         } else {
             DisconnectOBS().catch(console.error);
             setObsStatus(null);
-            updateSettings({ obsStatusMessage: 'Disconnected' });
+            if (!obsErrorRef.current) {
+                updateSettings({ obsStatusMessage: 'Disconnected' });
+            }
+            obsErrorRef.current = false;
         }
     }, [settings.obsEnabled, settings.obsConnected, settings.obsHost, settings.obsPassword]);
 
