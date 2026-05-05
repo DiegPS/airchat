@@ -781,7 +781,7 @@ func (a *App) StartKickChat(slug string) error {
 							"Alt": msg.Sender.Username,
 						},
 					},
-					"Message":      parseKickMessage(msg.Content, msg.Emotes),
+					"Message":      kickMessageItems(msg.Parts),
 					"IsMembership": isSub,
 					"IsVerified":   isVerified,
 					"IsOwner":      isOwner,

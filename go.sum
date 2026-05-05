@@ -1,9 +1,11 @@
+git.sr.ht/~jackmordaunt/go-toast/v2 v2.0.3 h1:N3IGoHHp9pb6mj1cbXbuaSXV/UMKwmbKLf53nQmtqMA=
+git.sr.ht/~jackmordaunt/go-toast/v2 v2.0.3/go.mod h1:QtOLZGz8olr4qH2vWK0QH0w0O4T9fEIjMuWpKUsH7nc=
 github.com/DiegPS/kick-chat v0.0.0-20260419051515-f4afca20aa95 h1:6L/l6AsD4b1Vg1ZV3rzXeLPYUMCcjNy6Xcpba9VZcQw=
 github.com/DiegPS/kick-chat v0.0.0-20260419051515-f4afca20aa95/go.mod h1:cEY37mUZTNm+ByiBbN+cjJPvok2A1Ho5Vyy69uVHhMA=
-github.com/DiegPS/youtube-chat v0.0.0-20251228221711-e7813eecf099 h1:VqtiRcw6x/dL/zLyxIjULV2Nkv8x5o47b0ycXe6Sblw=
-github.com/DiegPS/youtube-chat v0.0.0-20251228221711-e7813eecf099/go.mod h1:HGsRbmcwffwtPDQsDsx5TKIR2ARGuGCddTO2HJPU3nM=
-github.com/DiegPS/youtube-chat v0.0.0-20260425052549-de5a4b9105a6 h1:pVgRpMxN4T2iwW8LCiCZ0N+ulCWHGy1AIZ5DEp9neJA=
-github.com/DiegPS/youtube-chat v0.0.0-20260425052549-de5a4b9105a6/go.mod h1:HGsRbmcwffwtPDQsDsx5TKIR2ARGuGCddTO2HJPU3nM=
+github.com/DiegPS/kick-chat v0.0.0-20260505183815-b2a2ade3aaa1 h1:LP23wUSIzwE2QHR/m/k9K7RJtwq2R9fP9vxQbpnYxFU=
+github.com/DiegPS/kick-chat v0.0.0-20260505183815-b2a2ade3aaa1/go.mod h1:cEY37mUZTNm+ByiBbN+cjJPvok2A1Ho5Vyy69uVHhMA=
+github.com/DiegPS/youtube-chat v0.0.0-20260505181917-95bac9e584ce h1:n6dS2arkdPHyq9W6H03rWgasxAQRAnWP3weBcvm8MuU=
+github.com/DiegPS/youtube-chat v0.0.0-20260505181917-95bac9e584ce/go.mod h1:HGsRbmcwffwtPDQsDsx5TKIR2ARGuGCddTO2HJPU3nM=
 github.com/andreykaipov/goobs v1.5.6 h1:eIkEqYN99+2VJvmlY/56Ah60nkRKS6efMQvpM3oUgPQ=
 github.com/andreykaipov/goobs v1.5.6/go.mod h1:iSZP93FJ4d9X/U1x4DD4IyILLtig+vViqZWBGjLywcY=
 github.com/bep/debounce v1.2.1 h1:v67fRdBA9UQu2NhLFXrSg0Brw7CexQekrBwDMM8bzeY=
@@ -79,8 +81,8 @@ github.com/wailsapp/go-webview2 v1.0.22 h1:YT61F5lj+GGaat5OB96Aa3b4QA+mybD0Ggq6N
 github.com/wailsapp/go-webview2 v1.0.22/go.mod h1:qJmWAmAmaniuKGZPWwne+uor3AHMB5PFhqiK0Bbj8kc=
 github.com/wailsapp/mimetype v1.4.1 h1:pQN9ycO7uo4vsUUuPeHEYoUkLVkaRntMnHJxVwYhwHs=
 github.com/wailsapp/mimetype v1.4.1/go.mod h1:9aV5k31bBOv5z6u+QP8TltzvNGJPmNJD4XlAL3U+j3o=
-github.com/wailsapp/wails/v2 v2.11.0 h1:seLacV8pqupq32IjS4Y7V8ucab0WZwtK6VvUVxSBtqQ=
-github.com/wailsapp/wails/v2 v2.11.0/go.mod h1:jrf0ZaM6+GBc1wRmXsM8cIvzlg0karYin3erahI4+0k=
+github.com/wailsapp/wails/v2 v2.12.0 h1:BHO/kLNWFHYjCzucxbzAYZWUjub1Tvb4cSguQozHn5c=
+github.com/wailsapp/wails/v2 v2.12.0/go.mod h1:mo1bzK1DEJrobt7YrBjgxvb5Sihb1mhAY09hppbibQg=
 golang.org/x/crypto v0.46.0 h1:cKRW/pmt1pKAfetfu+RCEvjvZkA9RimPbh7bhFjGVBU=
 golang.org/x/crypto v0.46.0/go.mod h1:Evb/oLKmMraqjZ2iQTwDwvCtJkczlDuTmdJXoZVzqU0=
 golang.org/x/net v0.0.0-20210505024714-0287a6fb4125/go.mod h1:9nx3DQGgdP8bBQD5qxJ1jj9UTztislL4KSBs9R2vV5Y=
