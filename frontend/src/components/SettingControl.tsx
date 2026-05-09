@@ -232,6 +232,10 @@ export const SettingControl: React.FC<SettingControlProps> = ({ config, value, o
         );
     }
 
+    if (config.type === 'supertonic-status') {
+        return <SupertonicStatusControl />;
+    }
+
     if (config.type === 'tts-test') {
         const [text, setText] = useState('Hello, this is a test.');
         
@@ -265,6 +269,45 @@ export const SettingControl: React.FC<SettingControlProps> = ({ config, value, o
     }
 
     return null;
+};
+
+const SupertonicStatusControl: React.FC = () => {
+    const { state } = useSupertonic();
+    const { settings } = useSettings();
+    const isVoiceSynced = settings.supertonicVoiceStyle === state.currentVoiceStyle;
+
+    const statusClass = state.error
+        ? 'error'
+        : state.isReady
+            ? 'ready'
+            : state.isLoading
+                ? 'loading'
+                : 'idle';
+
+    const title = state.error
+        ? 'Load failed'
+        : state.isReady
+            ? 'Ready'
+            : state.isLoading
+                ? 'Loading'
+                : 'Idle';
+
+    const detail = state.error || state.loadingStatus;
+
+    return (
+        <div className={`supertonic-status ${statusClass}`}>
+            <div className="supertonic-status-header">
+                <span className="supertonic-status-dot" />
+                <span>{title}</span>
+            </div>
+            <div className="supertonic-status-detail">{detail}</div>
+            <div className="supertonic-status-meta">
+                <span>Backend: {state.backendType ? state.backendType.toUpperCase() : 'not selected yet'}</span>
+                <span>Selected voice: {settings.supertonicVoiceStyle}</span>
+                <span>Loaded voice: {state.currentVoiceStyle}{isVoiceSynced ? '' : ' (syncing)'}</span>
+            </div>
+        </div>
+    );
 };
 
 const OBSConnectButton: React.FC<{ value: boolean; onChange: (v: boolean) => void }> = ({ value, onChange }) => {
@@ -340,7 +383,10 @@ const TTSTestControl: React.FC = () => {
                     URL.revokeObjectURL(result.audioUrl);
                     setIsTesting(false);
                 };
-                audio.play().catch(() => setIsTesting(false));
+                audio.play().catch(() => {
+                    URL.revokeObjectURL(result.audioUrl);
+                    setIsTesting(false);
+                });
                 
             } else {
                 if (!window.speechSynthesis) {

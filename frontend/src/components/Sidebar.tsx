@@ -100,7 +100,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                                 return (
                                     <SettingControl
-                                        key={item.key}
+                                        key={item.renderKey || item.key}
                                         config={item}
                                         value={settings[item.key]}
                                         onChange={(val) => updateSettings({ [item.key]: val })}

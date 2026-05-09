@@ -376,6 +376,66 @@ body {
   padding: 4px;
 }
 
+.supertonic-status {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 1.2rem;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.supertonic-status-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-main);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.supertonic-status-dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.supertonic-status.loading .supertonic-status-dot {
+  background: #ffd43b;
+  box-shadow: 0 0 10px rgba(255, 212, 59, 0.5);
+}
+
+.supertonic-status.ready .supertonic-status-dot {
+  background: #51cf66;
+  box-shadow: 0 0 10px rgba(81, 207, 102, 0.5);
+}
+
+.supertonic-status.error .supertonic-status-dot {
+  background: #ff6b6b;
+  box-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
+}
+
+.supertonic-status-detail {
+  color: var(--text-dim);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.supertonic-status-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
 .setting-toggle {
   display: flex;
   justify-content: space-between;

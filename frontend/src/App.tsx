@@ -4,6 +4,7 @@ import './App.css';
 import { SettingsProvider } from './context/SettingsContext';
 import { useChat } from './hooks/useChat';
 import { useTTS } from './hooks/useTTS';
+import { SupertonicProvider } from './hooks/supertonic2/useSupertonic';
 import { HomePage } from './pages/HomePage';
 import { ChatPage } from './pages/ChatPage';
 import { SetClickThrough } from '../wailsjs/go/main/App';
@@ -133,7 +134,9 @@ function App() {
     return (
         <HashRouter>
             <SettingsProvider>
-                <AppContent />
+                <SupertonicProvider>
+                    <AppContent />
+                </SupertonicProvider>
             </SettingsProvider>
         </HashRouter>
     );

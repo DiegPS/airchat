@@ -1,9 +1,10 @@
 import { ChatSettings } from '../types';
 
-export type SettingType = 'toggle' | 'range' | 'color' | 'select' | 'text' | 'password' | 'textarea' | 'number' | 'button' | 'voice-select' | 'tts-test';
+export type SettingType = 'toggle' | 'range' | 'color' | 'select' | 'text' | 'password' | 'textarea' | 'number' | 'button' | 'voice-select' | 'tts-test' | 'supertonic-status';
 
 export interface SettingConfig {
     key: keyof ChatSettings;
+    renderKey?: string;
     label: string;
     type: SettingType;
     min?: number;
@@ -316,6 +317,13 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
                     { label: 'ElevenLabs', value: 'elevenlabs' }
                 ],
                 showIf: (s) => s.ttsEnabled
+            },
+            {
+                key: 'ttsVoiceTest' as any,
+                renderKey: 'supertonicStatus',
+                label: 'Supertonic Status',
+                type: 'supertonic-status',
+                showIf: (s) => s.ttsEnabled && s.ttsProvider === 'supertonic'
             },
             {
                 key: 'ttsVoice',
