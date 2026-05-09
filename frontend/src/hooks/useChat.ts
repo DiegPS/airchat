@@ -3,6 +3,7 @@ import { EventsOn, EventsOff } from "../../wailsjs/runtime";
 import { StartChat, StopChat, ConnectOBS, DisconnectOBS, StartTwitchChat, StopTwitchChat, StartPreviewChat, StartKickChat, StopKickChat } from "../../wailsjs/go/main/App";
 import { ChatItem } from '../types';
 import { useSettings } from '../context/SettingsContext';
+import { containsBlockedWord, isUserBlocked } from '../utils/filters';
 
 
 const usePrevious = <T,>(value: T): T | undefined => {
@@ -84,16 +85,8 @@ export const useChat = () => {
 
             const { blockedUsers, blockedWords } = settingsRef.current;
 
-            if (blockedUsers) {
-                const blocked = blockedUsers.split(',').map(u => u.trim().toLowerCase()).filter(Boolean);
-                if (blocked.includes(message.Author.Name.toLowerCase().trim())) return;
-            }
-
-            if (blockedWords && message.Message) {
-                const words = blockedWords.split(',').map(w => w.trim().toLowerCase()).filter(Boolean);
-                const content = message.Message.map(m => m.Text).join(' ').toLowerCase();
-                if (words.some(w => content.includes(w))) return;
-            }
+            if (isUserBlocked(message.Author.Name, blockedUsers)) return;
+            if (containsBlockedWord(message.Message, blockedWords)) return;
 
             setMessages(prev => {
                 if (message.ID && prev.some(m => m.ID === message.ID)) return prev;

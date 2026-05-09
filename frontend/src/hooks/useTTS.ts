@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { EventsOn } from "../../wailsjs/runtime";
 import { useSettings } from '../context/SettingsContext';
 import { ChatItem } from '../types';
+import { containsBlockedWord, isUserBlocked, normalizeUsernameForFilter, splitCommaList } from '../utils/filters';
 import { useSupertonic } from './supertonic2/useSupertonic';
 
 export const useTTS = (isStarted: boolean) => {
@@ -207,18 +208,8 @@ export const useTTS = (isStarted: boolean) => {
                 }
             }
 
-            // Filter blocked users
-            if (settings.blockedUsers) {
-                const blocked = settings.blockedUsers.split(',').map(u => u.trim().toLowerCase()).filter(Boolean);
-                if (blocked.includes(message.Author.Name.toLowerCase().trim())) return;
-            }
-
-            // Filter blocked words
-            if (settings.blockedWords && message.Message) {
-                const words = settings.blockedWords.split(',').map(w => w.trim().toLowerCase()).filter(Boolean);
-                const content = message.Message.map(m => m.Text).join(' ').toLowerCase();
-                if (words.some(w => content.includes(w))) return;
-            }
+            if (isUserBlocked(message.Author.Name, settings.blockedUsers)) return;
+            if (containsBlockedWord(message.Message, settings.blockedWords)) return;
 
             // Check if members-only mode is active
             if (settings.ttsMembersOnly) {
@@ -226,10 +217,9 @@ export const useTTS = (isStarted: boolean) => {
                 let isCustomAllowed = false;
 
                 if (settings.ttsAllowCustomUsers && settings.ttsCustomUsersList) {
-                    const allowedUsers = settings.ttsCustomUsersList.split(',').map(u => u.trim().toLowerCase());
-                    const currentAuthorRaw = message.Author.Name.toLowerCase().trim();
-                    const currentAuthor = currentAuthorRaw.startsWith('@') ? currentAuthorRaw.slice(1) : currentAuthorRaw;
-                    const cleanAuthor = cleanUsername(message.Author.Name).toLowerCase();
+                    const allowedUsers = splitCommaList(settings.ttsCustomUsersList).map(normalizeUsernameForFilter);
+                    const currentAuthor = normalizeUsernameForFilter(message.Author.Name);
+                    const cleanAuthor = normalizeUsernameForFilter(cleanUsername(message.Author.Name));
 
                     if (allowedUsers.includes(currentAuthor) || allowedUsers.includes(cleanAuthor)) {
                         isCustomAllowed = true;
