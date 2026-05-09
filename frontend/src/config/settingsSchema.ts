@@ -311,6 +311,7 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
                 options: [
                     { label: 'Browser API', value: 'browser' },
                     { label: 'Supertonic 2 (Neural TTS)', value: 'supertonic' },
+                    { label: 'Supertonic 3 (Neural TTS)', value: 'supertonic3' },
                     { label: 'Google Cloud TTS', value: 'google' },
                     { label: 'Amazon Polly', value: 'polly' },
                     { label: 'Microsoft Azure', value: 'azure' },
@@ -323,7 +324,7 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
                 renderKey: 'supertonicStatus',
                 label: 'Supertonic Status',
                 type: 'supertonic-status',
-                showIf: (s) => s.ttsEnabled && s.ttsProvider === 'supertonic'
+                showIf: (s) => s.ttsEnabled && (s.ttsProvider === 'supertonic' || s.ttsProvider === 'supertonic3')
             },
             {
                 key: 'ttsVoice',
@@ -336,7 +337,7 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
                 key: 'ttsVoiceTest' as any,
                 label: 'Test Voice',
                 type: 'tts-test',
-                showIf: (s) => s.ttsEnabled && (s.ttsProvider === 'browser' || s.ttsProvider === 'supertonic')
+                showIf: (s) => s.ttsEnabled && (s.ttsProvider === 'browser' || s.ttsProvider === 'supertonic' || s.ttsProvider === 'supertonic3')
             },
             {
                 key: 'supertonicVoiceStyle',
@@ -355,7 +356,7 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
                     { label: 'Female 4 (F4)', value: 'F4.json' },
                     { label: 'Female 5 (F5)', value: 'F5.json' }
                 ],
-                showIf: (s) => s.ttsEnabled && s.ttsProvider === 'supertonic'
+                showIf: (s) => s.ttsEnabled && (s.ttsProvider === 'supertonic' || s.ttsProvider === 'supertonic3')
             },
             {
                 key: 'supertonicLang',
@@ -371,13 +372,53 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
                 showIf: (s) => s.ttsEnabled && s.ttsProvider === 'supertonic'
             },
             {
+                key: 'supertonicLang',
+                renderKey: 'supertonic3Lang',
+                label: 'Language',
+                type: 'select',
+                options: [
+                    { label: 'English (en)', value: 'en' },
+                    { label: 'Korean (ko)', value: 'ko' },
+                    { label: 'Japanese (ja)', value: 'ja' },
+                    { label: 'Arabic (ar)', value: 'ar' },
+                    { label: 'Bulgarian (bg)', value: 'bg' },
+                    { label: 'Czech (cs)', value: 'cs' },
+                    { label: 'Danish (da)', value: 'da' },
+                    { label: 'German (de)', value: 'de' },
+                    { label: 'Greek (el)', value: 'el' },
+                    { label: 'Spanish (es)', value: 'es' },
+                    { label: 'Estonian (et)', value: 'et' },
+                    { label: 'Finnish (fi)', value: 'fi' },
+                    { label: 'French (fr)', value: 'fr' },
+                    { label: 'Hindi (hi)', value: 'hi' },
+                    { label: 'Croatian (hr)', value: 'hr' },
+                    { label: 'Hungarian (hu)', value: 'hu' },
+                    { label: 'Indonesian (id)', value: 'id' },
+                    { label: 'Italian (it)', value: 'it' },
+                    { label: 'Lithuanian (lt)', value: 'lt' },
+                    { label: 'Latvian (lv)', value: 'lv' },
+                    { label: 'Dutch (nl)', value: 'nl' },
+                    { label: 'Polish (pl)', value: 'pl' },
+                    { label: 'Portuguese (pt)', value: 'pt' },
+                    { label: 'Romanian (ro)', value: 'ro' },
+                    { label: 'Russian (ru)', value: 'ru' },
+                    { label: 'Slovak (sk)', value: 'sk' },
+                    { label: 'Slovenian (sl)', value: 'sl' },
+                    { label: 'Swedish (sv)', value: 'sv' },
+                    { label: 'Turkish (tr)', value: 'tr' },
+                    { label: 'Ukrainian (uk)', value: 'uk' },
+                    { label: 'Vietnamese (vi)', value: 'vi' }
+                ],
+                showIf: (s) => s.ttsEnabled && s.ttsProvider === 'supertonic3'
+            },
+            {
                 key: 'supertonicTotalStep',
                 label: 'Quality Steps (higher = better)',
                 type: 'range',
                 min: 1,
                 max: 20,
                 step: 1,
-                showIf: (s) => s.ttsEnabled && s.ttsProvider === 'supertonic'
+                showIf: (s) => s.ttsEnabled && (s.ttsProvider === 'supertonic' || s.ttsProvider === 'supertonic3')
             },
             {
                 key: 'supertonicSpeed',
@@ -387,7 +428,7 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
                 max: 2.0,
                 step: 0.05,
                 formatDisplay: (v) => `${v.toFixed(2)}x`,
-                showIf: (s) => s.ttsEnabled && s.ttsProvider === 'supertonic'
+                showIf: (s) => s.ttsEnabled && (s.ttsProvider === 'supertonic' || s.ttsProvider === 'supertonic3')
             }
         ]
     }

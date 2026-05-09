@@ -302,6 +302,7 @@ const SupertonicStatusControl: React.FC = () => {
             </div>
             <div className="supertonic-status-detail">{detail}</div>
             <div className="supertonic-status-meta">
+                <span>Model: {state.modelName}</span>
                 <span>Backend: {state.backendType ? state.backendType.toUpperCase() : 'not selected yet'}</span>
                 <span>Selected voice: {settings.supertonicVoiceStyle}</span>
                 <span>Loaded voice: {state.currentVoiceStyle}{isVoiceSynced ? '' : ' (syncing)'}</span>
@@ -346,6 +347,7 @@ const TTSTestControl: React.FC = () => {
     const { state: supertonicState, generateSpeech } = useSupertonic();
     const [text, setText] = useState('Welcome to the stream!');
     const [isTesting, setIsTesting] = useState(false);
+    const isSupertonicProvider = settings.ttsProvider === 'supertonic' || settings.ttsProvider === 'supertonic3';
 
     const speak = async () => {
         if (!text.trim() || isTesting) return;
@@ -353,7 +355,7 @@ const TTSTestControl: React.FC = () => {
         setIsTesting(true);
 
         try {
-            if (settings.ttsProvider === 'supertonic') {
+            if (isSupertonicProvider) {
                 if (!supertonicState.isReady) {
                     console.warn("Supertonic is not ready yet");
                     setIsTesting(false);

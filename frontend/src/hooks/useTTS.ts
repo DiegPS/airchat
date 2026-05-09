@@ -14,6 +14,7 @@ export const useTTS = (isStarted: boolean) => {
     const ttsStartTimeRef = useRef<number | null>(null);
     const generationIdRef = useRef(0);
     const processedMessagesRef = useRef<Set<string>>(new Set());
+    const isSupertonicProvider = settings.ttsProvider === 'supertonic' || settings.ttsProvider === 'supertonic3';
 
     // Initialize Supertonic hook
     const { state: supertonicState, generateSpeech } = useSupertonic();
@@ -27,7 +28,7 @@ export const useTTS = (isStarted: boolean) => {
         isSpeakingRef.current = true;
 
         // Check if using Supertonic provider
-        if (settings.ttsProvider === 'supertonic') {
+        if (isSupertonicProvider) {
             if (!supertonicState.isReady) {
                 console.warn("TTS: Supertonic is not ready yet");
                 queueRef.current.unshift(text);
@@ -133,7 +134,7 @@ export const useTTS = (isStarted: boolean) => {
 
         window.speechSynthesis.speak(utterance);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [settings.ttsVoice, settings.ttsProvider, settings.supertonicLang, settings.supertonicVoiceStyle, settings.supertonicTotalStep, settings.supertonicSpeed, supertonicState.isReady, generateSpeech]);
+    }, [settings.ttsVoice, settings.ttsProvider, settings.supertonicLang, settings.supertonicVoiceStyle, settings.supertonicTotalStep, settings.supertonicSpeed, isSupertonicProvider, supertonicState.isReady, generateSpeech]);
 
     const addToQueue = useCallback((text: string) => {
         queueRef.current.push(text);
@@ -142,10 +143,10 @@ export const useTTS = (isStarted: boolean) => {
 
     // Process queue when Supertonic becomes ready
     useEffect(() => {
-        if (settings.ttsProvider === 'supertonic' && supertonicState.isReady) {
+        if (isSupertonicProvider && supertonicState.isReady) {
             processQueue();
         }
-    }, [supertonicState.isReady, settings.ttsProvider, processQueue]);
+    }, [supertonicState.isReady, isSupertonicProvider, processQueue]);
 
     const cleanText = (text: string) => {
         // Remove URLs

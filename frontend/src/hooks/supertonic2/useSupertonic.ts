@@ -1,17 +1,48 @@
-import { createContext, createElement, ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, createElement, ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useSettings } from '../../context/SettingsContext';
 import {
     loadTextToSpeech,
     loadVoiceStyle,
+    SupertonicAssetOptions,
+    SUPERTONIC2_LANGS,
+    SUPERTONIC3_LANGS,
     writeWavFile,
     TextToSpeech,
-    Style,
-    AVAILABLE_LANGS
+    Style
 } from './helper';
 
-// Configuration - Use 'hf' to download from Hugging Face, or 'assets/onnx' to use local files
+type SupertonicModelId = 'supertonic2' | 'supertonic3';
+
+interface SupertonicModelConfig {
+    id: SupertonicModelId;
+    displayName: string;
+    hfRepo: string;
+    cacheName: string;
+    defaultVoiceStyle: string;
+    availableLangs: string[];
+}
+
 const USE_HUGGING_FACE = true;
-const DEFAULT_VOICE_STYLE_PATH = USE_HUGGING_FACE ? 'M1.json' : 'assets/voice_styles/M1.json';
+const MODEL_CONFIGS: Record<SupertonicModelId, SupertonicModelConfig> = {
+    supertonic2: {
+        id: 'supertonic2',
+        displayName: 'Supertonic 2',
+        hfRepo: 'Supertone/supertonic-2',
+        cacheName: 'supertonic-2-models-v1',
+        defaultVoiceStyle: USE_HUGGING_FACE ? 'M1.json' : 'assets/voice_styles/M1.json',
+        availableLangs: SUPERTONIC2_LANGS
+    },
+    supertonic3: {
+        id: 'supertonic3',
+        displayName: 'Supertonic 3',
+        hfRepo: 'Supertone/supertonic-3',
+        cacheName: 'supertonic-3-models-v1',
+        defaultVoiceStyle: USE_HUGGING_FACE ? 'M1.json' : 'assets/voice_styles/M1.json',
+        availableLangs: SUPERTONIC3_LANGS
+    }
+};
+
+const DEFAULT_MODEL_ID: SupertonicModelId = 'supertonic2';
 
 export interface SupertonicState {
     isLoading: boolean;
@@ -21,6 +52,8 @@ export interface SupertonicState {
     backendType: 'webgpu' | 'wasm' | null;
     currentVoiceStyle: string;
     hasRequestedLoad: boolean;
+    modelId: SupertonicModelId;
+    modelName: string;
 }
 
 export interface SupertonicGenerateOptions {
@@ -53,103 +86,134 @@ interface SupertonicContextValue {
 }
 
 const SupertonicContext = createContext<SupertonicContextValue | undefined>(undefined);
+const sharedResourcesByModel: Partial<Record<SupertonicModelId, SupertonicResources>> = {};
+const sharedLoadPromiseByModel: Partial<Record<SupertonicModelId, Promise<SupertonicResources>>> = {};
 
-let sharedResources: SupertonicResources | null = null;
-let sharedLoadPromise: Promise<SupertonicResources> | null = null;
+function getModelIdFromProvider(ttsProvider: string): SupertonicModelId {
+    return ttsProvider === 'supertonic3' ? 'supertonic3' : 'supertonic2';
+}
+
+function getAssetOptions(modelConfig: SupertonicModelConfig): SupertonicAssetOptions {
+    return {
+        hfRepo: modelConfig.hfRepo,
+        cacheName: modelConfig.cacheName,
+        availableLangs: modelConfig.availableLangs
+    };
+}
 
 async function loadSharedResources(
+    modelConfig: SupertonicModelConfig,
     onStatus: (status: string) => void
 ): Promise<SupertonicResources> {
-    if (sharedResources) {
-        return sharedResources;
+    const existingResources = sharedResourcesByModel[modelConfig.id];
+    if (existingResources) {
+        return existingResources;
     }
 
-    if (sharedLoadPromise) {
-        onStatus('Waiting for the current Supertonic load to finish...');
-        return sharedLoadPromise;
+    const existingPromise = sharedLoadPromiseByModel[modelConfig.id];
+    if (existingPromise) {
+        onStatus(`Waiting for the current ${modelConfig.displayName} load to finish...`);
+        return existingPromise;
     }
 
-    sharedLoadPromise = (async () => {
-        onStatus('Loading configuration...');
+    sharedLoadPromiseByModel[modelConfig.id] = (async () => {
+        onStatus(`Loading ${modelConfig.displayName} configuration...`);
         const basePath = USE_HUGGING_FACE ? 'hf' : 'assets/onnx';
+        const assetOptions = getAssetOptions(modelConfig);
         let executionProvider: 'webgpu' | 'wasm' = 'wasm';
         let loadedTextToSpeech: TextToSpeech;
         let loadedCfgs: any;
 
         try {
-            onStatus('Trying WebGPU acceleration...');
+            onStatus(`Trying WebGPU acceleration for ${modelConfig.displayName}...`);
             const result = await loadTextToSpeech(basePath, {
                 executionProviders: ['webgpu'],
                 graphOptimizationLevel: 'all'
-            }, (modelName, current, total) => {
-                onStatus(`Downloading/loading model ${current}/${total}: ${modelName}`);
+            }, assetOptions, (modelName, current, total) => {
+                onStatus(`Downloading/loading ${modelConfig.displayName} model ${current}/${total}: ${modelName}`);
             });
 
             loadedTextToSpeech = result.textToSpeech;
             loadedCfgs = result.cfgs;
             executionProvider = 'webgpu';
         } catch (webgpuError) {
-            console.log('WebGPU not available, falling back to WebAssembly', webgpuError);
-            onStatus('WebGPU unavailable. Falling back to WebAssembly...');
+            console.log(`${modelConfig.displayName}: WebGPU not available, falling back to WebAssembly`, webgpuError);
+            onStatus(`WebGPU unavailable. Falling back to WebAssembly for ${modelConfig.displayName}...`);
 
             const result = await loadTextToSpeech(basePath, {
                 executionProviders: ['wasm'],
                 graphOptimizationLevel: 'all'
-            }, (modelName, current, total) => {
-                onStatus(`Downloading/loading model ${current}/${total}: ${modelName}`);
+            }, assetOptions, (modelName, current, total) => {
+                onStatus(`Downloading/loading ${modelConfig.displayName} model ${current}/${total}: ${modelName}`);
             });
 
             loadedTextToSpeech = result.textToSpeech;
             loadedCfgs = result.cfgs;
         }
 
-        onStatus('Loading default voice style...');
-        const style = await loadVoiceStyle([DEFAULT_VOICE_STYLE_PATH], true);
+        onStatus(`Loading ${modelConfig.displayName} default voice style...`);
+        const style = await loadVoiceStyle([modelConfig.defaultVoiceStyle], true, assetOptions);
 
-        sharedResources = {
+        const resources = {
             textToSpeech: loadedTextToSpeech,
             cfgs: loadedCfgs,
             style,
-            stylePath: DEFAULT_VOICE_STYLE_PATH,
+            stylePath: modelConfig.defaultVoiceStyle,
             backendType: executionProvider
         };
+        sharedResourcesByModel[modelConfig.id] = resources;
 
-        return sharedResources;
+        return resources;
     })().catch((error) => {
-        sharedLoadPromise = null;
+        sharedLoadPromiseByModel[modelConfig.id] = undefined;
         throw error;
     });
 
-    return sharedLoadPromise;
+    return sharedLoadPromiseByModel[modelConfig.id]!;
 }
 
-const useSupertonicEngine = (shouldLoad: boolean, desiredVoiceStyle: string): SupertonicContextValue => {
+const useSupertonicEngine = (
+    shouldLoad: boolean,
+    desiredVoiceStyle: string,
+    modelId: SupertonicModelId
+): SupertonicContextValue => {
+    const modelConfig = useMemo(() => MODEL_CONFIGS[modelId], [modelId]);
     const [state, setState] = useState<SupertonicState>({
         isLoading: false,
         isReady: false,
         error: null,
         loadingStatus: 'Supertonic is idle. Select it as the TTS provider to load the neural voice engine.',
         backendType: null,
-        currentVoiceStyle: DEFAULT_VOICE_STYLE_PATH,
-        hasRequestedLoad: false
+        currentVoiceStyle: MODEL_CONFIGS[DEFAULT_MODEL_ID].defaultVoiceStyle,
+        hasRequestedLoad: false,
+        modelId: DEFAULT_MODEL_ID,
+        modelName: MODEL_CONFIGS[DEFAULT_MODEL_ID].displayName
     });
 
     const textToSpeechRef = useRef<TextToSpeech | null>(null);
     const cfgsRef = useRef<any>(null);
     const currentStyleRef = useRef<Style | null>(null);
-    const currentStylePathRef = useRef<string>(DEFAULT_VOICE_STYLE_PATH);
+    const currentStylePathRef = useRef<string>(MODEL_CONFIGS[DEFAULT_MODEL_ID].defaultVoiceStyle);
     const lastFailedStylePathRef = useRef<string | null>(null);
 
     useEffect(() => {
         let cancelled = false;
 
         if (!shouldLoad) {
-            if (!sharedResources) {
+            if (!sharedResourcesByModel[modelConfig.id]) {
+                textToSpeechRef.current = null;
+                cfgsRef.current = null;
+                currentStyleRef.current = null;
+                currentStylePathRef.current = modelConfig.defaultVoiceStyle;
                 setState(prev => ({
                     ...prev,
                     isLoading: false,
                     isReady: false,
                     error: null,
+                    backendType: null,
+                    currentVoiceStyle: modelConfig.defaultVoiceStyle,
+                    modelId: modelConfig.id,
+                    modelName: modelConfig.displayName,
                     loadingStatus: 'Supertonic is idle. Select it as the TTS provider to load the neural voice engine.'
                 }));
             }
@@ -164,10 +228,15 @@ const useSupertonicEngine = (shouldLoad: boolean, desiredVoiceStyle: string): Su
                     isReady: false,
                     error: null,
                     hasRequestedLoad: true,
-                    loadingStatus: sharedResources ? 'Restoring loaded Supertonic engine...' : 'Preparing Supertonic...'
+                    currentVoiceStyle: modelConfig.defaultVoiceStyle,
+                    modelId: modelConfig.id,
+                    modelName: modelConfig.displayName,
+                    loadingStatus: sharedResourcesByModel[modelConfig.id]
+                        ? `Restoring loaded ${modelConfig.displayName} engine...`
+                        : `Preparing ${modelConfig.displayName}...`
                 }));
 
-                const resources = await loadSharedResources((loadingStatus) => {
+                const resources = await loadSharedResources(modelConfig, (loadingStatus) => {
                     if (!cancelled) {
                         setState(prev => ({ ...prev, loadingStatus }));
                     }
@@ -179,27 +248,32 @@ const useSupertonicEngine = (shouldLoad: boolean, desiredVoiceStyle: string): Su
                 cfgsRef.current = resources.cfgs;
                 currentStyleRef.current = resources.style;
                 currentStylePathRef.current = resources.stylePath;
+                lastFailedStylePathRef.current = null;
 
                 setState({
                     isLoading: false,
                     isReady: true,
                     error: null,
-                    loadingStatus: `Supertonic ready. Backend: ${resources.backendType.toUpperCase()}. Voice: ${resources.stylePath}`,
+                    loadingStatus: `${modelConfig.displayName} ready. Backend: ${resources.backendType.toUpperCase()}. Voice: ${resources.stylePath}`,
                     backendType: resources.backendType,
                     currentVoiceStyle: resources.stylePath,
-                    hasRequestedLoad: true
+                    hasRequestedLoad: true,
+                    modelId: modelConfig.id,
+                    modelName: modelConfig.displayName
                 });
             } catch (error) {
                 if (cancelled) return;
-                console.error('Error loading Supertonic models:', error);
+                console.error(`Error loading ${modelConfig.displayName} models:`, error);
                 setState({
                     isLoading: false,
                     isReady: false,
                     error: error instanceof Error ? error.message : 'Unknown error',
-                    loadingStatus: 'Failed to load models',
+                    loadingStatus: `Failed to load ${modelConfig.displayName} models`,
                     backendType: null,
-                    currentVoiceStyle: DEFAULT_VOICE_STYLE_PATH,
-                    hasRequestedLoad: true
+                    currentVoiceStyle: modelConfig.defaultVoiceStyle,
+                    hasRequestedLoad: true,
+                    modelId: modelConfig.id,
+                    modelName: modelConfig.displayName
                 });
             }
         };
@@ -208,61 +282,65 @@ const useSupertonicEngine = (shouldLoad: boolean, desiredVoiceStyle: string): Su
         return () => {
             cancelled = true;
         };
-    }, [shouldLoad]);
+    }, [shouldLoad, modelConfig]);
 
-    // Load a specific voice style
     const loadVoiceStyleById = useCallback(async (voiceStylePath: string): Promise<void> => {
         if (!state.isReady) {
-            throw new Error('Supertonic is not ready yet');
+            throw new Error(`${modelConfig.displayName} is not ready yet`);
         }
+
+        const assetOptions = getAssetOptions(modelConfig);
 
         try {
             setState(prev => ({
                 ...prev,
                 error: null,
-                loadingStatus: `Loading selected voice style: ${voiceStylePath}...`
+                loadingStatus: `Loading ${modelConfig.displayName} selected voice style: ${voiceStylePath}...`
             }));
-            
-            const style = await loadVoiceStyle([voiceStylePath], true);
+
+            const style = await loadVoiceStyle([voiceStylePath], true, assetOptions);
             currentStyleRef.current = style;
             currentStylePathRef.current = voiceStylePath;
             lastFailedStylePathRef.current = null;
-            if (sharedResources) {
-                sharedResources.style = style;
-                sharedResources.stylePath = voiceStylePath;
+
+            const resources = sharedResourcesByModel[modelConfig.id];
+            if (resources) {
+                resources.style = style;
+                resources.stylePath = voiceStylePath;
             }
-            
+
             setState(prev => ({
                 ...prev,
                 error: null,
                 currentVoiceStyle: voiceStylePath,
-                loadingStatus: `Selected voice style loaded: ${voiceStylePath}`
+                loadingStatus: `${modelConfig.displayName} selected voice style loaded: ${voiceStylePath}`
             }));
-            
         } catch (error) {
             lastFailedStylePathRef.current = voiceStylePath;
-            console.error('Error loading voice style:', error);
-            // Restore default on error
+            console.error(`Error loading ${modelConfig.displayName} voice style:`, error);
             try {
-                const style = await loadVoiceStyle([DEFAULT_VOICE_STYLE_PATH], true);
+                const style = await loadVoiceStyle([modelConfig.defaultVoiceStyle], true, assetOptions);
                 currentStyleRef.current = style;
-                currentStylePathRef.current = DEFAULT_VOICE_STYLE_PATH;
-                if (sharedResources) {
-                    sharedResources.style = style;
-                    sharedResources.stylePath = DEFAULT_VOICE_STYLE_PATH;
+                currentStylePathRef.current = modelConfig.defaultVoiceStyle;
+
+                const resources = sharedResourcesByModel[modelConfig.id];
+                if (resources) {
+                    resources.style = style;
+                    resources.stylePath = modelConfig.defaultVoiceStyle;
                 }
+
                 setState(prev => ({
                     ...prev,
-                    currentVoiceStyle: DEFAULT_VOICE_STYLE_PATH,
-                    loadingStatus: `Failed to load selected voice style: ${voiceStylePath}`,
+                    currentVoiceStyle: modelConfig.defaultVoiceStyle,
+                    loadingStatus: `Failed to load selected ${modelConfig.displayName} voice style: ${voiceStylePath}`,
                     error: error instanceof Error ? error.message : 'Unknown voice style error'
                 }));
             } catch (restoreError) {
-                console.error('Failed to restore default voice style:', restoreError);
+                console.error(`Failed to restore ${modelConfig.displayName} default voice style:`, restoreError);
             }
             throw error;
         }
-    }, [state.isReady]);
+    }, [state.isReady, modelConfig]);
 
     useEffect(() => {
         if (!shouldLoad || !state.isReady) return;
@@ -270,11 +348,10 @@ const useSupertonicEngine = (shouldLoad: boolean, desiredVoiceStyle: string): Su
         if (desiredVoiceStyle === lastFailedStylePathRef.current) return;
 
         loadVoiceStyleById(desiredVoiceStyle).catch((error) => {
-            console.error('Failed to sync selected Supertonic voice style:', error);
+            console.error(`Failed to sync selected ${modelConfig.displayName} voice style:`, error);
         });
-    }, [shouldLoad, state.isReady, desiredVoiceStyle, loadVoiceStyleById]);
+    }, [shouldLoad, state.isReady, desiredVoiceStyle, loadVoiceStyleById, modelConfig.displayName]);
 
-    // Generate speech from text
     const generateSpeech = useCallback(async (options: SupertonicGenerateOptions): Promise<SupertonicGenerateResult> => {
         const {
             text,
@@ -286,7 +363,7 @@ const useSupertonicEngine = (shouldLoad: boolean, desiredVoiceStyle: string): Su
         } = options;
 
         if (!state.isReady || !textToSpeechRef.current || !cfgsRef.current) {
-            throw new Error('Supertonic is not ready yet');
+            throw new Error(`${modelConfig.displayName} is not ready yet`);
         }
 
         if (!currentStyleRef.current) {
@@ -297,11 +374,10 @@ const useSupertonicEngine = (shouldLoad: boolean, desiredVoiceStyle: string): Su
             throw new Error('Text cannot be empty');
         }
 
-        if (!AVAILABLE_LANGS.includes(lang)) {
-            throw new Error(`Invalid language: ${lang}. Available: ${AVAILABLE_LANGS.join(', ')}`);
+        if (!modelConfig.availableLangs.includes(lang)) {
+            throw new Error(`Invalid language for ${modelConfig.displayName}: ${lang}. Available: ${modelConfig.availableLangs.join(', ')}`);
         }
 
-        // Load different voice style if requested
         if (voiceStyle && voiceStyle !== currentStylePathRef.current) {
             await loadVoiceStyleById(voiceStyle);
         }
@@ -310,7 +386,7 @@ const useSupertonicEngine = (shouldLoad: boolean, desiredVoiceStyle: string): Su
             setState(prev => ({
                 ...prev,
                 error: null,
-                loadingStatus: `Generating speech with ${currentStylePathRef.current}...`
+                loadingStatus: `Generating speech with ${modelConfig.displayName} / ${currentStylePathRef.current}...`
             }));
 
             const { wav, duration } = await textToSpeechRef.current.call(
@@ -323,7 +399,7 @@ const useSupertonicEngine = (shouldLoad: boolean, desiredVoiceStyle: string): Su
                 (step, total) => {
                     setState(prev => ({
                         ...prev,
-                        loadingStatus: `Generating speech: denoising step ${step}/${total}`
+                        loadingStatus: `Generating ${modelConfig.displayName} speech: denoising step ${step}/${total}`
                     }));
                     if (onProgress) {
                         onProgress(step, total);
@@ -331,7 +407,6 @@ const useSupertonicEngine = (shouldLoad: boolean, desiredVoiceStyle: string): Su
                 }
             );
 
-            // Create WAV file
             const wavLen = Math.floor(textToSpeechRef.current.sampleRate * duration[0]);
             const wavOut = wav.slice(0, wavLen);
             const wavBuffer = writeWavFile(wavOut, textToSpeechRef.current.sampleRate);
@@ -341,7 +416,7 @@ const useSupertonicEngine = (shouldLoad: boolean, desiredVoiceStyle: string): Su
             setState(prev => ({
                 ...prev,
                 error: null,
-                loadingStatus: `Audio generated (${duration[0].toFixed(1)}s). Playing next.`
+                loadingStatus: `${modelConfig.displayName} audio generated (${duration[0].toFixed(1)}s). Playing next.`
             }));
 
             return {
@@ -349,17 +424,16 @@ const useSupertonicEngine = (shouldLoad: boolean, desiredVoiceStyle: string): Su
                 audioUrl: url,
                 duration: duration[0]
             };
-
         } catch (error) {
-            console.error('Error during speech synthesis:', error);
+            console.error(`Error during ${modelConfig.displayName} speech synthesis:`, error);
             setState(prev => ({
                 ...prev,
-                loadingStatus: 'Speech generation failed.',
+                loadingStatus: `${modelConfig.displayName} speech generation failed.`,
                 error: error instanceof Error ? error.message : 'Unknown synthesis error'
             }));
             throw error;
         }
-    }, [state.isReady, loadVoiceStyleById]);
+    }, [state.isReady, loadVoiceStyleById, modelConfig]);
 
     return {
         state,
@@ -370,8 +444,9 @@ const useSupertonicEngine = (shouldLoad: boolean, desiredVoiceStyle: string): Su
 
 export const SupertonicProvider = ({ children }: { children: ReactNode }) => {
     const { settings } = useSettings();
-    const shouldLoad = settings.ttsEnabled && settings.ttsProvider === 'supertonic';
-    const value = useSupertonicEngine(shouldLoad, settings.supertonicVoiceStyle);
+    const shouldLoad = settings.ttsEnabled && (settings.ttsProvider === 'supertonic' || settings.ttsProvider === 'supertonic3');
+    const modelId = getModelIdFromProvider(settings.ttsProvider);
+    const value = useSupertonicEngine(shouldLoad, settings.supertonicVoiceStyle, modelId);
 
     return createElement(SupertonicContext.Provider, { value }, children);
 };

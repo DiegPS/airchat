@@ -53,12 +53,17 @@ export const useChat = () => {
 
     const scrollToBottomRef = useRef<HTMLDivElement>(null);
 
-    // Reset ttsVoice when provider changes
+    // Reset provider-specific TTS settings when provider changes
     useEffect(() => {
         if (prevProvider && prevProvider !== settings.ttsProvider) {
-            updateSettings({ ttsVoice: '' });
+            const nextSettings: { ttsVoice: string; supertonicLang?: string } = { ttsVoice: '' };
+            const supertonic2Langs = ['en', 'ko', 'es', 'pt', 'fr'];
+            if (settings.ttsProvider === 'supertonic' && !supertonic2Langs.includes(settings.supertonicLang)) {
+                nextSettings.supertonicLang = 'en';
+            }
+            updateSettings(nextSettings);
         }
-    }, [settings.ttsProvider, prevProvider, updateSettings]);
+    }, [settings.ttsProvider, settings.supertonicLang, prevProvider, updateSettings]);
 
     const scrollToBottom = () => {
         scrollToBottomRef.current?.scrollIntoView({ behavior: "smooth" });

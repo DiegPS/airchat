@@ -12,16 +12,23 @@ if (ort && ort.env && ort.env.wasm) {
     ort.env.wasm.wasmPaths = '/';
 }
 
-// Hugging Face configuration
-const HF_REPO = 'Supertone/supertonic-2';
-const HF_BASE_URL = `https://huggingface.co/${HF_REPO}/resolve/main`;
-const CACHE_NAME = 'supertonic-models-v1';
+export interface SupertonicAssetOptions {
+    hfRepo?: string;
+    cacheName?: string;
+    availableLangs?: string[];
+}
 
-// Available languages for multilingual TTS
-export const AVAILABLE_LANGS = ['en', 'ko', 'es', 'pt', 'fr'];
+export const SUPERTONIC2_LANGS = ['en', 'ko', 'es', 'pt', 'fr'];
+export const SUPERTONIC3_LANGS = [
+    'en', 'ko', 'ja', 'ar', 'bg', 'cs', 'da', 'de', 'el', 'es', 'et', 'fi',
+    'fr', 'hi', 'hr', 'hu', 'id', 'it', 'lt', 'lv', 'nl', 'pl', 'pt', 'ro',
+    'ru', 'sk', 'sl', 'sv', 'tr', 'uk', 'vi'
+];
 
-export function isValidLang(lang: string): boolean {
-    return AVAILABLE_LANGS.includes(lang);
+export const AVAILABLE_LANGS = SUPERTONIC2_LANGS;
+
+export function isValidLang(lang: string, availableLangs: string[] = AVAILABLE_LANGS): boolean {
+    return availableLangs.includes(lang);
 }
 
 /**
@@ -29,9 +36,11 @@ export function isValidLang(lang: string): boolean {
  */
 export class UnicodeProcessor {
     indexer: number[];
+    availableLangs: string[];
 
-    constructor(indexer: number[]) {
+    constructor(indexer: number[], availableLangs: string[] = AVAILABLE_LANGS) {
         this.indexer = indexer;
+        this.availableLangs = availableLangs;
     }
 
     call(textList: string[], langList: string[]): { textIds: number[][], textMask: number[][][] } {
@@ -127,8 +136,8 @@ export class UnicodeProcessor {
         }
 
         // Validate language
-        if (!isValidLang(lang)) {
-            throw new Error(`Invalid language: ${lang}. Available: ${AVAILABLE_LANGS.join(', ')}`);
+        if (!isValidLang(lang, this.availableLangs)) {
+            throw new Error(`Invalid language: ${lang}. Available: ${this.availableLangs.join(', ')}`);
         }
 
         // Wrap text with language tags
@@ -422,7 +431,11 @@ export class TextToSpeech {
 /**
  * Load voice style from JSON files
  */
-export async function loadVoiceStyle(voiceStylePaths: string[], verbose: boolean = false): Promise<Style> {
+export async function loadVoiceStyle(
+    voiceStylePaths: string[],
+    verbose: boolean = false,
+    assetOptions: SupertonicAssetOptions = {}
+): Promise<Style> {
     const bsz = voiceStylePaths.length;
     
     // Determine if using Hugging Face
@@ -430,7 +443,7 @@ export async function loadVoiceStyle(voiceStylePaths: string[], verbose: boolean
     
     // Read first file to get dimensions
     const firstPath = useHF ? `voice_styles/${voiceStylePaths[0].split('/').pop()}` : voiceStylePaths[0];
-    const firstResponse = await fetchWithCache(firstPath, useHF);
+    const firstResponse = await fetchWithCache(firstPath, useHF, assetOptions);
     const firstStyle = await firstResponse.json();
     
     const ttlDims = firstStyle.style_ttl.dims;
@@ -450,7 +463,7 @@ export async function loadVoiceStyle(voiceStylePaths: string[], verbose: boolean
     // Fill in the data
     for (let i = 0; i < bsz; i++) {
         const path = useHF ? `voice_styles/${voiceStylePaths[i].split('/').pop()}` : voiceStylePaths[i];
-        const response = await fetchWithCache(path, useHF);
+        const response = await fetchWithCache(path, useHF, assetOptions);
         const voiceStyle = await response.json();
         
         // Flatten TTL data
@@ -480,9 +493,16 @@ export async function loadVoiceStyle(voiceStylePaths: string[], verbose: boolean
 /**
  * Download and cache a file from Hugging Face
  */
-async function fetchWithCache(url: string, useHF: boolean = false): Promise<Response> {
-    const cache = await caches.open(CACHE_NAME);
-    const cachedResponse = await cache.match(url);
+async function fetchWithCache(
+    url: string,
+    useHF: boolean = false,
+    assetOptions: SupertonicAssetOptions = {}
+): Promise<Response> {
+    const hfRepo = assetOptions.hfRepo || 'Supertone/supertonic-2';
+    const cacheName = assetOptions.cacheName || 'supertonic-models-v1';
+    const cacheKey = useHF ? `${hfRepo}/${url}` : url;
+    const cache = typeof caches !== 'undefined' ? await caches.open(cacheName) : null;
+    const cachedResponse = cache ? await cache.match(cacheKey) : null;
     
     if (cachedResponse) {
         console.log(`✓ Using cached: ${url.split('/').pop()}`);
@@ -490,15 +510,16 @@ async function fetchWithCache(url: string, useHF: boolean = false): Promise<Resp
     }
     
     console.log(`⬇ Downloading: ${url.split('/').pop()}`);
-    const finalUrl = useHF ? `${HF_BASE_URL}/${url}` : url;
+    const finalUrl = useHF ? `https://huggingface.co/${hfRepo}/resolve/main/${url}` : url;
     const response = await fetch(finalUrl);
     
     if (!response.ok) {
         throw new Error(`Failed to fetch ${finalUrl}: ${response.status} ${response.statusText}`);
     }
     
-    // Clone response before caching
-    await cache.put(url, response.clone());
+    if (cache) {
+        await cache.put(cacheKey, response.clone());
+    }
     
     return response;
 }
@@ -506,10 +527,10 @@ async function fetchWithCache(url: string, useHF: boolean = false): Promise<Resp
 /**
  * Load configuration from JSON
  */
-export async function loadCfgs(onnxDir: string): Promise<any> {
+export async function loadCfgs(onnxDir: string, assetOptions: SupertonicAssetOptions = {}): Promise<any> {
     const path = `${onnxDir}/tts.json`;
     const useHF = !onnxDir.startsWith('assets/');
-    const response = await fetchWithCache(useHF ? 'onnx/tts.json' : path, useHF);
+    const response = await fetchWithCache(useHF ? 'onnx/tts.json' : path, useHF, assetOptions);
     const cfgs = await response.json();
     return cfgs;
 }
@@ -517,21 +538,28 @@ export async function loadCfgs(onnxDir: string): Promise<any> {
 /**
  * Load text processor
  */
-export async function loadTextProcessor(onnxDir: string): Promise<UnicodeProcessor> {
+export async function loadTextProcessor(
+    onnxDir: string,
+    assetOptions: SupertonicAssetOptions = {}
+): Promise<UnicodeProcessor> {
     const path = `${onnxDir}/unicode_indexer.json`;
     const useHF = !onnxDir.startsWith('assets/');
-    const response = await fetchWithCache(useHF ? 'onnx/unicode_indexer.json' : path, useHF);
+    const response = await fetchWithCache(useHF ? 'onnx/unicode_indexer.json' : path, useHF, assetOptions);
     const indexer = await response.json();
-    return new UnicodeProcessor(indexer);
+    return new UnicodeProcessor(indexer, assetOptions.availableLangs || AVAILABLE_LANGS);
 }
 
 /**
  * Load ONNX model
  */
-export async function loadOnnx(onnxPath: string, options: any): Promise<any> {
+export async function loadOnnx(
+    onnxPath: string,
+    options: any,
+    assetOptions: SupertonicAssetOptions = {}
+): Promise<any> {
     const useHF = !onnxPath.startsWith('assets/');
     const filename = onnxPath.split('/').pop();
-    const response = await fetchWithCache(useHF ? `onnx/${filename}` : onnxPath, useHF);
+    const response = await fetchWithCache(useHF ? `onnx/${filename}` : onnxPath, useHF, assetOptions);
     const arrayBuffer = await response.arrayBuffer();
     const session = await ort.InferenceSession.create(arrayBuffer, options);
     return session;
@@ -543,11 +571,12 @@ export async function loadOnnx(onnxPath: string, options: any): Promise<any> {
 export async function loadTextToSpeech(
     onnxDir: string,
     sessionOptions: any = {},
+    assetOptions: SupertonicAssetOptions = {},
     progressCallback: ((modelName: string, current: number, total: number) => void) | null = null
 ): Promise<{ textToSpeech: TextToSpeech, cfgs: any }> {
     console.log('Using WebAssembly/WebGPU for inference');
     
-    const cfgs = await loadCfgs(onnxDir);
+    const cfgs = await loadCfgs(onnxDir, assetOptions);
     
     const dpPath = `${onnxDir}/duration_predictor.onnx`;
     const textEncPath = `${onnxDir}/text_encoder.onnx`;
@@ -566,13 +595,13 @@ export async function loadTextToSpeech(
         if (progressCallback) {
             progressCallback(modelPaths[i].name, i + 1, modelPaths.length);
         }
-        const session = await loadOnnx(modelPaths[i].path, sessionOptions);
+        const session = await loadOnnx(modelPaths[i].path, sessionOptions, assetOptions);
         sessions.push(session);
     }
     
     const [dpOrt, textEncOrt, vectorEstOrt, vocoderOrt] = sessions;
     
-    const textProcessor = await loadTextProcessor(onnxDir);
+    const textProcessor = await loadTextProcessor(onnxDir, assetOptions);
     const textToSpeech = new TextToSpeech(cfgs, textProcessor, dpOrt, textEncOrt, vectorEstOrt, vocoderOrt);
     
     return { textToSpeech, cfgs };
