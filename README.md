@@ -26,11 +26,6 @@ A transparent, frameless desktop application built with **Wails v2** (Go + React
 - **Smart filtering**: members-only mode, custom user whitelist, command mode (e.g., `!voice`)
 - **Random voice** per message, URL removal, username cleaning
 
-### 📊 Subscriber Goal Widget
-- Live subscriber counter with progress bar
-- Fetches real-time stats from livecounts.io
-- Customizable title and target
-
 ### 🎨 Design Customization
 - **Message styling**: bubble backgrounds, avatars, badges, timestamps, border radius, text alignment
 - **Text effects**: outline/stroke, drop shadow, line height, font weight
@@ -39,9 +34,8 @@ A transparent, frameless desktop application built with **Wails v2** (Go + React
 - **Chroma key**: solid color background for OBS chroma keying
 - **Preview mode**: test your design with dummy messages before going live
 
-### 🔍 Channel Search
-- Search YouTube channels by name via livecounts.io API
-- Manual channel ID input option
+### 🔍 YouTube Input
+- Supports YouTube handles, channel IDs, and video URLs
 
 ---
 
@@ -131,7 +125,7 @@ This starts a Vite dev server with fast hot reload. A dev server also runs on `h
 │  • YouTube Chat API  │  • Chat Display & Styles     │
 │  • OBS WebSocket     │  • Settings Panel            │
 │  • Window Control    │  • Stream HUD                │
-│  • Channel Search    │  • Subscriber Goal           │
+│  • YouTube Input     │  • Stream HUD                │
 │                      │  • TTS Engine (ONNX)         │
 │                      │  • Supertonic 2 Neural TTS   │
 └──────────────────────┴──────────────────────────────┘
@@ -168,7 +162,6 @@ All settings are persisted in `localStorage` under `AIRCHAT_SETTINGS`. The setti
 | **Message Design** | Bubble background, alignment, corner radius, gap, max messages, shadow |
 | **Animation** | Entrance animation type and duration |
 | **3D Transform** | Perspective, rotate X/Y/Z, skew, scale |
-| **Subscriber Goal** | Show goal, title, target count |
 | **OBS Integration** | Enable, host, password, connection status |
 | **HUD Settings** | Position, scale, opacity, bitrate, FPS, mic, desktop, scene |
 | **TTS** | Enable, members-only, custom users, command mode, provider, voice |
@@ -245,4 +238,3 @@ This project is open source. See the [LICENSE](LICENSE) file for details.
 - [youtube-chat](https://github.com/DiegPS/youtube-chat) — YouTube live chat library
 - [goobs](https://github.com/andreykaipov/goobs) — OBS WebSocket client
 - [Supertonic 2](https://huggingface.co/Supertone/supertonic-2) — Neural TTS by Supertone
-- [livecounts.io](https://livecounts.io/) — YouTube subscriber stats API

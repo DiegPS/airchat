@@ -4,18 +4,19 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
+	"net/url"
+	"regexp"
+	"strings"
 	"sync"
 	"syscall"
 
 	"math"
 	"time"
 
+	kickchat "github.com/DiegPS/kick-chat"
 	youtubechat "github.com/DiegPS/youtube-chat"
 	"github.com/DiegPS/youtube-chat/types"
 	"github.com/andreykaipov/goobs"
-	kickchat "github.com/DiegPS/kick-chat"
 	"github.com/andreykaipov/goobs/api/requests/inputs"
 	twitch "github.com/gempir/go-twitch-irc/v3"
 	"github.com/lxn/win"
@@ -65,16 +66,16 @@ func (a *App) StartPreviewChat() {
 		// YouTube — owner
 		{
 			"Platform": "youtube", "ID": "p1",
-			"Author":       map[string]interface{}{"Name": "ElStreamer", "ChannelID": "A", "Thumbnail": map[string]interface{}{"URL": "https://i.pravatar.cc/100?u=yt-owner", "Alt": "E"}},
-			"Message":      []map[string]interface{}{txt("📺 Mensaje del dueño del canal (YouTube)")},
+			"Author":  map[string]interface{}{"Name": "ElStreamer", "ChannelID": "A", "Thumbnail": map[string]interface{}{"URL": "https://i.pravatar.cc/100?u=yt-owner", "Alt": "E"}},
+			"Message": []map[string]interface{}{txt("📺 Mensaje del dueño del canal (YouTube)")},
 			"IsOwner": true, "IsModerator": false, "IsMembership": false, "IsVerified": false,
 			"Timestamp": now.Format(time.RFC3339),
 		},
 		// YouTube — mod
 		{
 			"Platform": "youtube", "ID": "p2",
-			"Author":      map[string]interface{}{"Name": "ModYT", "ChannelID": "B", "Thumbnail": map[string]interface{}{"URL": "https://i.pravatar.cc/100?u=yt-mod", "Alt": "M"}},
-			"Message":     []map[string]interface{}{txt("🛡️ Moderador de YouTube")},
+			"Author":  map[string]interface{}{"Name": "ModYT", "ChannelID": "B", "Thumbnail": map[string]interface{}{"URL": "https://i.pravatar.cc/100?u=yt-mod", "Alt": "M"}},
+			"Message": []map[string]interface{}{txt("🛡️ Moderador de YouTube")},
 			"IsOwner": false, "IsModerator": true, "IsMembership": false, "IsVerified": false,
 			"Timestamp": now.Format(time.RFC3339),
 		},
@@ -84,9 +85,9 @@ func (a *App) StartPreviewChat() {
 			"Author": map[string]interface{}{
 				"Name": "MiembroFiel", "ChannelID": "C",
 				"Thumbnail": map[string]interface{}{"URL": "https://i.pravatar.cc/100?u=yt-member", "Alt": "F"},
-				"Badge": map[string]interface{}{"Label": "6 meses", "Thumbnail": map[string]interface{}{"URL": "https://i.pravatar.cc/20?u=badge", "Alt": "6m"}},
+				"Badge":     map[string]interface{}{"Label": "6 meses", "Thumbnail": map[string]interface{}{"URL": "https://i.pravatar.cc/20?u=badge", "Alt": "6m"}},
 			},
-			"Message":      []map[string]interface{}{txt("🟢 Miembro 6 meses")},
+			"Message": []map[string]interface{}{txt("🟢 Miembro 6 meses")},
 			"IsOwner": false, "IsModerator": false, "IsMembership": true, "IsVerified": false,
 			"Timestamp": now.Format(time.RFC3339),
 		},
@@ -96,13 +97,13 @@ func (a *App) StartPreviewChat() {
 			"Author":    map[string]interface{}{"Name": "SuperDonador", "ChannelID": "D", "Thumbnail": map[string]interface{}{"URL": "https://i.pravatar.cc/100?u=yt-super", "Alt": "S"}},
 			"Message":   []map[string]interface{}{txt("💰 Super Chat de YouTube")},
 			"SuperChat": map[string]interface{}{"Amount": "$4.99", "Color": "1DE9B6"},
-			"IsOwner": false, "IsModerator": false, "IsMembership": false, "IsVerified": false,
+			"IsOwner":   false, "IsModerator": false, "IsMembership": false, "IsVerified": false,
 			"Timestamp": now.Format(time.RFC3339),
 		},
 		// Twitch — broadcaster sin foto + emote nativo Kappa
 		{
 			"Platform": "twitch", "ID": "p5",
-			"Author":  map[string]interface{}{"Name": "ElStreamerTwitch", "ChannelID": "E", "Thumbnail": map[string]interface{}{"URL": "", "Alt": "E"}},
+			"Author": map[string]interface{}{"Name": "ElStreamerTwitch", "ChannelID": "E", "Thumbnail": map[string]interface{}{"URL": "", "Alt": "E"}},
 			"Message": []map[string]interface{}{
 				txt("🟣 Broadcaster "),
 				emote("https://static-cdn.jtvnw.net/emoticons/v2/25/default/dark/1.0", "Kappa", false),
@@ -113,7 +114,7 @@ func (a *App) StartPreviewChat() {
 		// Twitch — mod + emote BTTV KKona (global real)
 		{
 			"Platform": "twitch", "ID": "p6",
-			"Author":  map[string]interface{}{"Name": "ModTwitch", "ChannelID": "F", "Thumbnail": map[string]interface{}{"URL": "", "Alt": "M"}},
+			"Author": map[string]interface{}{"Name": "ModTwitch", "ChannelID": "F", "Thumbnail": map[string]interface{}{"URL": "", "Alt": "M"}},
 			"Message": []map[string]interface{}{
 				txt("BTTV emote: "),
 				emote("https://cdn.betterttv.net/emote/566ca04265dbbdab32ec054a/1x", "KKona", true),
@@ -124,7 +125,7 @@ func (a *App) StartPreviewChat() {
 		// Twitch — sub + BTTV haHAA + 7TV PETPET (ambos emotes globales reales)
 		{
 			"Platform": "twitch", "ID": "p7",
-			"Author":  map[string]interface{}{"Name": "SubTwitch", "ChannelID": "G", "Thumbnail": map[string]interface{}{"URL": "", "Alt": "S"}},
+			"Author": map[string]interface{}{"Name": "SubTwitch", "ChannelID": "G", "Thumbnail": map[string]interface{}{"URL": "", "Alt": "S"}},
 			"Message": []map[string]interface{}{
 				txt("Mix BTTV+7TV: "),
 				emote("https://cdn.betterttv.net/emote/555981336ba1901877765555/1x", "haHAA", true),
@@ -168,105 +169,6 @@ func withPlatform(platform string, data interface{}) map[string]interface{} {
 // NewApp creates a new App application struct
 func NewApp() *App {
 	return &App{}
-}
-
-// YoutubeStats represents the response from livecounts.io
-type YoutubeStats struct {
-	Cache         bool    `json:"cache"`
-	Success       bool    `json:"success"`
-	FollowerCount int64   `json:"followerCount"`
-	BottomOdos    []int64 `json:"bottomOdos"`
-	IsStudioCount bool    `json:"isStudioCount"`
-}
-
-// GetYoutubeStats fetches channel statistics from livecounts.io
-func (a *App) GetYoutubeStats(channelID string) (*YoutubeStats, error) {
-	url := fmt.Sprintf("https://api.livecounts.io/youtube-live-subscriber-counter/stats/%s", channelID)
-
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	// Add some headers to avoid being blocked
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-	req.Header.Set("Origin", "https://livecounts.io")
-	req.Header.Set("Referer", "https://livecounts.io/")
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to fetch stats: status %d", resp.StatusCode)
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	var stats YoutubeStats
-	if err := json.Unmarshal(body, &stats); err != nil {
-		return nil, err
-	}
-
-	return &stats, nil
-}
-
-// LiveCountsUserData represents a user in the search results
-type LiveCountsUserData struct {
-	ID       string `json:"id"`
-	Username string `json:"username"`
-	Avatar   string `json:"avatar"`
-}
-
-// LiveCountsSearchResponse represents the response from livecounts.io search
-type LiveCountsSearchResponse struct {
-	Cache    bool                 `json:"cache"`
-	Success  bool                 `json:"success"`
-	UserData []LiveCountsUserData `json:"userData"`
-}
-
-// SearchYoutubeChannel searches for a channel on livecounts.io
-func (a *App) SearchYoutubeChannel(query string) (*LiveCountsSearchResponse, error) {
-	url := fmt.Sprintf("https://api.livecounts.io/youtube-live-subscriber-counter/search/%s", query)
-
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	// Add some headers to avoid being blocked
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-	req.Header.Set("Origin", "https://livecounts.io")
-	req.Header.Set("Referer", "https://livecounts.io/")
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to search channel: status %d", resp.StatusCode)
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	var searchResp LiveCountsSearchResponse
-	if err := json.Unmarshal(body, &searchResp); err != nil {
-		return nil, err
-	}
-
-	return &searchResp, nil
 }
 
 // OBSStatus represents the health of the stream
@@ -561,8 +463,87 @@ func (a *App) SetClickThrough(enabled bool) {
 	}
 }
 
-// StartChat starts observing the chat for a given channel ID
-func (a *App) StartChat(channelID string) error {
+var youtubeVideoIDPattern = regexp.MustCompile(`^[A-Za-z0-9_-]{11}$`)
+
+func youtubeIDFromInput(input string) (types.YoutubeId, error) {
+	value := strings.TrimSpace(input)
+	if value == "" {
+		return types.YoutubeId{}, fmt.Errorf("youtube channel or video is required")
+	}
+
+	if id, ok := youtubeIDFromURL(value); ok {
+		return id, nil
+	}
+	if parsed, err := url.Parse(value); err == nil && parsed.Host != "" {
+		return types.YoutubeId{}, fmt.Errorf("unsupported YouTube input: use @handle, UC channel ID, or YouTube video URL")
+	}
+
+	if strings.HasPrefix(value, "watch?") {
+		if query, err := url.ParseQuery(strings.TrimPrefix(value, "watch?")); err == nil {
+			if videoID := strings.TrimSpace(query.Get("v")); videoID != "" {
+				return types.YoutubeId{LiveID: videoID}, nil
+			}
+		}
+	}
+
+	pathValue := strings.Trim(value, "/")
+	if strings.HasPrefix(pathValue, "channel/") {
+		parts := strings.Split(pathValue, "/")
+		if len(parts) >= 2 && strings.TrimSpace(parts[1]) != "" {
+			return types.YoutubeId{ChannelID: strings.TrimSpace(parts[1])}, nil
+		}
+	}
+
+	if strings.HasPrefix(value, "UC") {
+		return types.YoutubeId{ChannelID: value}, nil
+	}
+
+	if youtubeVideoIDPattern.MatchString(value) {
+		return types.YoutubeId{LiveID: value}, nil
+	}
+
+	handle := strings.TrimPrefix(value, "/")
+	if !strings.HasPrefix(handle, "@") {
+		handle = "@" + handle
+	}
+	return types.YoutubeId{Handle: handle}, nil
+}
+
+func youtubeIDFromURL(input string) (types.YoutubeId, bool) {
+	parsed, err := url.Parse(input)
+	if err != nil || parsed.Host == "" {
+		return types.YoutubeId{}, false
+	}
+
+	host := strings.ToLower(strings.TrimPrefix(parsed.Host, "www."))
+	path := strings.Trim(parsed.Path, "/")
+	parts := strings.Split(path, "/")
+
+	if videoID := strings.TrimSpace(parsed.Query().Get("v")); videoID != "" {
+		return types.YoutubeId{LiveID: videoID}, true
+	}
+
+	if host == "youtu.be" && len(parts) > 0 && parts[0] != "" {
+		return types.YoutubeId{LiveID: parts[0]}, true
+	}
+
+	if len(parts) >= 2 && parts[0] == "channel" && parts[1] != "" {
+		return types.YoutubeId{ChannelID: parts[1]}, true
+	}
+
+	if len(parts) >= 1 && strings.HasPrefix(parts[0], "@") {
+		return types.YoutubeId{Handle: parts[0]}, true
+	}
+
+	if len(parts) >= 2 && parts[0] == "live" && parts[1] != "" {
+		return types.YoutubeId{LiveID: parts[1]}, true
+	}
+
+	return types.YoutubeId{}, false
+}
+
+// StartChat starts observing YouTube chat from a handle, channel ID, or video URL.
+func (a *App) StartChat(youtubeInput string) error {
 	a.lcMu.Lock()
 	defer a.lcMu.Unlock()
 
@@ -578,7 +559,12 @@ func (a *App) StartChat(channelID string) error {
 		a.stopSignal = nil
 	}
 
-	lc, err := youtubechat.NewLiveChat(types.YoutubeId{ChannelID: channelID}, 1000)
+	youtubeID, err := youtubeIDFromInput(youtubeInput)
+	if err != nil {
+		return err
+	}
+
+	lc, err := youtubechat.NewLiveChat(youtubeID, 1000)
 	if err != nil {
 		return err
 	}

@@ -46,11 +46,10 @@ airchat/
         │   ├── HomePage.tsx         # Setup screen route (/)
         │   └── ChatPage.tsx         # Dashboard route (/chat)
         ├── components/
-        │   ├── SetupScreen.tsx      # Channel ID input / channel search
+        │   ├── SetupScreen.tsx      # YouTube handle/channel/video input
         │   ├── Sidebar.tsx          # Dynamic settings panel
         │   ├── PreviewArea.tsx      # Chat message display area
         │   ├── StreamHUD.tsx        # OBS stream status overlay
-        │   ├── SubscriberGoal.tsx   # Subscriber goal progress bar
         │   ├── TitleBar.tsx         # Custom window title bar
         │   └── SettingControl.tsx   # Polymorphic settings renderer
         ├── hooks/
@@ -90,12 +89,8 @@ type App struct {
 }
 ```
 
-**YouTube Functions:**
-- `GetYoutubeStats(channelID)` — Fetches subscriber count from `api.livecounts.io`
-- `SearchYoutubeChannel(query)` — Searches channels by name via livecounts.io API
-
 **Chat Functions:**
-- `StartChat(channelID)` — Starts YouTube live chat observation
+- `StartChat(youtubeInput)` — Starts YouTube live chat observation from an @handle, UC channel ID, or video URL
 - `StopChat()` — Stops chat observation
 - `handleChatEvents()` — Routes chat events to frontend via Wails Events (`chat_message`, `chat_started`, `chat_ended`, `chat_error`)
 
@@ -132,8 +127,7 @@ Hash-based routing with auto-navigation:
 ### Components
 
 **SetupScreen** (`components/SetupScreen.tsx`)
-- Two modes: "Enter ID" (manual channel ID) / "Search Channel" (search by name)
-- Search results display with avatar, username, and ID
+- Enter ID supports @handle, UC channel ID, or YouTube video URL
 - Buttons: Connect, Preview Design
 
 **Sidebar** (`components/Sidebar.tsx`)
@@ -157,11 +151,6 @@ Hash-based routing with auto-navigation:
 - Displays: LIVE/OFFLINE status, bitrate, FPS, drop %, current scene
 - Audio controls: Mic mute/unmute + volume slider, Desktop audio mute/unmute + volume slider
 - Status color coding: GREEN (healthy), YELLOW (warning), RED (critical), GRAY (offline)
-
-**SubscriberGoal** (`components/SubscriberGoal.tsx`)
-- Progress bar showing subscriber count vs target
-- Fetches stats every 5 seconds from livecounts.io
-- Shows percentage complete and connection errors
 
 **TitleBar** (`components/TitleBar.tsx`)
 - Custom frameless window controls: Minimize, Maximize, Close, Pin (always on top)
@@ -249,10 +238,9 @@ Hash-based routing with auto-navigation:
   3. **Message Design** — Bubble background, text alignment, corner radius, vertical gap, max messages, drop shadow
   4. **Animation** — Entrance animation type and duration
   5. **3D Transform** — Perspective, rotate X/Y/Z, skew X, scale
-  6. **Subscriber Goal** — Show goal, title, target count
-  7. **OBS Integration** — Enable, host, password, connection button, status
-  8. **HUD Settings** — Position, scale, opacity, bitrate, FPS, mic, desktop, scene
-  9. **TTS** — Enable, members-only, custom users, command mode, provider selection, voice, test
+  6. **OBS Integration** — Enable, host, password, connection button, status
+  7. **HUD Settings** — Position, scale, opacity, bitrate, FPS, mic, desktop, scene
+  8. **TTS** — Enable, members-only, custom users, command mode, provider selection, voice, test
 
 ### TypeScript Types (`types.ts`)
 
@@ -276,7 +264,6 @@ interface ChatSettings {
     // 3D: threeDEnabled, perspective, rotateX/Y/Z, skewX/Y, scale
     // Layout: showBubble, borderRadius, messageGap, maxMessages, hideScrollbar, showGrid
     // Animation: animation, animationDuration
-    // Subscriber Goal: showSubGoal, subGoalTitle, subGoalTarget
     // OBS: obsEnabled, obsHost, obsPassword, obsConnected, obsStatusMessage
     // HUD: obsHudPosition, obsHudOpacity, obsHudScale, obsHudShowFps/Bitrate/Mic/Desktop/Scene
     // TTS: ttsEnabled, ttsMembersOnly, ttsAllowCustomUsers, ttsCustomUsersList
@@ -291,11 +278,10 @@ interface ChatSettings {
 1. **YouTube Live Chat Overlay** — Real-time chat capture with transparent frameless window
 2. **OBS Integration** — Stream monitoring (bitrate, FPS, drops, scene), audio controls (mic/desktop mute + volume)
 3. **Text-to-Speech** — Browser Speech API + Supertonic 2 neural TTS (10 voices, 5 languages)
-4. **Subscriber Goal Widget** — Live subscriber counter with progress bar
-5. **3D Transforms** — Perspective, rotation, skew, scale for overlay customization
-6. **Chroma Key** — Solid color background for OBS keying
-7. **Click-Through Mode** — `Ctrl+B` hides UI and makes window transparent to mouse clicks
-8. **Channel Search** — Search YouTube channels by name via livecounts.io API
+4. **3D Transforms** — Perspective, rotation, skew, scale for overlay customization
+5. **Chroma Key** — Solid color background for OBS keying
+6. **Click-Through Mode** — `Ctrl+B` hides UI and makes window transparent to mouse clicks
+7. **Flexible YouTube Input** — Supports @handle, UC channel ID, and YouTube video URL
 
 ## Development Commands
 

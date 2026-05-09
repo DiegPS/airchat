@@ -68,8 +68,6 @@ export function ChatPage({
                 <PreviewArea
                     messages={messages}
                     scrollRef={scrollRef}
-                    channelId={channelId}
-                    isPreviewMode={isPreviewMode}
                 />
                 {obsStatus && obsStatus.connected && (
                     <StreamHUD status={obsStatus} />

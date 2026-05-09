@@ -1,7 +1,6 @@
 import React from 'react';
 import { useSettings } from '../context/SettingsContext';
 import { ChatItem } from '../types';
-import { SubscriberGoal } from './SubscriberGoal';
 
 const YouTubeIcon = () => (
     <svg width="12" height="12" viewBox="0 0 24 24" fill="#FF0000" style={{ flexShrink: 0 }}>
@@ -87,11 +86,9 @@ const Avatar: React.FC<AvatarProps> = ({ url, name, platform, showPlatformBadge 
 interface PreviewAreaProps {
     messages: ChatItem[];
     scrollRef: React.RefObject<HTMLDivElement>;
-    channelId: string;
-    isPreviewMode: boolean;
 }
 
-export const PreviewArea: React.FC<PreviewAreaProps> = ({ messages, scrollRef, channelId, isPreviewMode }) => {
+export const PreviewArea: React.FC<PreviewAreaProps> = ({ messages, scrollRef }) => {
     const { settings } = useSettings();
 
     return (
@@ -261,7 +258,6 @@ export const PreviewArea: React.FC<PreviewAreaProps> = ({ messages, scrollRef, c
                 })}
                 <div ref={scrollRef} />
             </div>
-            <SubscriberGoal channelId={channelId} isPreviewMode={isPreviewMode} />
         </main>
     );
 };

@@ -190,25 +190,6 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
         ]
     },
     {
-        id: 'sub-goal',
-        title: 'Subscriber Goal',
-        items: [
-            { key: 'showSubGoal', label: 'Show Goal Overlay', type: 'toggle' },
-            {
-                key: 'subGoalTitle',
-                label: 'Goal Title',
-                type: 'text',
-                showIf: (s) => s.showSubGoal
-            },
-            {
-                key: 'subGoalTarget',
-                label: 'Goal Target',
-                type: 'number',
-                showIf: (s) => s.showSubGoal
-            },
-        ]
-    },
-    {
         id: 'obs',
         title: 'OBS Integration',
         items: [

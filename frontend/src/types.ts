@@ -76,10 +76,6 @@ export interface ChatSettings {
   animation: string;
   animationDuration: number;
   textAlign: string;
-  // Subscriber Goal Settings
-  showSubGoal: boolean;
-  subGoalTitle: string;
-  subGoalTarget: number;
   // OBS Settings
   obsEnabled: boolean;
   obsHost: string;

@@ -14,14 +14,6 @@ export function GetOBSAudioInputs() {
   return window['go']['main']['App']['GetOBSAudioInputs']();
 }
 
-export function GetYoutubeStats(arg1) {
-  return window['go']['main']['App']['GetYoutubeStats'](arg1);
-}
-
-export function SearchYoutubeChannel(arg1) {
-  return window['go']['main']['App']['SearchYoutubeChannel'](arg1);
-}
-
 export function SetClickThrough(arg1) {
   return window['go']['main']['App']['SetClickThrough'](arg1);
 }
