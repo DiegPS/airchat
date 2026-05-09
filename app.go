@@ -100,6 +100,19 @@ func (a *App) StartPreviewChat() {
 			"IsOwner":   false, "IsModerator": false, "IsMembership": false, "IsVerified": false,
 			"Timestamp": now.Format(time.RFC3339),
 		},
+		// YouTube - mod + member + SuperChat
+		{
+			"Platform": "youtube", "ID": "p4b",
+			"Author": map[string]interface{}{
+				"Name": "ModMiembroDonador", "ChannelID": "D2",
+				"Thumbnail": map[string]interface{}{"URL": "https://i.pravatar.cc/100?u=yt-mod-member-super", "Alt": "D"},
+				"Badge":     map[string]interface{}{"Label": "12 meses", "Thumbnail": map[string]interface{}{"URL": "https://i.pravatar.cc/20?u=badge-super", "Alt": "12m"}},
+			},
+			"Message":   []map[string]interface{}{txt("Soy mod, miembro y tambien dono")},
+			"SuperChat": map[string]interface{}{"Amount": "$20.00", "Color": "00BFA5"},
+			"IsOwner":   false, "IsModerator": true, "IsMembership": true, "IsVerified": false,
+			"Timestamp": now.Format(time.RFC3339),
+		},
 		// Twitch — broadcaster sin foto + emote nativo Kappa
 		{
 			"Platform": "twitch", "ID": "p5",
@@ -140,6 +153,37 @@ func (a *App) StartPreviewChat() {
 			"Platform": "twitch", "ID": "p8",
 			"Author":  map[string]interface{}{"Name": "ViewerTwitch", "ChannelID": "H", "Thumbnail": map[string]interface{}{"URL": "", "Alt": "V"}},
 			"Message": []map[string]interface{}{txt("👾 Viewer normal — sin foto de perfil")},
+			"IsOwner": false, "IsModerator": false, "IsMembership": false, "IsVerified": false,
+			"Timestamp": now.Format(time.RFC3339),
+		},
+		{
+			"Platform": "kick", "ID": "p9",
+			"Author":  map[string]interface{}{"Name": "StreamerKick", "ChannelID": "I", "Thumbnail": map[string]interface{}{"URL": "", "Alt": "K"}},
+			"Message": []map[string]interface{}{txt("Kick broadcaster message")},
+			"IsOwner": true, "IsModerator": false, "IsMembership": false, "IsVerified": true,
+			"Timestamp": now.Format(time.RFC3339),
+		},
+		{
+			"Platform": "kick", "ID": "p10",
+			"Author":  map[string]interface{}{"Name": "ModKick", "ChannelID": "J", "Thumbnail": map[string]interface{}{"URL": "", "Alt": "M"}},
+			"Message": []map[string]interface{}{txt("Kick moderator checking chat")},
+			"IsOwner": false, "IsModerator": true, "IsMembership": false, "IsVerified": false,
+			"Timestamp": now.Format(time.RFC3339),
+		},
+		{
+			"Platform": "kick", "ID": "p11",
+			"Author": map[string]interface{}{"Name": "SubKick", "ChannelID": "K", "Thumbnail": map[string]interface{}{"URL": "", "Alt": "S"}},
+			"Message": []map[string]interface{}{
+				txt("Kick sub emote: "),
+				emote("https://files.kick.com/emotes/37217/fullsize", "KEKW", true),
+			},
+			"IsOwner": false, "IsModerator": false, "IsMembership": true, "IsVerified": false,
+			"Timestamp": now.Format(time.RFC3339),
+		},
+		{
+			"Platform": "kick", "ID": "p12",
+			"Author":  map[string]interface{}{"Name": "ViewerKick", "ChannelID": "L", "Thumbnail": map[string]interface{}{"URL": "", "Alt": "V"}},
+			"Message": []map[string]interface{}{txt("Viewer normal desde Kick")},
 			"IsOwner": false, "IsModerator": false, "IsMembership": false, "IsVerified": false,
 			"Timestamp": now.Format(time.RFC3339),
 		},
@@ -451,7 +495,10 @@ func (a *App) startup(ctx context.Context) {
 }
 func (a *App) SetClickThrough(enabled bool) {
 	if a.hwnd == 0 {
-		return
+		a.hwnd = win.FindWindow(nil, syscall.StringToUTF16Ptr("airchat"))
+		if a.hwnd == 0 {
+			return
+		}
 	}
 	currStyle := win.GetWindowLong(a.hwnd, win.GWL_EXSTYLE)
 	if enabled {
@@ -600,6 +647,7 @@ func (a *App) StopChat() {
 // StartTwitchChat connects anonymously to a Twitch channel's chat.
 // Runs independently — if it fails, YouTube chat is unaffected.
 func (a *App) StartTwitchChat(channelName string) error {
+	channelName = strings.TrimSpace(strings.TrimPrefix(channelName, "@"))
 	if channelName == "" {
 		return fmt.Errorf("channel name is required")
 	}
@@ -707,6 +755,7 @@ func (a *App) StopTwitchChat() {
 // StartKickChat connects anonymously to a Kick channel's chat.
 // Runs independently — if it fails, other platforms are unaffected.
 func (a *App) StartKickChat(slug string) error {
+	slug = strings.TrimSpace(strings.TrimPrefix(slug, "@"))
 	if slug == "" {
 		return fmt.Errorf("channel slug is required")
 	}
@@ -716,6 +765,12 @@ func (a *App) StartKickChat(slug string) error {
 	if err != nil {
 		cancel()
 		return fmt.Errorf("kick: failed to connect: %w", err)
+	}
+
+	if err := client.JoinChannelBySlug(slug); err != nil {
+		cancel()
+		client.Close()
+		return err
 	}
 
 	// Atomic swap — collect old for cleanup outside the lock.
@@ -731,12 +786,6 @@ func (a *App) StartKickChat(slug string) error {
 	}
 	if oldClient != nil {
 		oldClient.Close()
-	}
-
-	// Resolve slug → chatroom ID and subscribe (HTTP + WS, can be slow).
-	if err := client.JoinChannelBySlug(slug); err != nil {
-		cancel()
-		return err
 	}
 
 	runtime.EventsEmit(a.ctx, "kick_started", slug)
@@ -802,19 +851,46 @@ func (a *App) StopKickChat() {
 }
 
 func (a *App) handleChatEvents(lc *youtubechat.LiveChat, stopSignal chan struct{}) {
+	startChan := lc.StartChan
+	endChan := lc.EndChan
+	chatChan := lc.ChatChan
+	errorChan := lc.ErrorChan
+
 	for {
 		select {
 		case <-stopSignal:
 			return
-		case liveId := <-lc.StartChan:
+		case liveId, ok := <-startChan:
+			if !ok {
+				startChan = nil
+				continue
+			}
 			runtime.EventsEmit(a.ctx, "chat_started", liveId)
-		case reason := <-lc.EndChan:
+		case reason, ok := <-endChan:
+			if !ok {
+				return
+			}
 			runtime.EventsEmit(a.ctx, "chat_ended", reason)
 			return
-		case chatItem := <-lc.ChatChan:
+		case chatItem, ok := <-chatChan:
+			if !ok {
+				chatChan = nil
+				continue
+			}
 			runtime.EventsEmit(a.ctx, "chat_message", withPlatform("youtube", chatItem))
-		case err := <-lc.ErrorChan:
+		case err, ok := <-errorChan:
+			if !ok {
+				errorChan = nil
+				continue
+			}
+			if err == nil {
+				continue
+			}
 			runtime.EventsEmit(a.ctx, "chat_error", err.Error())
+		}
+
+		if startChan == nil && chatChan == nil && errorChan == nil {
+			return
 		}
 	}
 }

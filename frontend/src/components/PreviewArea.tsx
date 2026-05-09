@@ -115,9 +115,12 @@ export const PreviewArea: React.FC<PreviewAreaProps> = ({ messages, scrollRef })
                     transformStyle: 'preserve-3d'
                 }}
             >
-                {messages.map((msg) => {
+                {messages.map((msg, index) => {
+                    const authorName = msg.Author?.Name || 'Unknown';
+                    const thumbnail = msg.Author?.Thumbnail || { URL: '', Alt: authorName };
+                    const messageParts = Array.isArray(msg.Message) ? msg.Message : [];
                     const isSuperChat = !!msg.SuperChat;
-                    const isMembershipEvent = msg.IsMembership && (!msg.Message || msg.Message.length === 0);
+                    const isMembershipEvent = msg.IsMembership && messageParts.length === 0;
                     const isTwitch = msg.Platform === 'twitch';
                     const isKick = msg.Platform === 'kick';
 
@@ -147,7 +150,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = ({ messages, scrollRef })
 
                     return (
                         <div
-                            key={msg.ID}
+                            key={msg.ID || `${msg.Platform || 'chat'}-${index}`}
                             className={`chat-item ${isSuperChat ? 'superchat' : ''} ${isMembershipEvent ? 'membership' : ''}`}
                             style={{
                                 backgroundColor: bgColor,
@@ -163,8 +166,8 @@ export const PreviewArea: React.FC<PreviewAreaProps> = ({ messages, scrollRef })
                         >
                             {settings.showAvatars && (
                                 <Avatar
-                                    url={msg.Author.Thumbnail.URL}
-                                    name={msg.Author.Name}
+                                    url={thumbnail.URL}
+                                    name={authorName}
                                     platform={msg.Platform}
                                     showPlatformBadge={settings.showPlatformBadge}
                                 />
@@ -177,48 +180,30 @@ export const PreviewArea: React.FC<PreviewAreaProps> = ({ messages, scrollRef })
                                         </span>
                                     )}
                                     <span className={`author-name ${msg.IsOwner ? 'owner' : ''} ${msg.IsModerator ? 'mod' : ''}`}>
-                                        {msg.Author.Name}
+                                        {authorName}
                                     </span>
                                     {settings.showBadges && (
                                         <>
                                             {msg.IsOwner && <span className="badge owner-badge">OWNER</span>}
                                             {msg.IsModerator && <span className="badge mod-badge">MOD</span>}
                                             {msg.IsMembership && !isMembershipEvent && (
-                                                <span className="badge" style={{
-                                                    background: isTwitch ? 'rgba(145,70,255,0.4)' : isKick ? 'rgba(83,252,24,0.25)' : 'rgba(15,157,88,0.4)',
-                                                    color: '#fff',
-                                                    fontSize: '0.7em',
-                                                    padding: '1px 5px',
-                                                    borderRadius: '4px'
-                                                }}>
+                                                <span className={`badge ${isTwitch ? 'twitch-sub-badge' : isKick ? 'kick-sub-badge' : 'member-badge'}`}>
                                                     {isTwitch ? 'SUB' : isKick ? 'SUB' : 'MEMBER'}
                                                 </span>
                                             )}
-                                            {msg.Author.Badge && (
+                                            {isSuperChat && msg.SuperChat?.Amount && (
+                                                <span className="badge superchat-badge">{msg.SuperChat.Amount}</span>
+                                            )}
+                                            {msg.Author?.Badge?.Thumbnail?.URL && (
                                                 <span className="badge custom-badge" title={msg.Author.Badge.Label}>
                                                     <img src={msg.Author.Badge.Thumbnail.URL} alt="" style={{ width: '1em', height: '1em', verticalAlign: 'middle' }} />
                                                 </span>
                                             )}
                                         </>
                                     )}
-                                    {isSuperChat && superChatColor && (
-                                        <span style={{
-                                            background: `${superChatColor}26`,
-                                            color: superChatColor,
-                                            border: `1px solid ${superChatColor}80`,
-                                            fontWeight: 700,
-                                            fontSize: '0.75em',
-                                            padding: '1px 7px',
-                                            borderRadius: '4px',
-                                            textShadow: `0 2px 8px ${superChatColor}`,
-                                            letterSpacing: '0.02em',
-                                        }}>
-                                            {msg.SuperChat?.Amount}
-                                        </span>
-                                    )}
                                     {settings.showTimestamp && (
                                         <span className="timestamp" style={{ marginLeft: '8px', opacity: 0.6, fontSize: '0.85em' }}>
-                                            {new Date(msg.Timestamp).toLocaleTimeString()}
+                                            {msg.Timestamp ? new Date(msg.Timestamp).toLocaleTimeString() : ''}
                                         </span>
                                     )}
                                 </div>
@@ -232,7 +217,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = ({ messages, scrollRef })
                                         lineHeight: settings.lineHeight
                                     }}
                                 >
-                                    {msg.Message?.map((part, i) => (
+                                    {messageParts.map((part, i) => (
                                         part.EmojiItem ? (
                                             <img key={i} src={part.EmojiItem.URL} alt={part.EmojiItem.EmojiText} className="emoji" />
                                         ) : (
@@ -242,7 +227,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = ({ messages, scrollRef })
 
                                     {isMembershipEvent && (
                                         <div className="membership-flair">
-                                            <em>{msg.Author.Badge?.Label || (isTwitch ? 'New Subscriber!' : 'Membership Update')}</em>
+                                            <em>{msg.Author?.Badge?.Label || (isTwitch ? 'New Subscriber!' : 'Membership Update')}</em>
                                         </div>
                                     )}
 

@@ -347,17 +347,19 @@ const TTSTestControl: React.FC = () => {
     const { state: supertonicState, generateSpeech } = useSupertonic();
     const [text, setText] = useState('Welcome to the stream!');
     const [isTesting, setIsTesting] = useState(false);
+    const [testError, setTestError] = useState('');
     const isSupertonicProvider = settings.ttsProvider === 'supertonic' || settings.ttsProvider === 'supertonic3';
 
     const speak = async () => {
         if (!text.trim() || isTesting) return;
         
         setIsTesting(true);
+        setTestError('');
 
         try {
             if (isSupertonicProvider) {
                 if (!supertonicState.isReady) {
-                    console.warn("Supertonic is not ready yet");
+                    setTestError('Supertonic is not ready yet.');
                     setIsTesting(false);
                     return;
                 }
@@ -383,15 +385,18 @@ const TTSTestControl: React.FC = () => {
                 };
                 audio.onerror = () => {
                     URL.revokeObjectURL(result.audioUrl);
+                    setTestError('Test audio playback failed.');
                     setIsTesting(false);
                 };
                 audio.play().catch(() => {
                     URL.revokeObjectURL(result.audioUrl);
+                    setTestError('Test audio playback was blocked or failed.');
                     setIsTesting(false);
                 });
                 
             } else {
                 if (!window.speechSynthesis) {
+                    setTestError('Browser TTS is not supported in this webview.');
                     setIsTesting(false);
                     return;
                 }
@@ -406,12 +411,16 @@ const TTSTestControl: React.FC = () => {
                 }
                 
                 utterance.onend = () => setIsTesting(false);
-                utterance.onerror = () => setIsTesting(false);
+                utterance.onerror = () => {
+                    setTestError('Browser TTS test failed.');
+                    setIsTesting(false);
+                };
                 
                 window.speechSynthesis.speak(utterance);
             }
         } catch (error) {
             console.error("Test TTS Error:", error);
+            setTestError(error instanceof Error ? error.message : String(error));
             setIsTesting(false);
         }
     };
@@ -441,6 +450,11 @@ const TTSTestControl: React.FC = () => {
                     {isTesting ? 'Playing...' : 'Test 🔊'}
                 </button>
              </div>
+             {testError && (
+                <span style={{ fontSize: '0.75rem', color: '#ff6b6b' }}>
+                    {testError}
+                </span>
+             )}
         </div>
     )
 }

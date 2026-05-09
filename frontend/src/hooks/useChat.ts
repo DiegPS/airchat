@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { EventsOn, EventsOff } from "../../wailsjs/runtime";
+import { EventsOn } from "../../wailsjs/runtime";
 import { StartChat, StopChat, ConnectOBS, DisconnectOBS, StartTwitchChat, StopTwitchChat, StartPreviewChat, StartKickChat, StopKickChat } from "../../wailsjs/go/main/App";
 import { ChatItem } from '../types';
 import { useSettings } from '../context/SettingsContext';
@@ -12,6 +12,20 @@ const usePrevious = <T,>(value: T): T | undefined => {
         ref.current = value;
     });
     return ref.current;
+};
+
+const normalizePlatformChannel = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) return '';
+
+    try {
+        const url = new URL(trimmed);
+        const pathParts = url.pathname.split('/').filter(Boolean);
+        const lastPath = pathParts[pathParts.length - 1] ?? '';
+        return lastPath.replace(/^@/, '').trim();
+    } catch {
+        return trimmed.replace(/^@/, '').trim();
+    }
 };
 
 export interface OBSStatus {
@@ -85,8 +99,17 @@ export const useChat = () => {
     }, [settings.maxMessages]);
 
     useEffect(() => {
-        EventsOn("chat_message", (message: ChatItem) => {
+        const cancelChatMessage = EventsOn("chat_message", (message: ChatItem) => {
             if (!isActiveRef.current) return;
+
+            if (!message?.Author?.Name) return;
+            if (message.Message === null) {
+                message.Message = [];
+            }
+            if (!Array.isArray(message.Message)) return;
+            if (!message.Author.Thumbnail) {
+                message.Author.Thumbnail = { URL: '', Alt: message.Author.Name };
+            }
 
             const { blockedUsers, blockedWords } = settingsRef.current;
 
@@ -100,65 +123,65 @@ export const useChat = () => {
             });
         });
 
-        EventsOn("chat_started", (id: string) => {
+        const cancelChatStarted = EventsOn("chat_started", (id: string) => {
             setLiveId(id);
             setIsStarted(true);
             setError('');
         });
 
-        EventsOn("chat_error", (err: string) => {
+        const cancelChatError = EventsOn("chat_error", (err: string) => {
             setError(err);
             setIsStarted(false);
         });
 
-        EventsOn("chat_ended", () => {
+        const cancelChatEnded = EventsOn("chat_ended", () => {
             setIsStarted(false);
         });
 
-        EventsOn("twitch_started", () => {
+        const cancelTwitchStarted = EventsOn("twitch_started", () => {
             setIsTwitchStarted(true);
             setTwitchError('');
         });
 
-        EventsOn("twitch_error", (err: string) => {
+        const cancelTwitchError = EventsOn("twitch_error", (err: string) => {
             setTwitchError(err);
             setIsTwitchStarted(false);
         });
 
-        EventsOn("twitch_ended", () => {
+        const cancelTwitchEnded = EventsOn("twitch_ended", () => {
             setIsTwitchStarted(false);
         });
 
-        EventsOn("kick_started", () => {
+        const cancelKickStarted = EventsOn("kick_started", () => {
             setIsKickStarted(true);
             setKickError('');
         });
 
-        EventsOn("kick_error", (err: string) => {
+        const cancelKickError = EventsOn("kick_error", (err: string) => {
             setKickError(err);
             setIsKickStarted(false);
         });
 
-        EventsOn("kick_ended", () => {
+        const cancelKickEnded = EventsOn("kick_ended", () => {
             setIsKickStarted(false);
         });
 
-        EventsOn("obs_status", (status: OBSStatus) => {
+        const cancelObsStatus = EventsOn("obs_status", (status: OBSStatus) => {
             setObsStatus(status);
         });
 
         return () => {
-            EventsOff("chat_message");
-            EventsOff("chat_started");
-            EventsOff("chat_error");
-            EventsOff("chat_ended");
-            EventsOff("twitch_started");
-            EventsOff("twitch_error");
-            EventsOff("twitch_ended");
-            EventsOff("kick_started");
-            EventsOff("kick_error");
-            EventsOff("kick_ended");
-            EventsOff("obs_status");
+            cancelChatMessage();
+            cancelChatStarted();
+            cancelChatError();
+            cancelChatEnded();
+            cancelTwitchStarted();
+            cancelTwitchError();
+            cancelTwitchEnded();
+            cancelKickStarted();
+            cancelKickError();
+            cancelKickEnded();
+            cancelObsStatus();
         };
     }, []);
 
@@ -176,11 +199,17 @@ export const useChat = () => {
                     updateSettings({ obsStatusMessage: `Error: ${err}`, obsConnected: false });
                 });
         } else {
-            DisconnectOBS().catch(console.error);
             setObsStatus(null);
-            if (!obsErrorRef.current) {
-                updateSettings({ obsStatusMessage: 'Disconnected' });
-            }
+            DisconnectOBS()
+                .then(() => {
+                    if (!obsErrorRef.current) {
+                        updateSettings({ obsStatusMessage: 'Disconnected' });
+                    }
+                })
+                .catch((err) => {
+                    console.error("OBS Disconnect Error:", err);
+                    updateSettings({ obsStatusMessage: `Disconnect error: ${err}` });
+                });
             obsErrorRef.current = false;
         }
     }, [settings.obsEnabled, settings.obsConnected, settings.obsHost, settings.obsPassword]);
@@ -189,12 +218,16 @@ export const useChat = () => {
         if (obsStatus && obsStatus.connected) {
             updateSettings({ obsStatusMessage: 'Connected' });
         } else if (settings.obsConnected && obsStatus && !obsStatus.connected) {
-            updateSettings({ obsStatusMessage: 'Disconnected (Lost connection)' });
+            updateSettings({ obsStatusMessage: 'Disconnected (Lost connection)', obsConnected: false });
         }
     }, [obsStatus, settings.obsConnected]);
 
     const startChat = async () => {
-        if (!channelId && !twitchChannel && !kickChannel) {
+        const youtubeInput = channelId.trim();
+        const twitchInput = normalizePlatformChannel(twitchChannel);
+        const kickInput = normalizePlatformChannel(kickChannel);
+
+        if (!youtubeInput && !twitchInput && !kickInput) {
             setError("Please enter at least one channel");
             return;
         }
@@ -205,24 +238,27 @@ export const useChat = () => {
 
         const tasks: Promise<void>[] = [];
 
-        if (channelId) {
-            localStorage.setItem('airchat_last_youtube', channelId);
+        if (youtubeInput) {
+            localStorage.setItem('airchat_last_youtube', youtubeInput);
+            setChannelId(youtubeInput);
             tasks.push(
-                StartChat(channelId).catch((err: any) => setError(err.toString()))
+                StartChat(youtubeInput).catch((err: any) => setError(err.toString()))
             );
         }
 
-        if (twitchChannel) {
-            localStorage.setItem('airchat_last_twitch', twitchChannel);
+        if (twitchInput) {
+            localStorage.setItem('airchat_last_twitch', twitchInput);
+            setTwitchChannel(twitchInput);
             tasks.push(
-                StartTwitchChat(twitchChannel).catch((err: any) => setTwitchError(err.toString()))
+                StartTwitchChat(twitchInput).catch((err: any) => setTwitchError(err.toString()))
             );
         }
 
-        if (kickChannel) {
-            localStorage.setItem('airchat_last_kick', kickChannel);
+        if (kickInput) {
+            localStorage.setItem('airchat_last_kick', kickInput);
+            setKickChannel(kickInput);
             tasks.push(
-                StartKickChat(kickChannel).catch((err: any) => setKickError(err.toString()))
+                StartKickChat(kickInput).catch((err: any) => setKickError(err.toString()))
             );
         }
 
@@ -230,17 +266,29 @@ export const useChat = () => {
     };
 
     const startPreview = () => {
+        isActiveRef.current = true;
         setIsPreviewMode(true);
-        StartPreviewChat().catch(console.error);
+        StartPreviewChat().catch((err) => {
+            setError(`Preview failed: ${err}`);
+            setIsPreviewMode(false);
+            isActiveRef.current = false;
+        });
     };
 
     const stopChat = async () => {
+        let disconnectError = '';
         if (!isPreviewMode) {
-            await Promise.all([
-                StopChat().catch(console.error),
-                StopTwitchChat().catch(console.error),
-                StopKickChat().catch(console.error),
+            const results = await Promise.allSettled([
+                StopChat(),
+                StopTwitchChat(),
+                StopKickChat(),
             ]);
+            const stopErrors = results
+                .filter((result): result is PromiseRejectedResult => result.status === 'rejected')
+                .map(result => String(result.reason));
+            if (stopErrors.length > 0) {
+                disconnectError = `Disconnect error: ${stopErrors.join('; ')}`;
+            }
         }
         setIsStarted(false);
         setIsTwitchStarted(false);
@@ -248,7 +296,7 @@ export const useChat = () => {
         setIsPreviewMode(false);
         setMessages([]);
         setLiveId('');
-        setError('');
+        setError(disconnectError);
         setTwitchError('');
         setKickError('');
     };

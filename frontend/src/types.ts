@@ -45,6 +45,7 @@ export interface ChatItem {
 }
 
 export interface ChatSettings {
+  settingsStatusMessage: string;
   fontSize: number;
   bgOpacity: number;
   messageOpacity: number;
@@ -102,6 +103,7 @@ export interface ChatSettings {
   blockedWords: string;
   // TTS Settings
   ttsEnabled: boolean;
+  ttsStatusMessage: string;
   ttsMembersOnly: boolean; // New setting
   ttsAllowCustomUsers: boolean;
   ttsCustomUsersList: string;

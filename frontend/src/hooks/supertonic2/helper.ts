@@ -16,6 +16,8 @@ export interface SupertonicAssetOptions {
     hfRepo?: string;
     cacheName?: string;
     availableLangs?: string[];
+    onLog?: (msg: string) => void;
+    onDownloadProgress?: (fileName: string, loadedBytes: number, totalBytes?: number) => void;
 }
 
 export const SUPERTONIC2_LANGS = ['en', 'ko', 'es', 'pt', 'fr'];
@@ -212,7 +214,7 @@ export class TextToSpeech {
         totalStep: number,
         speed: number = 1.05,
         progressCallback: ((step: number, total: number) => void) | null = null
-    ): Promise<{ wav: number[], duration: number[] }> {
+    ): Promise<{ wav: Float32Array, duration: number[] }> {
         const bsz = textList.length;
         
         // Process text
@@ -248,7 +250,7 @@ export class TextToSpeech {
         const textEmb = textEncOutputs.text_emb;
         
         // Sample noisy latent
-        let { xt, latentMask } = this.sampleNoisyLatent(
+        let { xtFlat, xtShape, latentMaskFlat, latentMaskShape } = this.sampleNoisyLatent(
             duration,
             this.sampleRate,
             this.cfgs.ae.base_chunk_size,
@@ -256,8 +258,6 @@ export class TextToSpeech {
             this.cfgs.ttl.latent_dim
         );
         
-        const latentMaskFlat = new Float32Array(latentMask.flat(2));
-        const latentMaskShape = [bsz, 1, latentMask[0][0].length];
         const latentMaskTensor = new ort.Tensor('float32', latentMaskFlat, latentMaskShape);
         
         // Prepare constant arrays
@@ -273,8 +273,6 @@ export class TextToSpeech {
             const currentStepArray = new Float32Array(bsz).fill(step);
             const currentStepTensor = new ort.Tensor('float32', currentStepArray, [bsz]);
             
-            const xtFlat = new Float32Array(xt.flat(2));
-            const xtShape = [bsz, xt[0].length, xt[0][0].length];
             const xtTensor = new ort.Tensor('float32', xtFlat, xtShape);
             
             const vectorEstOutputs = await this.vectorEstOrt.run({
@@ -287,36 +285,19 @@ export class TextToSpeech {
                 total_step: totalStepTensor
             });
             
-            const denoised = Array.from(vectorEstOutputs.denoised_latent.data as unknown as number[]);
-            
-            // Reshape to 3D
-            const latentDim = xt[0].length;
-            const latentLen = xt[0][0].length;
-            xt = [];
-            let idx = 0;
-            for (let b = 0; b < bsz; b++) {
-                const batch = [];
-                for (let d = 0; d < latentDim; d++) {
-                    const row = [];
-                    for (let t = 0; t < latentLen; t++) {
-                        row.push(denoised[idx++]);
-                    }
-                    batch.push(row);
-                }
-                xt.push(batch);
-            }
+            const denoised = vectorEstOutputs.denoised_latent.data;
+            xtFlat = denoised instanceof Float32Array ? denoised : new Float32Array(denoised as ArrayLike<number>);
         }
         
         // Generate waveform
-        const finalXtFlat = new Float32Array(xt.flat(2));
-        const finalXtShape = [bsz, xt[0].length, xt[0][0].length];
-        const finalXtTensor = new ort.Tensor('float32', finalXtFlat, finalXtShape);
+        const finalXtTensor = new ort.Tensor('float32', xtFlat, xtShape);
         
         const vocoderOutputs = await this.vocoderOrt.run({
             latent: finalXtTensor
         });
         
-        const wav = Array.from(vocoderOutputs.wav_tts.data as unknown as number[]);
+        const wavData = vocoderOutputs.wav_tts.data;
+        const wav = wavData instanceof Float32Array ? wavData : new Float32Array(wavData as ArrayLike<number>);
         
         return { wav, duration };
     }
@@ -329,31 +310,29 @@ export class TextToSpeech {
         speed: number = 1.05,
         silenceDuration: number = 0.3,
         progressCallback: ((step: number, total: number) => void) | null = null
-    ): Promise<{ wav: number[], duration: number[] }> {
+    ): Promise<{ wav: Float32Array, duration: number[] }> {
         if (style.ttl.dims[0] !== 1) {
             throw new Error('Single speaker text to speech only supports single style');
         }
         const maxLen = lang === 'ko' ? 120 : 300;
         const textList = chunkText(text, maxLen);
         const langList = new Array(textList.length).fill(lang);
-        let wavCat: number[] = [];
+        const wavParts: Float32Array[] = [];
         let durCat = 0;
         
         for (let i = 0; i < textList.length; i++) {
             const { wav, duration } = await this._infer([textList[i]], [langList[i]], style, totalStep, speed, progressCallback);
             
-            if (wavCat.length === 0) {
-                wavCat = wav;
-                durCat = duration[0];
-            } else {
+            if (wavParts.length > 0) {
                 const silenceLen = Math.floor(silenceDuration * this.sampleRate);
-                const silence = new Array(silenceLen).fill(0);
-                wavCat = [...wavCat, ...silence, ...wav];
-                durCat += duration[0] + silenceDuration;
+                wavParts.push(new Float32Array(silenceLen));
+                durCat += silenceDuration;
             }
+            wavParts.push(wav);
+            durCat += duration[0];
         }
         
-        return { wav: wavCat, duration: [durCat] };
+        return { wav: concatFloat32Arrays(wavParts), duration: [durCat] };
     }
 
     async batch(
@@ -363,7 +342,7 @@ export class TextToSpeech {
         totalStep: number,
         speed: number = 1.05,
         progressCallback: ((step: number, total: number) => void) | null = null
-    ): Promise<{ wav: number[], duration: number[] }> {
+    ): Promise<{ wav: Float32Array, duration: number[] }> {
         return await this._infer(textList, langList, style, totalStep, speed, progressCallback);
     }
 
@@ -373,7 +352,7 @@ export class TextToSpeech {
         baseChunkSize: number,
         chunkCompress: number,
         latentDim: number
-    ): { xt: number[][][], latentMask: number[][][] } {
+    ): { xtFlat: Float32Array, xtShape: number[], latentMaskFlat: Float32Array, latentMaskShape: number[] } {
         const bsz = duration.length;
         const maxDur = Math.max(...duration);
         
@@ -384,36 +363,33 @@ export class TextToSpeech {
         const latentLen = Math.floor((wavLenMax + chunkSize - 1) / chunkSize);
         const latentDimVal = latentDim * chunkCompress;
         
-        const xt = [];
+        const xtShape = [bsz, latentDimVal, latentLen];
+        const xtFlat = new Float32Array(bsz * latentDimVal * latentLen);
+        const latentMaskFlat = new Float32Array(bsz * latentLen);
         for (let b = 0; b < bsz; b++) {
-            const batch = [];
+            const latentLength = Math.floor((wavLengths[b] + chunkSize - 1) / chunkSize);
+            for (let t = 0; t < Math.min(latentLength, latentLen); t++) {
+                latentMaskFlat[b * latentLen + t] = 1.0;
+            }
+
             for (let d = 0; d < latentDimVal; d++) {
-                const row = [];
                 for (let t = 0; t < latentLen; t++) {
+                    const mask = latentMaskFlat[b * latentLen + t];
                     // Box-Muller transform
                     const u1 = Math.max(0.0001, Math.random());
                     const u2 = Math.random();
                     const val = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
-                    row.push(val);
-                }
-                batch.push(row);
-            }
-            xt.push(batch);
-        }
-        
-        const latentLengths = wavLengths.map(len => Math.floor((len + chunkSize - 1) / chunkSize));
-        const latentMask = this.lengthToMask(latentLengths, latentLen);
-        
-        // Apply mask
-        for (let b = 0; b < bsz; b++) {
-            for (let d = 0; d < latentDimVal; d++) {
-                for (let t = 0; t < latentLen; t++) {
-                    xt[b][d][t] *= latentMask[b][0][t];
+                    xtFlat[(b * latentDimVal + d) * latentLen + t] = val * mask;
                 }
             }
         }
         
-        return { xt, latentMask };
+        return {
+            xtFlat,
+            xtShape,
+            latentMaskFlat,
+            latentMaskShape: [bsz, 1, latentLen]
+        };
     }
 
     lengthToMask(lengths: number[], maxLen: number | null = null): number[][][] {
@@ -484,7 +460,7 @@ export async function loadVoiceStyle(
     const dpTensor = new ort.Tensor('float32', dpFlat, dpShape);
     
     if (verbose) {
-        console.log(`Loaded ${bsz} voice styles`);
+        if (assetOptions.onLog) assetOptions.onLog(`Loaded ${bsz} voice styles`);
     }
     
     return new Style(ttlTensor, dpTensor);
@@ -505,23 +481,61 @@ async function fetchWithCache(
     const cachedResponse = cache ? await cache.match(cacheKey) : null;
     
     if (cachedResponse) {
-        console.log(`✓ Using cached: ${url.split('/').pop()}`);
+        const msg = `✓ Using cached: ${url.split('/').pop()}`;
+        if (assetOptions.onLog) assetOptions.onLog(msg);
         return cachedResponse;
     }
     
-    console.log(`⬇ Downloading: ${url.split('/').pop()}`);
+    const msg = `⬇ Downloading: ${url.split('/').pop()}`;
+    if (assetOptions.onLog) assetOptions.onLog(msg);
     const finalUrl = useHF ? `https://huggingface.co/${hfRepo}/resolve/main/${url}` : url;
     const response = await fetch(finalUrl);
     
     if (!response.ok) {
         throw new Error(`Failed to fetch ${finalUrl}: ${response.status} ${response.statusText}`);
     }
+
+    const fileName = url.split('/').pop() || url;
+    const downloadedResponse = await responseWithDownloadProgress(response, fileName, assetOptions);
     
     if (cache) {
-        await cache.put(cacheKey, response.clone());
+        await cache.put(cacheKey, downloadedResponse.clone());
     }
     
-    return response;
+    return downloadedResponse;
+}
+
+async function responseWithDownloadProgress(
+    response: Response,
+    fileName: string,
+    assetOptions: SupertonicAssetOptions
+): Promise<Response> {
+    if (!response.body || !assetOptions.onDownloadProgress) {
+        return response;
+    }
+
+    const totalHeader = response.headers.get('content-length');
+    const totalBytes = totalHeader ? Number(totalHeader) : undefined;
+    const reader = response.body.getReader();
+    const chunks: Uint8Array[] = [];
+    let loadedBytes = 0;
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (!value) continue;
+
+        chunks.push(value);
+        loadedBytes += value.byteLength;
+        assetOptions.onDownloadProgress(fileName, loadedBytes, Number.isFinite(totalBytes) ? totalBytes : undefined);
+    }
+
+    const headers = new Headers(response.headers);
+    return new Response(new Blob(chunks), {
+        status: response.status,
+        statusText: response.statusText,
+        headers
+    });
 }
 
 /**
@@ -574,7 +588,7 @@ export async function loadTextToSpeech(
     assetOptions: SupertonicAssetOptions = {},
     progressCallback: ((modelName: string, current: number, total: number) => void) | null = null
 ): Promise<{ textToSpeech: TextToSpeech, cfgs: any }> {
-    console.log('Using WebAssembly/WebGPU for inference');
+    if (assetOptions.onLog) assetOptions.onLog('Using WebAssembly for inference');
     
     const cfgs = await loadCfgs(onnxDir, assetOptions);
     
@@ -652,7 +666,7 @@ function chunkText(text: string, maxLen: number = 300): string[] {
 /**
  * Write WAV file to ArrayBuffer
  */
-export function writeWavFile(audioData: number[], sampleRate: number): ArrayBuffer {
+export function writeWavFile(audioData: ArrayLike<number>, sampleRate: number): ArrayBuffer {
     const numChannels = 1;
     const bitsPerSample = 16;
     const byteRate = sampleRate * numChannels * bitsPerSample / 8;
@@ -695,4 +709,15 @@ export function writeWavFile(audioData: number[], sampleRate: number): ArrayBuff
     dataView.set(new Uint8Array(int16Data.buffer));
     
     return buffer;
+}
+
+function concatFloat32Arrays(parts: Float32Array[]): Float32Array {
+    const totalLength = parts.reduce((sum, part) => sum + part.length, 0);
+    const result = new Float32Array(totalLength);
+    let offset = 0;
+    for (const part of parts) {
+        result.set(part, offset);
+        offset += part.length;
+    }
+    return result;
 }

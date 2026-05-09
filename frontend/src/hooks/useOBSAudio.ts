@@ -15,18 +15,21 @@ export interface AudioInputs {
 export const useOBSAudio = (connected: boolean) => {
     const [audioInputs, setAudioInputs] = useState<AudioInputs>({});
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
     const isDraggingRef = useRef<{ [key: string]: boolean }>({});
 
     // Fetch audio inputs when connected
     useEffect(() => {
         if (!connected) {
             setAudioInputs({});
+            setError('');
             return;
         }
 
         const fetchAudioInputs = async () => {
             try {
                 const inputs = await GetOBSAudioInputs();
+                setError('');
                 // Only update if not currently dragging
                 setAudioInputs(prev => {
                     const updated = { ...inputs };
@@ -41,6 +44,7 @@ export const useOBSAudio = (connected: boolean) => {
                 });
             } catch (err) {
                 console.error('Failed to get audio inputs:', err);
+                setError(`Failed to get OBS audio inputs: ${err}`);
             }
         };
 
@@ -55,6 +59,7 @@ export const useOBSAudio = (connected: boolean) => {
         setLoading(true);
         try {
             await SetOBSInputMute(inputName, !currentMuted);
+            setError('');
             // Immediately update local state for responsiveness
             setAudioInputs(prev => {
                 const key = inputName === prev.microphone?.name ? 'microphone' : 'desktop';
@@ -66,6 +71,7 @@ export const useOBSAudio = (connected: boolean) => {
             });
         } catch (err) {
             console.error('Failed to toggle mute:', err);
+            setError(`Failed to toggle OBS audio mute: ${err}`);
         } finally {
             setLoading(false);
         }
@@ -74,8 +80,10 @@ export const useOBSAudio = (connected: boolean) => {
     const setVolume = async (inputName: string, volumeDb: number) => {
         try {
             await SetOBSInputVolume(inputName, volumeDb);
+            setError('');
         } catch (err) {
             console.error('Failed to set volume:', err);
+            setError(`Failed to set OBS audio volume: ${err}`);
         }
     };
 
@@ -102,5 +110,5 @@ export const useOBSAudio = (connected: boolean) => {
         isDraggingRef.current[key] = false;
     };
 
-    return { audioInputs, toggleMute, setVolumeLocal, startDragging, stopDragging, loading };
+    return { audioInputs, toggleMute, setVolumeLocal, startDragging, stopDragging, loading, error };
 };

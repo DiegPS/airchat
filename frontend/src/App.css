@@ -627,6 +627,26 @@ body {
   color: #fff;
 }
 
+.member-badge {
+  background: rgba(15, 157, 88, 0.85);
+  color: #fff;
+}
+
+.twitch-sub-badge {
+  background: rgba(145, 70, 255, 0.85);
+  color: #fff;
+}
+
+.kick-sub-badge {
+  background: rgba(83, 252, 24, 0.85);
+  color: #111;
+}
+
+.superchat-badge {
+  background: rgba(15, 157, 88, 0.9);
+  color: #fff;
+}
+
 .custom-badge {
   font-size: 1.25rem;
   padding: 0 4px;

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useMemo, useCallback, React
 import { ChatSettings } from '../types';
 
 const defaultSettings: ChatSettings = {
+    settingsStatusMessage: '',
     fontSize: 16,
     bgOpacity: 0.1,
     messageOpacity: 0.4,
@@ -49,6 +50,7 @@ const defaultSettings: ChatSettings = {
     blockedUsers: '',
     blockedWords: '',
     ttsEnabled: false,
+    ttsStatusMessage: '',
     ttsMembersOnly: false,
     ttsAllowCustomUsers: false,
     ttsCustomUsersList: '',
@@ -62,6 +64,15 @@ const defaultSettings: ChatSettings = {
     supertonicLang: 'en',
     supertonicTotalStep: 5,
     supertonicSpeed: 1.05,
+};
+
+const supportedTtsProviders = new Set(['browser', 'supertonic', 'supertonic3']);
+
+const sanitizeSettings = (settings: ChatSettings): ChatSettings => {
+    if (supportedTtsProviders.has(settings.ttsProvider)) {
+        return settings;
+    }
+    return { ...settings, ttsProvider: defaultSettings.ttsProvider };
 };
 
 interface SettingsContextType {
@@ -80,12 +91,16 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
             if (saved) {
                 const parsed = JSON.parse(saved);
                 // Merge with defaultSettings to ensure new keys are added if missing in localStorage
-                return { ...defaultSettings, ...parsed };
+                return sanitizeSettings({ ...defaultSettings, ...parsed });
             }
         } catch (e) {
             console.error("Failed to load settings from localStorage:", e);
+            return {
+                ...defaultSettings,
+                settingsStatusMessage: 'Settings were reset because saved preferences could not be loaded.'
+            };
         }
-        return defaultSettings;
+        return sanitizeSettings(defaultSettings);
     });
 
     // 2. Save to localStorage whenever settings change

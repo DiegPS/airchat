@@ -5,7 +5,7 @@ import { useOBSAudio } from '../hooks/useOBSAudio';
 
 export const StreamHUD: React.FC<{ status: OBSStatus | null }> = ({ status }) => {
     const { settings } = useSettings();
-    const { audioInputs, toggleMute, setVolumeLocal, startDragging, stopDragging } = useOBSAudio(status?.connected || false);
+    const { audioInputs, toggleMute, setVolumeLocal, startDragging, stopDragging, error: audioError } = useOBSAudio(status?.connected || false);
 
     if (!status || !status.connected) return null;
 
@@ -36,6 +36,11 @@ export const StreamHUD: React.FC<{ status: OBSStatus | null }> = ({ status }) =>
         // Convert 0-100 slider to -100dB to 0dB range
         const volumeDb = (value - 100); // 0 -> -100dB, 100 -> 0dB
         setVolumeLocal(inputName, volumeDb);
+    };
+
+    const sliderValueFromDb = (volumeDb: number) => {
+        if (!Number.isFinite(volumeDb)) return 0;
+        return Math.max(0, Math.min(100, Math.round(volumeDb + 100)));
     };
 
     return (
@@ -132,6 +137,18 @@ export const StreamHUD: React.FC<{ status: OBSStatus | null }> = ({ status }) =>
             </div>
 
             {/* Audio Controls */}
+            {audioError && (
+                <div style={{
+                    borderTop: '1px solid rgba(255,255,255,0.1)',
+                    paddingTop: '6px',
+                    color: '#ff8a80',
+                    fontSize: '0.72em',
+                    lineHeight: 1.3,
+                }}>
+                    {audioError}
+                </div>
+            )}
+
             {settings.obsHudShowMic && audioInputs.microphone && (
                 <div style={{
                     display: 'flex',
@@ -160,7 +177,7 @@ export const StreamHUD: React.FC<{ status: OBSStatus | null }> = ({ status }) =>
                         type="range"
                         min="0"
                         max="100"
-                        value={Math.round(audioInputs.microphone.volume + 100)}
+                        value={sliderValueFromDb(audioInputs.microphone.volume)}
                         onChange={(e) => handleVolumeChange(audioInputs.microphone!.name, parseInt(e.target.value))}
                         onMouseDown={() => startDragging('microphone')}
                         onMouseUp={() => stopDragging('microphone')}
@@ -197,7 +214,7 @@ export const StreamHUD: React.FC<{ status: OBSStatus | null }> = ({ status }) =>
                         type="range"
                         min="0"
                         max="100"
-                        value={Math.round(audioInputs.desktop.volume + 100)}
+                        value={sliderValueFromDb(audioInputs.desktop.volume)}
                         onChange={(e) => handleVolumeChange(audioInputs.desktop!.name, parseInt(e.target.value))}
                         onMouseDown={() => startDragging('desktop')}
                         onMouseUp={() => stopDragging('desktop')}

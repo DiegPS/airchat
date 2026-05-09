@@ -6,7 +6,7 @@ import { containsBlockedWord, isUserBlocked, normalizeUsernameForFilter, splitCo
 import { useSupertonic } from './supertonic2/useSupertonic';
 
 export const useTTS = (isStarted: boolean) => {
-    const { settings } = useSettings();
+    const { settings, updateSettings } = useSettings();
     const queueRef = useRef<string[]>([]);
     const isSpeakingRef = useRef(false);
     const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -15,9 +15,23 @@ export const useTTS = (isStarted: boolean) => {
     const generationIdRef = useRef(0);
     const processedMessagesRef = useRef<Set<string>>(new Set());
     const isSupertonicProvider = settings.ttsProvider === 'supertonic' || settings.ttsProvider === 'supertonic3';
+    const maxQueueSize = 20;
+    const lastStatusRef = useRef('');
 
     // Initialize Supertonic hook
     const { state: supertonicState, generateSpeech } = useSupertonic();
+
+    const reportTtsStatus = useCallback((message: string) => {
+        if (lastStatusRef.current === message) return;
+        lastStatusRef.current = message;
+        updateSettings({ ttsStatusMessage: message });
+    }, [updateSettings]);
+
+    const clearTtsStatus = useCallback(() => {
+        if (!lastStatusRef.current) return;
+        lastStatusRef.current = '';
+        updateSettings({ ttsStatusMessage: '' });
+    }, [updateSettings]);
 
     const processQueue = useCallback(() => {
         if (isSpeakingRef.current || queueRef.current.length === 0) return;
@@ -30,8 +44,7 @@ export const useTTS = (isStarted: boolean) => {
         // Check if using Supertonic provider
         if (isSupertonicProvider) {
             if (!supertonicState.isReady) {
-                console.warn("TTS: Supertonic is not ready yet");
-                queueRef.current.unshift(text);
+                reportTtsStatus('TTS skipped: Supertonic is still loading.');
                 isSpeakingRef.current = false;
                 return;
             }
@@ -49,10 +62,7 @@ export const useTTS = (isStarted: boolean) => {
                 lang: settings.supertonicLang,
                 voiceStyle: voiceStyle,
                 totalStep: settings.supertonicTotalStep,
-                speed: settings.supertonicSpeed,
-                onProgress: (step, total) => {
-                    console.log(`Supertonic TTS: Denoising ${step}/${total}`);
-                }
+                speed: settings.supertonicSpeed
             }).then((result) => {
                 if (currentGenId !== generationIdRef.current) {
                     URL.revokeObjectURL(result.audioUrl);
@@ -60,6 +70,7 @@ export const useTTS = (isStarted: boolean) => {
                 }
                 // Play the generated audio
                 const audio = new Audio(result.audioUrl);
+                audio.preload = 'auto';
                 audioRef.current = audio;
                 audio.onended = () => {
                     URL.revokeObjectURL(result.audioUrl);
@@ -71,6 +82,7 @@ export const useTTS = (isStarted: boolean) => {
                 };
                 audio.onerror = (e) => {
                     console.error("TTS Audio Playback Error:", e);
+                    reportTtsStatus('TTS playback failed.');
                     URL.revokeObjectURL(result.audioUrl);
                     if (audioRef.current === audio) {
                         audioRef.current = null;
@@ -78,8 +90,10 @@ export const useTTS = (isStarted: boolean) => {
                         processQueue();
                     }
                 };
+                audio.load();
                 audio.play().catch(err => {
                     console.error("TTS Audio Play Error:", err);
+                    reportTtsStatus('TTS playback was blocked or failed.');
                     URL.revokeObjectURL(result.audioUrl);
                     if (audioRef.current === audio) {
                         audioRef.current = null;
@@ -89,6 +103,7 @@ export const useTTS = (isStarted: boolean) => {
                 });
             }).catch((error) => {
                 console.error("Supertonic TTS Error:", error);
+                reportTtsStatus(`Supertonic TTS failed: ${error instanceof Error ? error.message : String(error)}`);
                 isSpeakingRef.current = false;
                 processQueue();
             });
@@ -98,7 +113,7 @@ export const useTTS = (isStarted: boolean) => {
 
         // Use browser TTS
         if (!window.speechSynthesis) {
-            console.warn("TTS: Browser does not support speechSynthesis");
+            reportTtsStatus('Browser TTS is not supported in this webview.');
             isSpeakingRef.current = false;
             return;
         }
@@ -127,6 +142,7 @@ export const useTTS = (isStarted: boolean) => {
 
         utterance.onerror = (e) => {
             console.error("TTS Error:", e);
+            reportTtsStatus('Browser TTS failed.');
             isSpeakingRef.current = false;
             currentUtteranceRef.current = null;
             processQueue();
@@ -134,9 +150,12 @@ export const useTTS = (isStarted: boolean) => {
 
         window.speechSynthesis.speak(utterance);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [settings.ttsVoice, settings.ttsProvider, settings.supertonicLang, settings.supertonicVoiceStyle, settings.supertonicTotalStep, settings.supertonicSpeed, isSupertonicProvider, supertonicState.isReady, generateSpeech]);
+    }, [settings.ttsVoice, settings.ttsProvider, settings.supertonicLang, settings.supertonicVoiceStyle, settings.supertonicTotalStep, settings.supertonicSpeed, isSupertonicProvider, supertonicState.isReady, generateSpeech, reportTtsStatus]);
 
     const addToQueue = useCallback((text: string) => {
+        if (queueRef.current.length >= maxQueueSize) {
+            queueRef.current.shift();
+        }
         queueRef.current.push(text);
         processQueue();
     }, [processQueue]);
@@ -182,7 +201,8 @@ export const useTTS = (isStarted: boolean) => {
         currentUtteranceRef.current = null;
         generationIdRef.current++;
         processedMessagesRef.current.clear();
-    }, []);
+        clearTtsStatus();
+    }, [clearTtsStatus]);
 
     useEffect(() => {
         if (!isStarted) {
@@ -198,6 +218,7 @@ export const useTTS = (isStarted: boolean) => {
         const handleMessage = (message: ChatItem) => {
             if (!isStarted) return;
             if (!settings.ttsEnabled) return;
+            if (!message?.Author?.Name || !Array.isArray(message.Message)) return;
 
             if (message.ID) {
                 if (processedMessagesRef.current.has(message.ID)) return;
@@ -244,7 +265,11 @@ export const useTTS = (isStarted: boolean) => {
 
             // Check provider-specific readiness
             if (settings.ttsProvider === 'browser' && !window.speechSynthesis) {
-                console.warn("TTS: Browser does not support speechSynthesis");
+                reportTtsStatus('Browser TTS is not supported in this webview.');
+                return;
+            }
+            if (isSupertonicProvider && !supertonicState.isReady) {
+                reportTtsStatus('TTS skipped: Supertonic is still loading.');
                 return;
             }
 
@@ -278,10 +303,11 @@ export const useTTS = (isStarted: boolean) => {
             cancelSubscription = EventsOn("chat_message", handleMessage);
         } catch (err) {
             console.error("Failed to subscribe to chat events for TTS", err);
+            reportTtsStatus('TTS failed to subscribe to chat events.');
         }
 
         return () => {
             if (cancelSubscription) cancelSubscription();
         };
-    }, [settings.ttsEnabled, settings.blockedUsers, settings.blockedWords, settings.ttsMembersOnly, settings.ttsAllowCustomUsers, settings.ttsCustomUsersList, settings.ttsProvider, settings.ttsCommandMode, settings.ttsCommandPrefix, settings.ttsSeparatorText, settings.ttsRandomVoice, addToQueue, isStarted, supertonicState.isReady]);
+    }, [settings.ttsEnabled, settings.blockedUsers, settings.blockedWords, settings.ttsMembersOnly, settings.ttsAllowCustomUsers, settings.ttsCustomUsersList, settings.ttsProvider, settings.ttsCommandMode, settings.ttsCommandPrefix, settings.ttsSeparatorText, settings.ttsRandomVoice, addToQueue, isStarted, supertonicState.isReady, reportTtsStatus, isSupertonicProvider]);
 };

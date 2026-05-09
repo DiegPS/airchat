@@ -43,6 +43,7 @@ const MODEL_CONFIGS: Record<SupertonicModelId, SupertonicModelConfig> = {
 };
 
 const DEFAULT_MODEL_ID: SupertonicModelId = 'supertonic2';
+const SUPERTONIC_EXECUTION_PROVIDER: 'wasm' = 'wasm';
 
 export interface SupertonicState {
     isLoading: boolean;
@@ -88,23 +89,54 @@ interface SupertonicContextValue {
 const SupertonicContext = createContext<SupertonicContextValue | undefined>(undefined);
 const sharedResourcesByModel: Partial<Record<SupertonicModelId, SupertonicResources>> = {};
 const sharedLoadPromiseByModel: Partial<Record<SupertonicModelId, Promise<SupertonicResources>>> = {};
+const sharedStyleCacheByModel: Partial<Record<SupertonicModelId, Map<string, Style>>> = {};
+let activeModelIdInMemory: SupertonicModelId | null = null;
 
 function getModelIdFromProvider(ttsProvider: string): SupertonicModelId {
     return ttsProvider === 'supertonic3' ? 'supertonic3' : 'supertonic2';
 }
 
-function getAssetOptions(modelConfig: SupertonicModelConfig): SupertonicAssetOptions {
+function getAssetOptions(modelConfig: SupertonicModelConfig, onLog?: (msg: string) => void): SupertonicAssetOptions {
     return {
         hfRepo: modelConfig.hfRepo,
         cacheName: modelConfig.cacheName,
-        availableLangs: modelConfig.availableLangs
+        availableLangs: modelConfig.availableLangs,
+        onLog,
+        onDownloadProgress: onLog
+            ? (fileName, loadedBytes, totalBytes) => {
+                onLog(formatDownloadProgress(fileName, loadedBytes, totalBytes));
+            }
+            : undefined
     };
+}
+
+function formatDownloadProgress(fileName: string, loadedBytes: number, totalBytes?: number) {
+    const loadedMb = loadedBytes / 1024 / 1024;
+    if (totalBytes && totalBytes > 0) {
+        const totalMb = totalBytes / 1024 / 1024;
+        const pct = Math.min(100, Math.round((loadedBytes / totalBytes) * 100));
+        return `Downloading ${fileName}: ${pct}% (${loadedMb.toFixed(1)} / ${totalMb.toFixed(1)} MB)`;
+    }
+    return `Downloading ${fileName}: ${loadedMb.toFixed(1)} MB`;
+}
+
+function releaseInactiveModelResources(activeModelId: SupertonicModelId) {
+    for (const modelId of Object.keys(MODEL_CONFIGS) as SupertonicModelId[]) {
+        if (modelId === activeModelId) continue;
+        delete sharedResourcesByModel[modelId];
+        delete sharedStyleCacheByModel[modelId];
+    }
+    activeModelIdInMemory = activeModelId;
 }
 
 async function loadSharedResources(
     modelConfig: SupertonicModelConfig,
     onStatus: (status: string) => void
 ): Promise<SupertonicResources> {
+    if (activeModelIdInMemory && activeModelIdInMemory !== modelConfig.id) {
+        releaseInactiveModelResources(modelConfig.id);
+    }
+
     const existingResources = sharedResourcesByModel[modelConfig.id];
     if (existingResources) {
         return existingResources;
@@ -117,39 +149,23 @@ async function loadSharedResources(
     }
 
     sharedLoadPromiseByModel[modelConfig.id] = (async () => {
-        onStatus(`Loading ${modelConfig.displayName} configuration...`);
+        onStatus(`Loading ${modelConfig.displayName} configuration. Other Supertonic models are released from memory.`);
         const basePath = USE_HUGGING_FACE ? 'hf' : 'assets/onnx';
-        const assetOptions = getAssetOptions(modelConfig);
-        let executionProvider: 'webgpu' | 'wasm' = 'wasm';
+        const assetOptions = getAssetOptions(modelConfig, (msg) => onStatus(`${modelConfig.displayName}: ${msg}`));
+        let executionProvider: 'webgpu' | 'wasm' = SUPERTONIC_EXECUTION_PROVIDER;
         let loadedTextToSpeech: TextToSpeech;
         let loadedCfgs: any;
 
-        try {
-            onStatus(`Trying WebGPU acceleration for ${modelConfig.displayName}...`);
-            const result = await loadTextToSpeech(basePath, {
-                executionProviders: ['webgpu'],
-                graphOptimizationLevel: 'all'
-            }, assetOptions, (modelName, current, total) => {
-                onStatus(`Downloading/loading ${modelConfig.displayName} model ${current}/${total}: ${modelName}`);
-            });
+        onStatus(`Loading ${modelConfig.displayName} with WebAssembly. WebGPU is skipped in Wails/WebView.`);
+        const result = await loadTextToSpeech(basePath, {
+            executionProviders: [SUPERTONIC_EXECUTION_PROVIDER],
+            graphOptimizationLevel: 'all'
+        }, assetOptions, (modelName, current, total) => {
+            onStatus(`Downloading/loading ${modelConfig.displayName} model ${current}/${total}: ${modelName}`);
+        });
 
-            loadedTextToSpeech = result.textToSpeech;
-            loadedCfgs = result.cfgs;
-            executionProvider = 'webgpu';
-        } catch (webgpuError) {
-            console.log(`${modelConfig.displayName}: WebGPU not available, falling back to WebAssembly`, webgpuError);
-            onStatus(`WebGPU unavailable. Falling back to WebAssembly for ${modelConfig.displayName}...`);
-
-            const result = await loadTextToSpeech(basePath, {
-                executionProviders: ['wasm'],
-                graphOptimizationLevel: 'all'
-            }, assetOptions, (modelName, current, total) => {
-                onStatus(`Downloading/loading ${modelConfig.displayName} model ${current}/${total}: ${modelName}`);
-            });
-
-            loadedTextToSpeech = result.textToSpeech;
-            loadedCfgs = result.cfgs;
-        }
+        loadedTextToSpeech = result.textToSpeech;
+        loadedCfgs = result.cfgs;
 
         onStatus(`Loading ${modelConfig.displayName} default voice style...`);
         const style = await loadVoiceStyle([modelConfig.defaultVoiceStyle], true, assetOptions);
@@ -162,6 +178,10 @@ async function loadSharedResources(
             backendType: executionProvider
         };
         sharedResourcesByModel[modelConfig.id] = resources;
+        const styleCache = sharedStyleCacheByModel[modelConfig.id] ?? new Map<string, Style>();
+        styleCache.set(modelConfig.defaultVoiceStyle, style);
+        sharedStyleCacheByModel[modelConfig.id] = styleCache;
+        releaseInactiveModelResources(modelConfig.id);
 
         return resources;
     })().catch((error) => {
@@ -289,7 +309,9 @@ const useSupertonicEngine = (
             throw new Error(`${modelConfig.displayName} is not ready yet`);
         }
 
-        const assetOptions = getAssetOptions(modelConfig);
+        const assetOptions = getAssetOptions(modelConfig, (msg) => {
+            setState(prev => ({ ...prev, loadingStatus: `${modelConfig.displayName}: ${msg}` }));
+        });
 
         try {
             setState(prev => ({
@@ -298,7 +320,14 @@ const useSupertonicEngine = (
                 loadingStatus: `Loading ${modelConfig.displayName} selected voice style: ${voiceStylePath}...`
             }));
 
-            const style = await loadVoiceStyle([voiceStylePath], true, assetOptions);
+            const styleCache = sharedStyleCacheByModel[modelConfig.id] ?? new Map<string, Style>();
+            sharedStyleCacheByModel[modelConfig.id] = styleCache;
+
+            let style = styleCache.get(voiceStylePath);
+            if (!style) {
+                style = await loadVoiceStyle([voiceStylePath], true, assetOptions);
+                styleCache.set(voiceStylePath, style);
+            }
             currentStyleRef.current = style;
             currentStylePathRef.current = voiceStylePath;
             lastFailedStylePathRef.current = null;
@@ -319,7 +348,13 @@ const useSupertonicEngine = (
             lastFailedStylePathRef.current = voiceStylePath;
             console.error(`Error loading ${modelConfig.displayName} voice style:`, error);
             try {
-                const style = await loadVoiceStyle([modelConfig.defaultVoiceStyle], true, assetOptions);
+                const styleCache = sharedStyleCacheByModel[modelConfig.id] ?? new Map<string, Style>();
+                sharedStyleCacheByModel[modelConfig.id] = styleCache;
+                let style = styleCache.get(modelConfig.defaultVoiceStyle);
+                if (!style) {
+                    style = await loadVoiceStyle([modelConfig.defaultVoiceStyle], true, assetOptions);
+                    styleCache.set(modelConfig.defaultVoiceStyle, style);
+                }
                 currentStyleRef.current = style;
                 currentStylePathRef.current = modelConfig.defaultVoiceStyle;
 
@@ -337,6 +372,11 @@ const useSupertonicEngine = (
                 }));
             } catch (restoreError) {
                 console.error(`Failed to restore ${modelConfig.displayName} default voice style:`, restoreError);
+                setState(prev => ({
+                    ...prev,
+                    loadingStatus: `Failed to restore ${modelConfig.displayName} default voice style.`,
+                    error: restoreError instanceof Error ? restoreError.message : 'Unknown restore error'
+                }));
             }
             throw error;
         }
@@ -397,10 +437,12 @@ const useSupertonicEngine = (
                 speed,
                 0.3,
                 (step, total) => {
-                    setState(prev => ({
-                        ...prev,
-                        loadingStatus: `Generating ${modelConfig.displayName} speech: denoising step ${step}/${total}`
-                    }));
+                    if (step === 1 || step === total || step % 5 === 0) {
+                        setState(prev => ({
+                            ...prev,
+                            loadingStatus: `Generating ${modelConfig.displayName} speech: denoising step ${step}/${total}`
+                        }));
+                    }
                     if (onProgress) {
                         onProgress(step, total);
                     }
@@ -409,6 +451,7 @@ const useSupertonicEngine = (
 
             const wavLen = Math.floor(textToSpeechRef.current.sampleRate * duration[0]);
             const wavOut = wav.slice(0, wavLen);
+            const actualDuration = wavOut.length / textToSpeechRef.current.sampleRate;
             const wavBuffer = writeWavFile(wavOut, textToSpeechRef.current.sampleRate);
             const blob = new Blob([wavBuffer], { type: 'audio/wav' });
             const url = URL.createObjectURL(blob);
@@ -416,13 +459,13 @@ const useSupertonicEngine = (
             setState(prev => ({
                 ...prev,
                 error: null,
-                loadingStatus: `${modelConfig.displayName} audio generated (${duration[0].toFixed(1)}s). Playing next.`
+                loadingStatus: `${modelConfig.displayName} audio generated (${actualDuration.toFixed(2)}s). Playing next.`
             }));
 
             return {
                 audioBlob: blob,
                 audioUrl: url,
-                duration: duration[0]
+                duration: actualDuration
             };
         } catch (error) {
             console.error(`Error during ${modelConfig.displayName} speech synthesis:`, error);

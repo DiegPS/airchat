@@ -33,6 +33,13 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
         id: 'overlay',
         title: 'Overlay Mode',
         items: [
+            {
+                key: 'settingsStatusMessage',
+                label: 'Settings Status',
+                type: 'text',
+                readOnly: true,
+                showIf: (s) => !!s.settingsStatusMessage
+            },
             { key: 'chromaMode', label: 'Chroma Key Mode', type: 'toggle' },
             { key: 'showGrid', label: 'Show Preview Grid', type: 'toggle' },
             { key: 'hideScrollbar', label: 'Hide Scrollbar', type: 'toggle' },
@@ -277,6 +284,13 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
         title: 'Text to Speech (TTS)',
         items: [
             { key: 'ttsEnabled', label: 'Enable TTS', type: 'toggle' },
+            {
+                key: 'ttsStatusMessage',
+                label: 'TTS Status',
+                type: 'text',
+                readOnly: true,
+                showIf: (s) => s.ttsEnabled && !!s.ttsStatusMessage
+            },
             { key: 'ttsMembersOnly', label: 'Members Only', type: 'toggle', showIf: (s) => s.ttsEnabled },
             { key: 'ttsAllowCustomUsers', label: 'Allow Custom Users (Bypass Members Mode)', type: 'toggle', showIf: (s) => s.ttsEnabled && s.ttsMembersOnly },
             { 
@@ -311,11 +325,7 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
                 options: [
                     { label: 'Browser API', value: 'browser' },
                     { label: 'Supertonic 2 (Neural TTS)', value: 'supertonic' },
-                    { label: 'Supertonic 3 (Neural TTS)', value: 'supertonic3' },
-                    { label: 'Google Cloud TTS', value: 'google' },
-                    { label: 'Amazon Polly', value: 'polly' },
-                    { label: 'Microsoft Azure', value: 'azure' },
-                    { label: 'ElevenLabs', value: 'elevenlabs' }
+                    { label: 'Supertonic 3 (Neural TTS)', value: 'supertonic3' }
                 ],
                 showIf: (s) => s.ttsEnabled
             },

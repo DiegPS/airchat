@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"sort"
 	"strings"
+	"time"
 
 	twitch "github.com/gempir/go-twitch-irc/v3"
 )
@@ -274,7 +275,7 @@ func splitByThirdParty(text string, emotes emoteMap) []twitchMessagePart {
 
 // ─── HTTP helper ──────────────────────────────────────────────────────────────
 
-var httpClient = &http.Client{}
+var httpClient = &http.Client{Timeout: 10 * time.Second}
 
 func httpGet(url string) ([]byte, error) {
 	req, err := http.NewRequest("GET", url, nil)
