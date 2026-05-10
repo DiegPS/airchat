@@ -38,87 +38,98 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
     return (
         <div className="container">
             <div className="setup-card">
-                <h1 className="title">Chat Overlay</h1>
+                <header className="setup-header">
+                    <div className="setup-kicker">AirChat overlay</div>
+                    <h1 className="title">Connect live chat</h1>
+                    <p className="subtitle">
+                        Add one or more stream chats, then customize how messages appear in your overlay.
+                    </p>
+                </header>
 
-                <div style={{ marginBottom: '1.5rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.75rem' }}>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="#FF0000"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8A3 3 0 0 0 2.6 20c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg>
-                        <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>YouTube</span>
-                        <span style={{ fontSize: '0.75rem', opacity: 0.5 }}>optional</span>
-                    </div>
-                    <div style={{ marginBottom: '0.75rem', fontSize: '0.82rem', opacity: 0.65 }}>
-                        Enter ID supports @handle, UC channel ID, or YouTube video URL.
-                    </div>
-                    <div className="input-group">
-                        <input
-                            type="text"
-                            placeholder="@xqc, UCxxxxxxxxxxxx, or https://youtube.com/watch?v=..."
-                            value={channelId}
-                            onChange={(e) => onChannelIdChange(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && canConnect && onStart()}
-                        />
-                        {channelId && (
-                            <button onClick={onClearYoutube} title="Clear" style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', padding: '0 8px', fontSize: '1rem', lineHeight: 1 }}>x</button>
-                        )}
-                    </div>
-                    {error && <p className="error-message">{error}</p>}
+                <div className="platform-list">
+                    <section className="platform-field">
+                        <div className="platform-label-row">
+                            <div className="platform-label">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="#FF0000"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8A3 3 0 0 0 2.6 20c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg>
+                                <span>YouTube</span>
+                            </div>
+                            <span className="platform-hint">handle, channel ID, or video URL</span>
+                        </div>
+                        <div className="input-group">
+                            <input
+                                type="text"
+                                placeholder="@xqc, UCxxxxxxxxxxxx, or youtube.com/watch?v=..."
+                                value={channelId}
+                                onChange={(e) => onChannelIdChange(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && canConnect && onStart()}
+                            />
+                            {channelId && (
+                                <button className="input-clear" onClick={onClearYoutube} title="Clear">x</button>
+                            )}
+                        </div>
+                        {error && <p className="error-message">{error}</p>}
+                    </section>
+
+                    <section className="platform-field">
+                        <div className="platform-label-row">
+                            <div className="platform-label">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="#9146FF"><path d="M11.6 6H13v4.5h-1.4V6zm3.8 0h1.4v4.5h-1.4V6zM4 0L.5 3.5V20.5H6V24l3.5-3.5H12L23.5 9V0H4zm18 8.5L18.5 12H16l-3 3v-3H9.5v-8H22v4.5z"/></svg>
+                                <span>Twitch</span>
+                            </div>
+                            <span className="platform-hint">channel name</span>
+                        </div>
+                        <div className="input-group">
+                            <input
+                                type="text"
+                                placeholder="xqc"
+                                value={twitchChannel}
+                                onChange={(e) => onTwitchChannelChange(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && canConnect && onStart()}
+                            />
+                            {twitchChannel && (
+                                <button className="input-clear" onClick={onClearTwitch} title="Clear">x</button>
+                            )}
+                        </div>
+                        {twitchError && <p className="error-message">{twitchError}</p>}
+                    </section>
+
+                    <section className="platform-field">
+                        <div className="platform-label-row">
+                            <div className="platform-label">
+                                <svg width="18" height="18" viewBox="0 0 512 512" fill="#53FC18">
+                                    <path d="M37 .036h164.448v113.621h54.71v-56.82h54.731V.036h164.448v170.777h-54.73v56.82h-54.711v56.8h54.71v56.82h54.73V512.03H310.89v-56.82h-54.73v-56.8h-54.711v113.62H37V.036z" />
+                                </svg>
+                                <span>Kick</span>
+                            </div>
+                            <span className="platform-hint">channel name</span>
+                        </div>
+                        <div className="input-group">
+                            <input
+                                type="text"
+                                placeholder="edmatthews"
+                                value={kickChannel}
+                                onChange={(e) => onKickChannelChange(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && canConnect && onStart()}
+                            />
+                            {kickChannel && (
+                                <button className="input-clear" onClick={onClearKick} title="Clear">x</button>
+                            )}
+                        </div>
+                        {kickError && <p className="error-message">{kickError}</p>}
+                    </section>
                 </div>
 
-                <div style={{ marginBottom: '1.5rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.75rem' }}>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="#9146FF"><path d="M11.6 6H13v4.5h-1.4V6zm3.8 0h1.4v4.5h-1.4V6zM4 0L.5 3.5V20.5H6V24l3.5-3.5H12L23.5 9V0H4zm18 8.5L18.5 12H16l-3 3v-3H9.5v-8H22v4.5z"/></svg>
-                        <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>Twitch</span>
-                        <span style={{ fontSize: '0.75rem', opacity: 0.5 }}>optional</span>
-                    </div>
-                    <div className="input-group">
-                        <input
-                            type="text"
-                            placeholder="channel name (e.g. xqc)"
-                            value={twitchChannel}
-                            onChange={(e) => onTwitchChannelChange(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && canConnect && onStart()}
-                        />
-                        {twitchChannel && (
-                            <button onClick={onClearTwitch} title="Clear" style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', padding: '0 8px', fontSize: '1rem', lineHeight: 1 }}>x</button>
-                        )}
-                    </div>
-                    {twitchError && <p className="error-message">{twitchError}</p>}
+                <div className="setup-actions">
+                    <button
+                        onClick={onStart}
+                        className="btn-primary setup-connect"
+                        disabled={!canConnect}
+                    >
+                        Connect chats
+                    </button>
+                    <button onClick={onPreview} className="btn-secondary setup-preview">Preview design</button>
                 </div>
-
-                <div style={{ marginBottom: '1.5rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.75rem' }}>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="#53FC18" style={{ flexShrink: 0 }}>
-                            <path d="M3 2h3v7.5l5-5L13.5 7 9 11.5l5 5L11.5 19l-5.5-5.5V22H3V2zm13 0h3v20h-3V2z"/>
-                        </svg>
-                        <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>Kick</span>
-                        <span style={{ fontSize: '0.75rem', opacity: 0.5 }}>optional</span>
-                    </div>
-                    <div className="input-group">
-                        <input
-                            type="text"
-                            placeholder="channel name (e.g. edmatthews)"
-                            value={kickChannel}
-                            onChange={(e) => onKickChannelChange(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && canConnect && onStart()}
-                        />
-                        {kickChannel && (
-                            <button onClick={onClearKick} title="Clear" style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', padding: '0 8px', fontSize: '1rem', lineHeight: 1 }}>x</button>
-                        )}
-                    </div>
-                    {kickError && <p className="error-message">{kickError}</p>}
-                </div>
-
-                <button
-                    onClick={onStart}
-                    className="btn-primary"
-                    disabled={!canConnect}
-                    style={{ width: '100%', marginBottom: '0.75rem', opacity: canConnect ? 1 : 0.4 }}
-                >
-                    Connect
-                </button>
-
-                <div className="divider"><span>OR</span></div>
-                <button onClick={onPreview} className="btn-secondary">Preview Design</button>
+                <p className="setup-footnote">You can connect any combination of platforms.</p>
             </div>
         </div>
     );

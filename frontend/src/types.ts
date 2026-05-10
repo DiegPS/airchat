@@ -73,6 +73,9 @@ export interface ChatSettings {
   borderRadius: number;
   textShadow: boolean;
   showBubble: boolean;
+  superChatBarEnabled: boolean;
+  superChatBarColor: string;
+  superChatBarWidth: number;
   maxMessages: number;
   animation: string;
   animationDuration: number;

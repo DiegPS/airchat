@@ -139,6 +139,23 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
                 showIf: (s) => s.showBubble
             },
             { key: 'messageGap', label: 'Vertical Gap', type: 'range', min: 0, max: 30, unit: 'px' },
+            { key: 'superChatBarEnabled', label: 'Show SuperChat Color Bar', type: 'toggle', showIf: (s) => s.showBubble },
+            {
+                key: 'superChatBarColor',
+                label: 'SuperChat Bar Color',
+                type: 'color',
+                showIf: (s) => s.showBubble && s.superChatBarEnabled
+            },
+            {
+                key: 'superChatBarWidth',
+                label: 'SuperChat Bar Width',
+                type: 'range',
+                min: 1,
+                max: 8,
+                step: 1,
+                unit: 'px',
+                showIf: (s) => s.showBubble && s.superChatBarEnabled
+            },
             {
                 key: 'maxMessages',
                 label: 'Max Messages',

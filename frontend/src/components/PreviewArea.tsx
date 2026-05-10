@@ -4,19 +4,19 @@ import { ChatItem } from '../types';
 
 const YouTubeIcon = () => (
     <svg width="12" height="12" viewBox="0 0 24 24" fill="#FF0000" style={{ flexShrink: 0 }}>
-        <path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8A3 3 0 0 0 2.6 20c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z"/>
+        <path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8A3 3 0 0 0 2.6 20c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z" />
     </svg>
 );
 
 const TwitchIcon = () => (
     <svg width="12" height="12" viewBox="0 0 24 24" fill="#9146FF" style={{ flexShrink: 0 }}>
-        <path d="M11.6 6H13v4.5h-1.4V6zm3.8 0h1.4v4.5h-1.4V6zM4 0L.5 3.5V20.5H6V24l3.5-3.5H12L23.5 9V0H4zm18 8.5L18.5 12H16l-3 3v-3H9.5v-8H22v4.5z"/>
+        <path d="M11.6 6H13v4.5h-1.4V6zm3.8 0h1.4v4.5h-1.4V6zM4 0L.5 3.5V20.5H6V24l3.5-3.5H12L23.5 9V0H4zm18 8.5L18.5 12H16l-3 3v-3H9.5v-8H22v4.5z" />
     </svg>
 );
 
 const KickIcon = () => (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="#53FC18" style={{ flexShrink: 0 }}>
-        <path d="M3 2h3v7.5l5-5L13.5 7 9 11.5l5 5L11.5 19l-5.5-5.5V22H3V2zm13 0h3v20h-3V2z"/>
+    <svg width="12" height="12" viewBox="0 0 512 512" fill="#53FC18" style={{ flexShrink: 0 }}>
+        <path d="M37 .036h164.448v113.621h54.71v-56.82h54.731V.036h164.448v170.777h-54.73v56.82h-54.711v56.8h54.71v56.82h54.73V512.03H310.89v-56.82h-54.73v-56.8h-54.711v113.62H37V.036z" />
     </svg>
 );
 
@@ -138,15 +138,10 @@ export const PreviewArea: React.FC<PreviewAreaProps> = ({ messages, scrollRef })
                         bgColor = `rgba(30, 90, 10, ${settings.messageOpacity})`;
                     }
 
-                    const borderStyle = isSuperChat && superChatColor
-                        ? `3px solid ${superChatColor}80`
-                        : isTwitch && settings.twitchBubbleAccent && settings.showBubble
-                        ? '1px solid rgba(145, 70, 255, 0.35)'
-                        : isKick && settings.kickBubbleAccent && settings.showBubble
-                        ? '1px solid rgba(83, 252, 24, 0.25)'
-                        : settings.showBubble ? '1px solid rgba(255, 255, 255, 0.1)' : 'none';
-
-                    const borderSide = isSuperChat && superChatColor ? 'left' : undefined;
+                    const defaultBorderStyle = settings.showBubble ? '1px solid rgba(255, 255, 255, 0.1)' : 'none';
+                    const superChatBarStyle = isSuperChat && settings.showBubble && settings.superChatBarEnabled
+                        ? `${settings.superChatBarWidth}px solid ${settings.superChatBarColor}`
+                        : null;
 
                     return (
                         <div
@@ -155,9 +150,8 @@ export const PreviewArea: React.FC<PreviewAreaProps> = ({ messages, scrollRef })
                             style={{
                                 backgroundColor: bgColor,
                                 borderRadius: `${settings.borderRadius}px`,
-                                ...(borderSide
-                                    ? { border: 'none', borderBottom: borderStyle }
-                                    : { border: borderStyle }),
+                                border: defaultBorderStyle,
+                                ...(superChatBarStyle ? { borderBottom: superChatBarStyle } : {}),
                                 padding: settings.showBubble ? '12px 18px' : '4px 0',
                                 boxShadow: settings.showBubble ? '0 8px 32px rgba(0, 0, 0, 0.3)' : 'none',
                                 animation: settings.animation ? `${settings.animation} ${settings.animationDuration}s cubic-bezier(0.16, 1, 0.3, 1) both` : 'none',
