@@ -1,320 +1,225 @@
-# AirChat - Codebase Documentation
+# AirChat codebase guide
 
-## Overview
+## Purpose
 
-**AirChat** is a desktop application built with **Wails v2** (Go backend + React/TypeScript frontend) that serves as a **YouTube Live Chat Overlay** with OBS integration and Text-to-Speech capabilities. It provides a transparent, frameless window that can be placed over streaming software like OBS.
+AirChat is a Wails v2 desktop overlay that combines live chat from YouTube, Twitch, and Kick. The Go backend owns the native window, network clients, OBS connection, and Wails events. The React/TypeScript frontend owns routing, settings, the combined feed, filtering, rendering, and TTS playback.
 
-## Tech Stack
+Keep this document synchronized with the implementation. Avoid line counts: the large style, schema, and TTS files change frequently.
 
-### Backend (Go)
-| Package | Purpose |
+## Stack
+
+### Backend
+
+| Package | Current role |
 |---|---|
-| `wailsapp/wails/v2` | Desktop app framework |
-| `DiegPS/youtube-chat` | YouTube live chat observation |
-| `andreykaipov/goobs` | OBS WebSocket integration |
-| `lxn/win` | Windows API (click-through, window styles) |
+| `github.com/wailsapp/wails/v2` | Desktop runtime, binding, events, and window APIs |
+| `github.com/DiegPS/youtube-chat` | YouTube live-chat observer |
+| `github.com/gempir/go-twitch-irc/v3` | Anonymous Twitch IRC client |
+| `github.com/DiegPS/kick-chat` | Kick chat client and message parts |
+| `github.com/andreykaipov/goobs` | OBS WebSocket v5 client |
+| `github.com/lxn/win` | Windows click-through extended styles |
 
-### Frontend (TypeScript/React)
-| Package | Purpose |
+The module currently declares Go `1.26.1` and Wails `2.12.0` in `go.mod`.
+
+### Frontend
+
+| Package | Current role |
 |---|---|
-| `react` 18, `react-dom` 18 | UI framework |
-| `react-router-dom` 7 | Hash-based routing |
-| `onnxruntime-web` 1.17 | Neural TTS inference (WebGPU/WASM) |
-| `fft.js` 4 | Audio processing |
-| `vite` 3 | Build tool |
+| React / React DOM 18 | UI and state composition |
+| React Router DOM 7 | `HashRouter` routes |
+| ONNX Runtime Web 1.17 | Supertonic 2/3 inference via WASM |
+| `fft.js` 4 | Supertonic audio processing |
+| Vite 3 / TypeScript 4.6 | development and production build |
 
-## Project Structure
+ONNX Runtime is loaded from `frontend/public/ort.min.js`; the matching WASM files are also vendored under `frontend/public/`.
 
-```
+## Source layout
+
+```text
 airchat/
-├── main.go                          # Wails entry point (window config)
-├── app.go                           # Backend logic (YouTube, OBS, window control)
-├── wails.json                       # Wails project configuration
-├── go.mod / go.sum                  # Go module dependencies
-├── build/                           # Build artifacts (icons, installers)
+├── main.go                          Wails entry point and window configuration
+├── app.go                           App state, preview, OBS, platform sessions, events
+├── kick_chat.go                     Kick message-part and badge helpers
+├── twitch_emotes.go                 BTTV/FFZ/7TV fetch and Twitch emote parser
+├── wails.json                       Wails commands and package metadata
+├── go.mod / go.sum                  Go module definition
+├── build/                           platform metadata, icons, installer assets
 └── frontend/
-    ├── package.json                 # Frontend dependencies
-    ├── vite.config.ts               # Vite configuration
-    ├── tsconfig.json                # TypeScript configuration
+    ├── public/                      ONNX Runtime JS/WASM assets
+    ├── wailsjs/                     generated Wails bindings
     └── src/
-        ├── App.tsx                  # Router + main orchestration
-        ├── main.tsx                 # React entry point
-        ├── types.ts                 # TypeScript interfaces
-        ├── style.css                # Global reset styles
-        ├── App.css                  # App-specific styles (821 lines)
+        ├── App.tsx                  providers, routes, navigation, shortcut
+        ├── types.ts                 unified chat and settings interfaces
+        ├── App.css / style.css      application and global styles
         ├── pages/
-        │   ├── HomePage.tsx         # Setup screen route (/)
-        │   └── ChatPage.tsx         # Dashboard route (/chat)
+        │   ├── HomePage.tsx         setup route `/`
+        │   └── ChatPage.tsx         overlay route `/chat`
         ├── components/
-        │   ├── SetupScreen.tsx      # YouTube handle/channel/video input
-        │   ├── Sidebar.tsx          # Dynamic settings panel
-        │   ├── PreviewArea.tsx      # Chat message display area
-        │   ├── StreamHUD.tsx        # OBS stream status overlay
-        │   ├── TitleBar.tsx         # Custom window title bar
-        │   └── SettingControl.tsx   # Polymorphic settings renderer
+        │   ├── SetupScreen.tsx      YouTube/Twitch/Kick inputs
+        │   ├── Sidebar.tsx          schema-driven settings and session status
+        │   ├── PreviewArea.tsx      unified message renderer
+        │   ├── StreamHUD.tsx        OBS status and audio controls
+        │   ├── TitleBar.tsx         native window and sidebar controls
+        │   └── SettingControl.tsx   polymorphic setting controls and TTS test
         ├── hooks/
-        │   ├── useChat.ts           # YouTube chat event management
-        │   ├── useTTS.ts            # Text-to-Speech engine
-        │   ├── useOBSAudio.ts       # OBS audio input controls
-        │   └── supertonic2/         # Neural TTS (ONNX models)
-        │       ├── helper.ts        # TTS core classes (669 lines)
-        │       ├── useSupertonic.ts # React hook for Supertonic
-        │       └── index.ts         # Barrel exports
-        ├── context/
-        │   └── SettingsContext.tsx  # Global settings + localStorage persistence
-        └── config/
-            └── settingsSchema.ts    # Declarative settings schema (387 lines)
+        │   ├── useChat.ts           platform lifecycle, events, filtering, OBS
+        │   ├── useTTS.ts            bounded TTS queue and provider dispatch
+        │   ├── useOBSAudio.ts       OBS audio polling and mutations
+        │   └── supertonic2/
+        │       ├── helper.ts        model loading, preprocessing, inference, WAV
+        │       ├── useSupertonic.ts shared Supertonic 2/3 resources and hook
+        │       └── index.ts         exports
+        ├── context/SettingsContext.tsx
+        ├── config/settingsSchema.ts
+        └── utils/filters.ts         shared blocked-user/word logic
 ```
 
-## Backend (Go)
+## Backend design
 
-### `main.go` — Wails Application Entry
-- Frameless, transparent window (1024x768)
-- Webview transparency enabled for Windows and macOS
-- Embeds frontend assets from `frontend/dist`
+### `main.go`
 
-### `app.go` — Core Backend Logic (459 lines)
+- Embeds `frontend/dist`.
+- Creates a frameless 1024x768 window with a transparent background.
+- Enables transparent/translucent webviews for Windows and macOS.
+- Binds one `App` instance and calls `app.startup`.
 
-**App struct:**
-```go
-type App struct {
-    ctx        context.Context
-    lc         *youtubechat.LiveChat   // YouTube chat observer
-    lcMu       sync.Mutex              // Thread safety for chat
-    stopSignal chan struct{}           // Chat stop signal
-    hwnd       win.HWND                // Windows window handle
+### `App` ownership and locking
 
-    obsClient *goobs.Client            // OBS WebSocket client
-    obsStop   chan struct{}            // OBS monitor stop signal
-}
-```
+`App` keeps independent state for:
 
-**Chat Functions:**
-- `StartChat(youtubeInput)` — Starts YouTube live chat observation from an @handle, UC channel ID, or video URL
-- `StopChat()` — Stops chat observation
-- `handleChatEvents()` — Routes chat events to frontend via Wails Events (`chat_message`, `chat_started`, `chat_ended`, `chat_error`)
+- YouTube: `lc`, `lcMu`, `stopSignal`.
+- Twitch: `twitchClient`, `twitchMu`, `twitchStop`, and a separately locked global-emote map.
+- Kick: `kickClient`, `kickMu`, `kickCancel`.
+- OBS: `obsClient`, `obsStop`, protected by `obsClientMu`.
+- Native window: Wails context and Windows `HWND`.
 
-**OBS Functions:**
-- `ConnectOBS(host, password)` — Connects to OBS WebSocket (default: `localhost:4455`)
-- `DisconnectOBS()` — Disconnects from OBS
-- `monitorOBS()` — Polls every 1s: bitrate (kbps), FPS, dropped frames %, congestion, current scene, stream status color (GREEN/YELLOW/RED/GRAY)
-- `GetOBSAudioInputs()` — Gets Mic/Aux and Desktop Audio inputs with mute state and volume (dB)
-- `SetOBSInputMute(inputName, muted)` — Mutes/unmutes an OBS input
-- `SetOBSInputVolume(inputName, volumeDb)` — Sets volume in dB
+Do network calls and disconnect cleanup outside locks where practical. Session replacement swaps the protected pointers/signals first, then cleans up the previous client.
 
-**Window Functions:**
-- `SetClickThrough(enabled)` — Toggles `WS_EX_TRANSPARENT` + `WS_EX_LAYERED` on Windows for click-through overlay mode
+### Bound backend methods
 
-## Frontend (React + TypeScript)
+- `StartChat(youtubeInput)` / `StopChat()` manage YouTube. Inputs support handles, channel IDs, bare video IDs, and supported YouTube URLs.
+- `StartTwitchChat(channelName)` / `StopTwitchChat()` use anonymous IRC and emit role flags. Global BTTV, FFZ, and 7TV emotes load asynchronously after connection; native Twitch emotes use IRC positions.
+- `StartKickChat(slug)` / `StopKickChat()` convert Kick message parts and badges to the common payload.
+- `StartPreviewChat()` emits representative mock messages for all three platforms through `chat_message`.
+- `ConnectOBS(host, password)` / `DisconnectOBS()` manage OBS.
+- `GetOBSAudioInputs()`, `SetOBSInputMute()`, and `SetOBSInputVolume()` expose special Mic/Aux and Desktop inputs.
+- `SetClickThrough(enabled)` toggles `WS_EX_LAYERED | WS_EX_TRANSPARENT` on Windows.
 
-### Routing (`App.tsx`)
-Hash-based routing with auto-navigation:
-- `/` → HomePage (setup screen, shown when not started)
-- `/chat` → ChatPage (dashboard, shown when started)
+### Event contract
 
-**Keyboard Shortcut:** `Ctrl+B` toggles UI visibility and click-through mode
+All chat sources emit `chat_message` with the `ChatItem` shape and a `Platform` value of `youtube`, `twitch`, or `kick`.
 
-### Pages
+Lifecycle events:
 
-**HomePage** (`pages/HomePage.tsx`)
-- Renders `SetupScreen` component
-- Props: channelId, onStart, onPreview, error
+| Platform/service | Events |
+|---|---|
+| YouTube | `chat_started`, `chat_error`, `chat_ended` |
+| Twitch | `twitch_started`, `twitch_error`, `twitch_ended` |
+| Kick | `kick_started`, `kick_error`, `kick_ended` |
+| OBS | `obs_status` |
 
-**ChatPage** (`pages/ChatPage.tsx`)
-- Renders `Sidebar` + `PreviewArea` + `StreamHUD` (when OBS connected)
-- Props: showUI, channelId, liveId, isPreviewMode, messages, obsStatus
+The normalized chat payload includes `ID`, `Platform`, `Author`, `Message`, optional `SuperChat`, role booleans, and `Timestamp`. Preserve PascalCase chat fields because the frontend interfaces and upstream YouTube objects use that contract. OBS JSON fields are lower camel case.
 
-### Components
+### OBS monitor
 
-**SetupScreen** (`components/SetupScreen.tsx`)
-- Enter ID supports @handle, UC channel ID, or YouTube video URL
-- Buttons: Connect, Preview Design
+`monitorOBS` polls once per second. It calculates bitrate and dropped-frame percentage from deltas, reports active FPS/current scene/congestion, and assigns:
 
-**Sidebar** (`components/Sidebar.tsx`)
-- Dynamic settings panel rendered from `SETTINGS_SCHEMA`
-- Shows channel info, live status, preview mode indicator
-- Disconnect button at bottom
-- Collapsible with `Ctrl+B`
+- `GRAY`: output inactive.
+- `RED`: reconnecting or drop percentage at least 2%.
+- `YELLOW`: drop percentage at least 0.5%, or no output-byte progress after a baseline exists.
+- `GREEN`: otherwise healthy.
 
-**PreviewArea** (`components/PreviewArea.tsx`)
-- Chat message display with full customization:
-  - Bubble backgrounds, avatars, badges, timestamps
-  - SuperChat support (colored backgrounds, amounts, stickers)
-  - Membership event display
-  - 3D transforms (rotate, skew, scale, perspective)
-  - Chroma key mode
-  - Entrance animations
-  - Text stroke, shadow, line height, font weight
+## Frontend design
 
-**StreamHUD** (`components/StreamHUD.tsx`)
-- Floating overlay with configurable position (4 corners)
-- Displays: LIVE/OFFLINE status, bitrate, FPS, drop %, current scene
-- Audio controls: Mic mute/unmute + volume slider, Desktop audio mute/unmute + volume slider
-- Status color coding: GREEN (healthy), YELLOW (warning), RED (critical), GRAY (offline)
+### Routing and window behavior
 
-**TitleBar** (`components/TitleBar.tsx`)
-- Custom frameless window controls: Minimize, Maximize, Close, Pin (always on top)
-- Draggable area (`--wails-draggable: drag`)
-- Glassmorphism background, auto-hides
+`App.tsx` uses `HashRouter`:
 
-**SettingControl** (`components/SettingControl.tsx`)
-- Polymorphic renderer for all setting types:
-  - `toggle` — Checkbox
-  - `range` — Slider with min/max/step/unit
-  - `color` — Color picker
-  - `select` — Dropdown with options
-  - `text` — Single-line text input
-  - `textarea` — Multi-line text input
-  - `number` — Number input
-  - `button` — Connect/Disconnect OBS button
-  - `voice-select` — Browser speech synthesis voice selector
-  - `tts-test` — TTS test control with text input and play button
+- `/`: setup while no platform and no preview are active.
+- `/chat`: combined overlay when any platform or preview is active.
 
-### Hooks
+The setup accepts any combination of platforms. `startChat` starts requested platforms concurrently, and each has independent status/error state. `Ctrl+B` is active only off the setup screen; it hides/shows the UI and calls `SetClickThrough` with the inverse visibility. The title bar separately toggles sidebar visibility and always-on-top state.
 
-**`useChat`** (`hooks/useChat.ts`)
-- Manages YouTube chat state: messages, isStarted, error, liveId, isPreviewMode
-- Listens to Wails events: `chat_message`, `chat_started`, `chat_error`, `chat_ended`, `obs_status`
-- Handles OBS connection/disconnection based on settings
-- Preview mode generates dummy messages for design testing
-- Message deduplication and max message limit enforcement
+### `useChat`
 
-**`useTTS`** (`hooks/useTTS.ts`)
-- Queue-based TTS system with two providers:
-  - **Browser** — Web Speech API (`SpeechSynthesis`)
-  - **Supertonic** — Neural TTS with ONNX models
-- Features:
-  - Members-only mode (filters by membership/badge)
-  - Custom user whitelist (bypass members mode)
-  - Command mode (only read messages starting with prefix, e.g., `!voice`)
-  - Random voice per message
-  - URL removal from text
-  - Username cleaning (removes @ and numbers)
-  - Message deduplication (tracks last 200 message IDs)
-  - Ignores messages that arrived before TTS was enabled
+- Persists last inputs under `airchat_last_youtube`, `airchat_last_twitch`, and `airchat_last_kick`.
+- Normalizes Twitch/Kick names from plain names, `@name`, or URLs.
+- Subscribes to all chat lifecycle events plus `obs_status`.
+- Validates incoming payloads, applies blocked-user/word filters, deduplicates by non-empty message ID, enforces `maxMessages`, and autoscrolls.
+- Starts/stops all selected chat sources and clears combined state on disconnect.
+- Reacts to OBS settings by connecting/disconnecting the backend.
 
-**`useOBSAudio`** (`hooks/useOBSAudio.ts`)
-- Polls OBS audio inputs every 2 seconds
-- Local state management for responsive UI during dragging
-- Mute toggle and volume control (0-100 slider mapped to -100dB to 0dB)
-- Drag tracking to prevent state overwrites during volume adjustment
+### Rendering
 
-**`useSupertonic`** (`hooks/supertonic2/useSupertonic.ts`)
-- Loads ONNX models on mount (WebGPU first, fallback to WASM)
-- Downloads models from Hugging Face (`Supertone/supertonic-2`)
-- Manages voice styles (M1-M5, F1-F5)
-- Speech generation with progress callbacks
+`PreviewArea` renders a unified feed with platform icons, fallback avatars, role labels, native/custom emotes, YouTube Super Chats/stickers, membership/subscription events, and timestamps. Twitch and Kick can use platform accent colors. Visual settings also cover bubbles, Super Chat bar, chroma key, grid/scrollbar, text effects, animations, and 3D transforms.
 
-### Supertonic 2 Neural TTS (`hooks/supertonic2/helper.ts` — 669 lines)
+### Settings
 
-**Core Classes:**
-- `UnicodeProcessor` — Text normalization, emoji removal, language tag wrapping
-- `Style` — Holds TTL (timbre) and DP (duration) tensors
-- `TextToSpeech` — Full TTS pipeline:
-  1. Text processing and tokenization
-  2. Duration prediction
-  3. Text encoding
-  4. Noisy latent sampling (Box-Muller transform)
-  5. Denoising loop (vector estimator, configurable steps)
-  6. Vocoder waveform generation
-  7. WAV file output (16-bit PCM)
+`SettingsContext` lazily merges saved values with defaults, sanitizes unsupported TTS providers, and persists to `AIRCHAT_SETTINGS`. `settingsSchema.ts` is declarative and supports conditional sections/controls.
 
-**Supported Languages:** `en`, `ko`, `es`, `pt`, `fr`
-**Voice Styles:** M1-M5 (Male), F1-F5 (Female)
-**Text Chunking:** Splits by paragraphs, then sentences (respects abbreviations like Mr., Dr., etc.)
+Current sections are:
 
-### Settings System
+1. Overlay Mode
+2. Platform Display
+3. Style Settings
+4. Message Design
+5. Animation
+6. 3D Transform
+7. OBS Integration
+8. HUD Settings
+9. Filters
+10. Text to Speech (TTS)
 
-**SettingsContext** (`context/SettingsContext.tsx`)
-- 60+ settings with `localStorage` persistence
-- Lazy initialization with merge from defaults
-- Provides: `settings`, `updateSettings`, `resetSettings`
+Supported control types include toggle, range, color, select, text, password, textarea, number, button, browser voice select, Supertonic status, and TTS test.
 
-**SettingsSchema** (`config/settingsSchema.ts`)
-- Declarative schema with conditional visibility (`showIf`)
-- Sections:
-  1. **Overlay Mode** — Chroma key, preview grid, scrollbar
-  2. **Style Settings** — Text outline, font size, line height, font weight, opacity, avatars, badges, timestamps
-  3. **Message Design** — Bubble background, text alignment, corner radius, vertical gap, max messages, drop shadow
-  4. **Animation** — Entrance animation type and duration
-  5. **3D Transform** — Perspective, rotate X/Y/Z, skew X, scale
-  6. **OBS Integration** — Enable, host, password, connection button, status
-  7. **HUD Settings** — Position, scale, opacity, bitrate, FPS, mic, desktop, scene
-  8. **TTS** — Enable, members-only, custom users, command mode, provider selection, voice, test
+### Filtering
 
-### TypeScript Types (`types.ts`)
+`utils/filters.ts` defines shared comma-list parsing and case-insensitive matching. `useChat` filters before adding messages to the feed. `useTTS` applies the same checks because it subscribes directly to backend events.
 
-```typescript
-interface ChatItem {
-    ID: string;
-    Author: Author;
-    Message: MessageItem[] | null;
-    SuperChat?: SuperChat;
-    IsMembership: boolean;
-    IsVerified: boolean;
-    IsOwner: boolean;
-    IsModerator: boolean;
-    Timestamp: string;
-}
+### TTS
 
-interface ChatSettings {
-    // Visual: fontSize, bgOpacity, messageOpacity, showAvatars, showBadges, showTimestamp
-    // Chroma: chromaMode, chromaColor
-    // Text: textStroke, textStrokeColor, textShadow, lineHeight, fontWeight, textAlign
-    // 3D: threeDEnabled, perspective, rotateX/Y/Z, skewX/Y, scale
-    // Layout: showBubble, borderRadius, messageGap, maxMessages, hideScrollbar, showGrid
-    // Animation: animation, animationDuration
-    // OBS: obsEnabled, obsHost, obsPassword, obsConnected, obsStatusMessage
-    // HUD: obsHudPosition, obsHudOpacity, obsHudScale, obsHudShowFps/Bitrate/Mic/Desktop/Scene
-    // TTS: ttsEnabled, ttsMembersOnly, ttsAllowCustomUsers, ttsCustomUsersList
-    //      ttsCommandMode, ttsCommandPrefix, ttsSeparatorText, ttsRandomVoice
-    //      ttsProvider, ttsVoice
-    // Supertonic: supertonicVoiceStyle, supertonicLang, supertonicTotalStep, supertonicSpeed
-}
-```
+`useTTS` has a FIFO queue capped at 20 entries (oldest pending entry is dropped when full). It ignores old messages that predate TTS activation, deduplicates processed IDs, removes/replaces URLs, cleans usernames, and supports:
 
-## Key Features
+- Browser Speech Synthesis.
+- Supertonic 2 (`ttsProvider: supertonic`).
+- Supertonic 3 (`ttsProvider: supertonic3`).
+- members/subscribers-only mode with optional username allowlist.
+- command-prefix mode, separator text, random voice, and voice test.
 
-1. **YouTube Live Chat Overlay** — Real-time chat capture with transparent frameless window
-2. **OBS Integration** — Stream monitoring (bitrate, FPS, drops, scene), audio controls (mic/desktop mute + volume)
-3. **Text-to-Speech** — Browser Speech API + Supertonic 2 neural TTS (10 voices, 5 languages)
-4. **3D Transforms** — Perspective, rotation, skew, scale for overlay customization
-5. **Chroma Key** — Solid color background for OBS keying
-6. **Click-Through Mode** — `Ctrl+B` hides UI and makes window transparent to mouse clicks
-7. **Flexible YouTube Input** — Supports @handle, UC channel ID, and YouTube video URL
+The neural hook loads only when TTS is enabled and a Supertonic provider is selected. Both model generations currently force the ONNX WASM execution provider; do not describe WebGPU fallback unless the implementation changes. Model assets come from the selected Hugging Face repository and use distinct Cache API names. Inactive model resources are released when switching between Supertonic 2 and 3.
 
-## Development Commands
+Supertonic 2 supports `en`, `ko`, `es`, `pt`, and `fr`. Supertonic 3 exposes the larger language list declared in `SUPERTONIC3_LANGS`. Both expose voice styles `M1.json`-`M5.json` and `F1.json`-`F5.json`.
+
+## Development workflow
 
 ```bash
-# Live development (hot reload)
 wails dev
-
-# Build production package
 wails build
+go test ./...
+
+cd frontend
+npm install
+npm run dev
+npm run build
 ```
 
-## Wails Configuration (`wails.json`)
+`npm run build` runs `tsc && vite build`. Wails also uses `npm install` and `npm run build` through `wails.json`.
 
-```json
-{
-  "name": "airchat",
-  "outputfilename": "airchat",
-  "frontend:install": "npm install",
-  "frontend:build": "npm run build",
-  "frontend:dev:watcher": "npm run dev",
-  "frontend:dev:serverUrl": "auto",
-  "author": {
-    "name": "Diego Pahua Silvan",
-    "email": "dpahuas@gmail.com"
-  }
-}
-```
+### Generated files
 
-## Architecture Notes
+`frontend/wailsjs/` is generated from the exported Go methods. When a bound method changes, regenerate bindings through Wails rather than hand-maintaining them. Treat `frontend/dist/`, `airchat.exe`, and packaged output as build artifacts even if an artifact is present in the working tree.
 
-- **Event-driven communication**: Backend emits events via `runtime.EventsEmit`, frontend listens via `EventsOn`
-- **Thread safety**: `sync.Mutex` protects YouTube chat state in Go
-- **State management**: React Context for settings, local state for component-specific data
-- **Persistence**: All settings saved to `localStorage` under key `AIRCHAT_SETTINGS`
-- **Model loading**: Supertonic ONNX models downloaded from Hugging Face and cached in browser Cache API
-- **Fallback chain**: WebGPU → WASM for neural TTS inference
+### Verification expectations
+
+- For Go/backend changes: run `go test ./...` (and `gofmt` on modified `.go` files).
+- For frontend changes: run `npm run build` from `frontend`.
+- For cross-boundary changes: run both and verify the generated Wails bindings expose the exact method signatures.
+- For visual changes: exercise setup, preview, `/chat`, sidebar hiding, and `Ctrl+B` in `wails dev`.
+- For platform changes: ensure one failed platform does not stop the others and all payloads retain the unified shape.
+
+## Persistence and external resources
+
+- Settings: `AIRCHAT_SETTINGS`.
+- Last platform inputs: the three `airchat_last_*` keys above.
+- Supertonic caches: `supertonic-2-models-v1`, `supertonic-3-models-v1`.
+- Runtime network dependencies include the selected chat services, OBS WebSocket, Twitch third-party emote APIs/CDNs, and Hugging Face for uncached neural model assets.

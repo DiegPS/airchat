@@ -1,240 +1,167 @@
-# AirChat 🎙️
+# AirChat
 
-> **YouTube Live Chat Overlay** for streamers with OBS integration and Neural Text-to-Speech.
+AirChat is a transparent, frameless desktop chat overlay for **YouTube Live, Twitch, and Kick**. It is built with Wails v2 (Go backend and React/TypeScript frontend), can merge several live chats into one feed, integrates with OBS WebSocket, and includes browser and neural text-to-speech.
 
-A transparent, frameless desktop application built with **Wails v2** (Go + React/TypeScript) that captures YouTube live chat in real-time and displays it as a customizable overlay — perfect for placing over OBS or any streaming software.
+## Features
 
----
+### Multi-platform chat
 
-## ✨ Features
+- Connect any combination of YouTube, Twitch, and Kick chats at the same time.
+- YouTube accepts an `@handle`, a `UC...` channel ID, an 11-character video ID, or a YouTube watch/live/short URL.
+- Twitch and Kick accept a channel name, `@name`, or a channel URL.
+- All platforms are normalized into one `chat_message` event and one overlay feed.
+- Twitch supports native emotes plus global BTTV, FrankerFaceZ, and 7TV emotes.
+- Kick messages include emotes and broadcaster, moderator, subscriber, and verified roles.
+- The last value entered for each platform is saved locally.
 
-### 📺 YouTube Live Chat Overlay
-- Real-time chat capture from YouTube Live streams
-- Transparent, frameless window that floats over OBS or any app
-- Click-through mode (`Ctrl+B`) — interact with underlying windows while chat displays
-- Full customization: fonts, colors, animations, 3D transforms, chroma key
+### Overlay and moderation
 
-### 🎛️ OBS Integration
-- **Stream monitoring**: bitrate, FPS, dropped frames, congestion, current scene
-- **Audio controls**: mute/unmute and adjust volume for microphone and desktop audio
-- **HUD overlay**: floating status widget with 4 position options, configurable scale and opacity
-- **Status indicators**: color-coded health (GREEN / YELLOW / RED / GRAY)
+- Configurable bubbles, opacity, avatars, role badges, platform icons, timestamps, alignment, spacing, and message limit.
+- YouTube Super Chat styling, including stickers and an optional accent bar.
+- Platform-specific Twitch and Kick bubble accents.
+- Entrance animations, text outline and shadow, chroma key, and 3D transforms.
+- Comma-separated blocked-user and blocked-word filters are applied before display and TTS.
+- Preview mode sends representative YouTube, Twitch, and Kick messages through the same backend event pipeline used by live chat.
 
-### 🔊 Text-to-Speech
-- **Browser TTS** — Web Speech API with voice selector
-- **Supertonic 2 Neural TTS** — AI-powered speech with 10 voices (M1-M5, F1-F5) and 5 languages (English, Korean, Spanish, Portuguese, French)
-- **Smart filtering**: members-only mode, custom user whitelist, command mode (e.g., `!voice`)
-- **Random voice** per message, URL removal, username cleaning
+### OBS integration
 
-### 🎨 Design Customization
-- **Message styling**: bubble backgrounds, avatars, badges, timestamps, border radius, text alignment
-- **Text effects**: outline/stroke, drop shadow, line height, font weight
-- **Animations**: slide-up, slide-left, fade-in, zoom-in with adjustable speed
-- **3D transforms**: perspective, rotate X/Y/Z, skew, scale
-- **Chroma key**: solid color background for OBS chroma keying
-- **Preview mode**: test your design with dummy messages before going live
+- Connects to OBS WebSocket (default `localhost:4455`).
+- Polls stream state, bitrate, FPS, dropped-frame percentage, congestion, and current scene.
+- Displays a configurable four-corner HUD with green/yellow/red/gray health states.
+- Controls mute and volume for OBS special microphone and desktop inputs.
 
-### 🔍 YouTube Input
-- Supports YouTube handles, channel IDs, and video URLs
+### Text-to-speech
 
----
+- Browser Speech Synthesis with installed-voice selection.
+- Supertonic 2 and Supertonic 3 neural TTS, executed through ONNX Runtime Web's WASM backend.
+- Ten voice styles (`M1`-`M5`, `F1`-`F5`), language selection, quality steps, speed, and a voice test.
+- Supertonic 2 supports English, Korean, Spanish, Portuguese, and French; Supertonic 3 exposes its larger multilingual language set in the settings panel.
+- Queueing, random voice, members/subscribers-only mode, an allowlist override, command-prefix mode, URL replacement, and username cleanup.
+- Neural models are fetched from the corresponding `Supertone/supertonic-2` or `Supertone/supertonic-3` Hugging Face repository when that provider is enabled, then cached by the webview Cache API.
 
-## 🖥️ Screenshots
+### Desktop window
 
-> _Add screenshots here_
+- Transparent 1024x768 frameless window with custom minimize, maximize, close, always-on-top, and sidebar controls.
+- `Ctrl+B` hides/shows the UI while a chat or preview is active and toggles Windows click-through mode.
 
----
+## Requirements
 
-## 🚀 Installation
+- Go **1.26.1 or newer**, matching `go.mod`
+- Node.js and npm compatible with Vite 3 and TypeScript 4.6
+- Wails v2 CLI
+- Windows is required for the current click-through implementation (`github.com/lxn/win`); transparent-window options are also configured for macOS.
+- OBS Studio with OBS WebSocket enabled is optional.
+- Internet access is required for live chat, third-party Twitch emotes, and initial Supertonic model downloads.
 
-### Prerequisites
-
-- **Go** 1.25.5+ — [Install Go](https://go.dev/doc/install)
-- **Node.js** 18+ — [Install Node.js](https://nodejs.org/)
-- **Wails v2** — [Install Wails](https://wails.io/docs/gettingstarted/installation)
+Install Wails if needed:
 
 ```bash
 go install github.com/wailsapp/wails/v2/cmd/wails@latest
 ```
 
-### Build from Source
+## Development
 
 ```bash
-# Clone the repository
 git clone https://github.com/DiegPS/airchat.git
 cd airchat
 
-# Install frontend dependencies
-cd frontend && npm install && cd ..
+cd frontend
+npm install
+cd ..
 
-# Build the application
-wails build
-```
-
-The built executable will be in `build/bin/`.
-
----
-
-## 🛠️ Development
-
-```bash
-# Run in development mode with hot reload
 wails dev
 ```
 
-This starts a Vite dev server with fast hot reload. A dev server also runs on `http://localhost:34115` where you can call Go methods from browser devtools.
+Useful verification commands:
 
----
+```bash
+go test ./...
 
-## 📖 Usage
-
-### 1. Connect to YouTube Chat
-- Enter a **Channel ID** manually, or
-- **Search** for a channel by name and select from results
-- Click **Connect** to start capturing live chat
-
-### 2. Customize the Overlay
-- Use the **Sidebar** to adjust every visual aspect of the chat display
-- Toggle **Preview Design** to test your settings with dummy messages
-- Enable **3D transforms** for perspective effects
-
-### 3. OBS Integration
-- Enable OBS in settings and enter your WebSocket host (`localhost:4455`) and password
-- Monitor stream health in the **HUD overlay**
-- Control mic and desktop audio directly from the HUD
-
-### 4. Text-to-Speech
-- Enable TTS in settings
-- Choose provider: **Browser API** or **Supertonic 2** (neural)
-- Configure members-only mode, command prefix, and voice preferences
-
-### 5. Click-Through Mode
-- Press **`Ctrl+B`** to hide the UI and make the window transparent to mouse clicks
-- Press **`Ctrl+B`** again to bring the UI back
-
----
-
-## 🏗️ Architecture
-
-```
-┌─────────────────────────────────────────────────────┐
-│                    AirChat Desktop                   │
-├──────────────────────┬──────────────────────────────┤
-│   Backend (Go)       │   Frontend (React + TS)      │
-│                      │                              │
-│  • YouTube Chat API  │  • Chat Display & Styles     │
-│  • OBS WebSocket     │  • Settings Panel            │
-│  • Window Control    │  • Stream HUD                │
-│  • YouTube Input     │  • Stream HUD                │
-│                      │  • TTS Engine (ONNX)         │
-│                      │  • Supertonic 2 Neural TTS   │
-└──────────────────────┴──────────────────────────────┘
-         │                              │
-         ▼                              ▼
-  YouTube Live Chat              Wails Events
-  OBS WebSocket                  localStorage
-  Windows API                    Cache API (models)
+cd frontend
+npm run build
 ```
 
-### Tech Stack
+Build the desktop application with:
 
-| Layer | Technology |
-|---|---|
-| **Framework** | [Wails v2](https://wails.io/) |
-| **Backend** | Go |
-| **Frontend** | React 18 + TypeScript |
-| **Build** | Vite 3 |
-| **YouTube** | [youtube-chat](https://github.com/DiegPS/youtube-chat) |
-| **OBS** | [goobs](https://github.com/andreykaipov/goobs) |
-| **TTS** | [onnxruntime-web](https://onnxruntime.ai/) + [Supertonic 2](https://huggingface.co/Supertone/supertonic-2) |
-| **Window** | Windows API (`lxn/win`) |
-
----
-
-## ⚙️ Configuration
-
-All settings are persisted in `localStorage` under `AIRCHAT_SETTINGS`. The settings schema is defined in `frontend/src/config/settingsSchema.ts` and includes:
-
-| Section | Settings |
-|---|---|
-| **Overlay Mode** | Chroma key, preview grid, scrollbar |
-| **Style** | Font size, line height, weight, opacity, avatars, badges, timestamps |
-| **Message Design** | Bubble background, alignment, corner radius, gap, max messages, shadow |
-| **Animation** | Entrance animation type and duration |
-| **3D Transform** | Perspective, rotate X/Y/Z, skew, scale |
-| **OBS Integration** | Enable, host, password, connection status |
-| **HUD Settings** | Position, scale, opacity, bitrate, FPS, mic, desktop, scene |
-| **TTS** | Enable, members-only, custom users, command mode, provider, voice |
-
----
-
-## 🎯 Keyboard Shortcuts
-
-| Shortcut | Action |
-|---|---|
-| `Ctrl+B` | Toggle UI visibility and click-through mode |
-
----
-
-## 📁 Project Structure
-
+```bash
+wails build
 ```
+
+Wails writes packaged build output under `build/bin/`.
+
+## Usage
+
+1. Enter at least one platform channel on the setup screen. Any combination of YouTube, Twitch, and Kick is valid.
+2. Select **Connect chats**, or use **Preview design** to test the overlay without a live channel.
+3. Configure display, filters, OBS, HUD, and TTS from the sidebar.
+4. Press `Ctrl+B` to switch between interactive UI and click-through overlay mode.
+5. Use **Disconnect** to stop every active platform and clear the current feed.
+
+## Architecture
+
+```text
+YouTube observer ─┐
+Twitch IRC ───────┼─> Go adapters ─> Wails chat_message event ─> React feed ─> overlay/TTS
+Kick client ──────┘
+
+OBS WebSocket ──────> Go monitor/audio methods ─> obs_status event + HUD controls
+Settings UI ─────────> React Context ─> localStorage (AIRCHAT_SETTINGS)
+```
+
+The backend keeps independent sessions for each chat platform so one platform can fail or stop without directly terminating the others. `useChat` owns the combined frontend feed, deduplication, filtering, message limits, platform state, OBS state, and navigation. `useTTS` subscribes separately to the unified chat event and manages its bounded speech queue.
+
+## Project structure
+
+```text
 airchat/
-├── main.go                          # Wails entry point
-├── app.go                           # Backend: YouTube, OBS, window control
-├── wails.json                       # Wails configuration
-├── go.mod                           # Go dependencies
-├── build/                           # Build artifacts
+├── main.go                         Wails entry point and transparent window options
+├── app.go                          chat orchestration, OBS, preview, and click-through
+├── kick_chat.go                    Kick message/role conversion helpers
+├── twitch_emotes.go                Twitch native and third-party emote parsing
+├── go.mod / go.sum                 Go dependencies
+├── wails.json                      Wails build configuration
+├── build/                          platform metadata, icons, installer assets, output
 └── frontend/
-    ├── package.json                 # Frontend dependencies
-    ├── vite.config.ts               # Vite configuration
+    ├── package.json                React/Vite dependencies and scripts
+    ├── public/                     ONNX Runtime browser assets
     └── src/
-        ├── App.tsx                  # Router + main orchestration
-        ├── types.ts                 # TypeScript interfaces
-        ├── pages/                   # HomePage, ChatPage
-        ├── components/              # UI components
-        ├── hooks/                   # useChat, useTTS, useOBSAudio, supertonic2
-        ├── context/                 # SettingsContext (localStorage)
-        └── config/                  # settingsSchema.ts
+        ├── App.tsx                 providers, hash routes, and Ctrl+B behavior
+        ├── components/             setup, sidebar, overlay, HUD, title bar, controls
+        ├── config/settingsSchema.ts
+        ├── context/SettingsContext.tsx
+        ├── hooks/                  chat, OBS audio, TTS, and Supertonic hooks
+        ├── pages/                  setup and chat routes
+        ├── utils/filters.ts        shared user/word filters
+        └── types.ts                unified chat and settings types
 ```
 
----
+## Settings and local data
 
-## 🔧 Troubleshooting
+- Main settings: `AIRCHAT_SETTINGS`
+- Last YouTube input: `airchat_last_youtube`
+- Last Twitch channel: `airchat_last_twitch`
+- Last Kick channel: `airchat_last_kick`
+- Supertonic model caches: `supertonic-2-models-v1` and `supertonic-3-models-v1`
 
-### OBS won't connect
-- Ensure OBS WebSocket is enabled: **Tools → WebSocket Server Settings**
-- Default port: `4455`
-- Check your WebSocket password matches
+## Troubleshooting
 
-### Supertonic TTS not working
-- First run downloads ONNX models from Hugging Face (~hundreds of MB)
-- Requires **WebGPU** support (falls back to WASM if unavailable)
-- Check browser console for download errors
+### OBS does not connect
 
-### Window not transparent
-- On Windows, ensure `WebviewIsTransparent` and `WindowIsTranslucent` are enabled in `main.go`
-- Some Windows themes or compositing settings may affect transparency
+- Enable the OBS WebSocket server under **Tools > WebSocket Server Settings**.
+- Verify the host (normally `localhost:4455`) and password.
+- The HUD only appears after an `obs_status` payload reports a connected client.
 
----
+### Supertonic does not speak
 
-## 📄 License
+- Enable TTS and select Supertonic 2 or 3; models are not loaded while neural TTS is disabled.
+- Allow the initial Hugging Face download to finish and check the Supertonic status control.
+- The current implementation uses WASM, so ensure the files under `frontend/public/` are packaged and accessible.
 
-This project is open source. See the [LICENSE](LICENSE) file for details.
+### Click-through does not work
 
----
+- The native style toggle is Windows-specific and uses `WS_EX_LAYERED` and `WS_EX_TRANSPARENT`.
+- `Ctrl+B` is intentionally disabled on the setup route.
 
-## 👤 Author
+## Author
 
-**Diego Pahua Silvan**
-- GitHub: [@DiegPS](https://github.com/DiegPS)
-- Email: dpahuas@gmail.com
-
----
-
-## 🙏 Acknowledgments
-
-- [Wails](https://wails.io/) — Desktop app framework
-- [youtube-chat](https://github.com/DiegPS/youtube-chat) — YouTube live chat library
-- [goobs](https://github.com/andreykaipov/goobs) — OBS WebSocket client
-- [Supertonic 2](https://huggingface.co/Supertone/supertonic-2) — Neural TTS by Supertone
+Diego Pahua Silvan — [@DiegPS](https://github.com/DiegPS) — dpahuas@gmail.com
