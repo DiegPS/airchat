@@ -1,27 +1,30 @@
 # AirChat
 
-AirChat is a transparent, frameless desktop chat overlay for **YouTube Live, Twitch, and Kick**. It is built with Wails v2 (Go backend and React/TypeScript frontend), can merge several live chats into one feed, integrates with OBS WebSocket, and includes browser and neural text-to-speech.
+AirChat is a transparent, frameless desktop chat overlay for **YouTube Live, Twitch, Kick, and TikTok LIVE**. It is built with Wails v2 (Go backend and React/TypeScript frontend), can merge several live chats into one feed, integrates with OBS WebSocket, and includes browser and neural text-to-speech.
 
 ## Features
 
 ### Multi-platform chat
 
-- Connect any combination of YouTube, Twitch, and Kick chats at the same time.
+- Connect any combination of YouTube, Twitch, Kick, and TikTok LIVE chats at the same time.
 - YouTube accepts an `@handle`, a `UC...` channel ID, an 11-character video ID, or a YouTube watch/live/short URL.
 - Twitch and Kick accept a channel name, `@name`, or a channel URL.
 - All platforms are normalized into one `chat_message` event and one overlay feed.
 - Twitch supports native emotes plus global BTTV, FrankerFaceZ, and 7TV emotes.
 - Kick messages include emotes and broadcaster, moderator, subscriber, and verified roles.
+- TikTok accepts a username, `@username`, or profile/LIVE URL. It renders chat, indexed and emote-only messages, gifts and combos, subscriptions, follows, shares, joins, questions, and configurable advanced events.
+- Every event type exposed by `PirateTok/live-go` is retained in the structured TikTok event inspector; unknown methods include a safe Base64 diagnostic export instead of being silently discarded.
+- TikTok provides live viewer/like metrics, creator/room metadata, role and gifter/fan-club filters, per-category visibility, rate limits, and full advanced connection controls.
 - The last value entered for each platform is saved locally.
 
 ### Overlay and moderation
 
 - Configurable bubbles, opacity, avatars, role badges, platform icons, timestamps, alignment, spacing, and message limit.
 - YouTube Super Chat styling, including stickers and an optional accent bar.
-- Platform-specific Twitch and Kick bubble accents.
+- Platform-specific Twitch, Kick, and TikTok bubble accents.
 - Entrance animations, text outline and shadow, chroma key, and 3D transforms.
 - Comma-separated blocked-user and blocked-word filters are applied before display and TTS.
-- Preview mode sends representative YouTube, Twitch, and Kick messages through the same backend event pipeline used by live chat.
+- Preview mode sends representative messages and TikTok event categories through the same backend event pipeline used by live chat.
 
 ### OBS integration
 
@@ -47,11 +50,11 @@ AirChat is a transparent, frameless desktop chat overlay for **YouTube Live, Twi
 ## Requirements
 
 - Go **1.26.1 or newer**, matching `go.mod`
-- Node.js and npm compatible with Vite 3 and TypeScript 4.6
+- Node.js **20.19+ or 22.12+** and npm, as required by Vite 7; TypeScript 5.9 is used for builds.
 - Wails v2 CLI
 - Windows is required for the current click-through implementation (`github.com/lxn/win`); transparent-window options are also configured for macOS.
 - OBS Studio with OBS WebSocket enabled is optional.
-- Internet access is required for live chat, third-party Twitch emotes, and initial Supertonic model downloads.
+- Internet access is required for live chat, TikTok metadata, third-party Twitch emotes, and initial Supertonic model downloads.
 
 Install Wails if needed:
 
@@ -91,7 +94,7 @@ Wails writes packaged build output under `build/bin/`.
 
 ## Usage
 
-1. Enter at least one platform channel on the setup screen. Any combination of YouTube, Twitch, and Kick is valid.
+1. Enter at least one platform channel on the setup screen. Any combination of YouTube, Twitch, Kick, and TikTok is valid. TikTok connection options can be expanded before connecting.
 2. Select **Connect chats**, or use **Preview design** to test the overlay without a live channel.
 3. Configure display, filters, OBS, HUD, and TTS from the sidebar.
 4. Press `Ctrl+B` to switch between interactive UI and click-through overlay mode.
@@ -102,7 +105,8 @@ Wails writes packaged build output under `build/bin/`.
 ```text
 YouTube observer ─┐
 Twitch IRC ───────┼─> Go adapters ─> Wails chat_message event ─> React feed ─> overlay/TTS
-Kick client ──────┘
+Kick client ──────┤
+TikTok live-go ───┘
 
 OBS WebSocket ──────> Go monitor/audio methods ─> obs_status event + HUD controls
 Settings UI ─────────> React Context ─> localStorage (AIRCHAT_SETTINGS)
@@ -117,6 +121,7 @@ airchat/
 ├── main.go                         Wails entry point and transparent window options
 ├── app.go                          chat orchestration, OBS, preview, and click-through
 ├── kick_chat.go                    Kick message/role conversion helpers
+├── tiktok_chat.go                  TikTok lifecycle, exhaustive event routing, gifts, metadata
 ├── twitch_emotes.go                Twitch native and third-party emote parsing
 ├── go.mod / go.sum                 Go dependencies
 ├── wails.json                      Wails build configuration
@@ -132,6 +137,7 @@ airchat/
         ├── hooks/                  chat, OBS audio, TTS, and Supertonic hooks
         ├── pages/                  setup and chat routes
         ├── utils/filters.ts        shared user/word filters
+        ├── utils/tiktok.ts         TikTok visibility, audience filters, rate limits, combo merge
         └── types.ts                unified chat and settings types
 ```
 
@@ -141,6 +147,8 @@ airchat/
 - Last YouTube input: `airchat_last_youtube`
 - Last Twitch channel: `airchat_last_twitch`
 - Last Kick channel: `airchat_last_kick`
+- Last TikTok username: `airchat_last_tiktok`
+- TikTok session cookies are runtime-only and are deliberately erased from persisted settings.
 - Supertonic model caches: `supertonic-2-models-v1` and `supertonic-3-models-v1`
 
 ## Troubleshooting
@@ -161,6 +169,13 @@ airchat/
 
 - The native style toggle is Windows-specific and uses `WS_EX_LAYERED` and `WS_EX_TRANSPARENT`.
 - `Ctrl+B` is intentionally disabled on the setup route.
+
+### TikTok does not connect
+
+- Confirm the creator is currently LIVE and that the username/URL is correct.
+- Public rooms normally need no login. Restricted rooms may require session cookies in TikTok advanced connection settings; those cookies stay in memory and are not saved.
+- The `live-go` WebSocket proxy path is reliably implemented for HTTP `CONNECT`; SOCKS5 and HTTPS proxy behavior is an upstream limitation.
+- The inspector and sidebar distinguish room resolution, first WebSocket traffic, reconnect attempts, LIVE end, and terminal disconnect. Some terminal WebSocket causes are logged internally by `live-go` without exposing the exact error to consumers.
 
 ## Author
 

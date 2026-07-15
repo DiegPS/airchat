@@ -20,6 +20,12 @@ const KickIcon = () => (
     </svg>
 );
 
+const TikTokIcon = () => (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }} aria-hidden="true">
+        <path d="M16.7 2c.3 2.4 1.8 3.8 4.3 4v3.1c-1.5.1-2.9-.3-4.2-1.2v6.3a6.2 6.2 0 1 1-5.4-6.1v3.2a3.1 3.1 0 1 0 2.1 2.9V2h3.2z" />
+    </svg>
+);
+
 // Generates a deterministic hue from a username so each user gets a consistent color
 const nameToHue = (name: string) => {
     let hash = 0;
@@ -30,13 +36,14 @@ const nameToHue = (name: string) => {
 interface AvatarProps {
     url: string;
     name: string;
-    platform?: 'youtube' | 'twitch' | 'kick';
+    platform?: 'youtube' | 'twitch' | 'kick' | 'tiktok';
     showPlatformBadge: boolean;
 }
 
 const PlatformIcon: React.FC<{ platform?: string }> = ({ platform }) => {
     if (platform === 'twitch') return <TwitchIcon />;
     if (platform === 'kick') return <KickIcon />;
+    if (platform === 'tiktok') return <TikTokIcon />;
     return <YouTubeIcon />;
 };
 
@@ -145,7 +152,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = ({ messages, scrollRef })
 
                     return (
                         <div
-                            key={msg.ID || `${msg.Platform || 'chat'}-${index}`}
+                            key={msg.ID ? `${msg.Platform || 'chat'}-${msg.ID}` : `${msg.Platform || 'chat'}-${index}`}
                             className={`chat-item ${isSuperChat ? 'superchat' : ''} ${isMembershipEvent ? 'membership' : ''}`}
                             style={{
                                 backgroundColor: bgColor,

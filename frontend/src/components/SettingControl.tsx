@@ -180,6 +180,9 @@ export const SettingControl: React.FC<SettingControlProps> = ({ config, value, o
                     value={value as number}
                     onChange={(e) => onChange(Number(e.target.value))}
                     className="setting-input"
+                    min={config.min}
+                    max={config.max}
+                    step={config.step}
                 />
             </div>
         );

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { EventsOn } from "../../wailsjs/runtime";
-import { StartChat, StopChat, ConnectOBS, DisconnectOBS, StartTwitchChat, StopTwitchChat, StartPreviewChat, StartKickChat, StopKickChat } from "../../wailsjs/go/main/App";
+import { StartChat, StopChat, ConnectOBS, DisconnectOBS, StartTwitchChat, StopTwitchChat, StartPreviewChat, StartKickChat, StopKickChat, StartTikTokChat, StopTikTokChat } from "../../wailsjs/go/main/App";
 import { ChatItem } from '../types';
 import { useSettings } from '../context/SettingsContext';
 import { containsBlockedWord, isUserBlocked } from '../utils/filters';
@@ -40,6 +40,69 @@ export interface OBSStatus {
     currentScene: string;
 }
 
+interface TikTokFlowState {
+    joinTimestamps: number[];
+    lastMetricAt: number;
+}
+
+const shouldShowTikTokMessage = (message: ChatItem, settings: ReturnType<typeof useSettings>['settings'], flow: TikTokFlowState) => {
+    if (message.Platform !== 'tiktok') return true;
+
+    if (message.TikTokUser) {
+        if (message.TikTokUser.GifterLevel < settings.tiktokMinGifterLevel) return false;
+        if (settings.tiktokOnlyFollowers && !message.TikTokUser.IsFollower) return false;
+        if (settings.tiktokOnlySubscribers && !message.TikTokUser.IsSubscriber) return false;
+        if (settings.tiktokOnlyModerators && !message.TikTokUser.IsModerator) return false;
+    }
+
+    switch (message.EventKind) {
+        case 'chat': return settings.tiktokShowChat;
+        case 'emote': return settings.tiktokShowEmotes;
+        case 'gift': return settings.tiktokShowGifts && (message.Gift?.DiamondCount ?? 0) >= settings.tiktokMinGiftDiamonds;
+        case 'subscription': return settings.tiktokShowSubscriptions;
+        case 'follow': return settings.tiktokShowFollows;
+        case 'share': return settings.tiktokShowShares;
+        case 'question': return settings.tiktokShowQuestions;
+        case 'join': {
+            if (!settings.tiktokShowJoins) return false;
+            const now = Date.now();
+            flow.joinTimestamps = flow.joinTimestamps.filter(timestamp => now - timestamp < 60_000);
+            if (flow.joinTimestamps.length >= settings.tiktokJoinRateLimit) return false;
+            flow.joinTimestamps.push(now);
+            return true;
+        }
+        case 'metrics': {
+            if (!settings.tiktokShowMetrics) return false;
+            const now = Date.now();
+            if (now - flow.lastMetricAt < settings.tiktokMetricIntervalSeconds * 1000) return false;
+            flow.lastMetricAt = now;
+            return true;
+        }
+        case 'advanced': {
+            switch (message.TikTokEvent?.category) {
+                case 'activity': return settings.tiktokShowActivityEvents;
+                case 'content': return settings.tiktokShowContent;
+                case 'goals': return settings.tiktokShowGoals;
+                case 'interaction': return settings.tiktokShowInteraction;
+                case 'rankings': return settings.tiktokShowRankings;
+                case 'link_mic': return settings.tiktokShowLinkMic;
+                case 'system': return settings.tiktokShowSystem;
+                case 'commerce': return settings.tiktokShowCommerce;
+                case 'games': return settings.tiktokShowGames;
+                case 'partnerships': return settings.tiktokShowPartnerships;
+                case 'moderation': return settings.tiktokShowModeration;
+                case 'profile': return settings.tiktokShowProfileEvents;
+                case 'diagnostic': return settings.tiktokShowDiagnosticEvents;
+                case 'unknown': return settings.tiktokShowUnknown;
+                case 'subscription': return settings.tiktokShowSubscriptions;
+                case 'gift': return settings.tiktokShowGifts;
+                default: return false;
+            }
+        }
+        default: return true;
+    }
+};
+
 export const useChat = () => {
     const { settings, updateSettings } = useSettings();
     const prevProvider = usePrevious(settings.ttsProvider);
@@ -47,23 +110,29 @@ export const useChat = () => {
     const [isStarted, setIsStarted] = useState(false);
     const [isTwitchStarted, setIsTwitchStarted] = useState(false);
     const [isKickStarted, setIsKickStarted] = useState(false);
+    const [isTikTokStarted, setIsTikTokStarted] = useState(false);
+    const [isTikTokConnecting, setIsTikTokConnecting] = useState(false);
     const [error, setError] = useState('');
     const [twitchError, setTwitchError] = useState('');
     const [kickError, setKickError] = useState('');
+    const [tiktokError, setTikTokError] = useState('');
+    const [tiktokConnectionStatus, setTikTokConnectionStatus] = useState('');
     const [liveId, setLiveId] = useState('');
     const [isPreviewMode, setIsPreviewMode] = useState(false);
     const [channelId, setChannelId] = useState(() => localStorage.getItem('airchat_last_youtube') ?? '');
     const [twitchChannel, setTwitchChannel] = useState(() => localStorage.getItem('airchat_last_twitch') ?? '');
     const [kickChannel, setKickChannel] = useState(() => localStorage.getItem('airchat_last_kick') ?? '');
+    const [tiktokChannel, setTikTokChannel] = useState(() => localStorage.getItem('airchat_last_tiktok') ?? '');
     const [obsStatus, setObsStatus] = useState<OBSStatus | null>(null);
 
     // Gate for accepting chat_message events — true if ANY platform is active
     const isActiveRef = useRef(false);
     const settingsRef = useRef(settings);
+    const tiktokFlowRef = useRef<TikTokFlowState>({ joinTimestamps: [], lastMetricAt: 0 });
     useEffect(() => { settingsRef.current = settings; });
     useEffect(() => {
-        isActiveRef.current = isStarted || isTwitchStarted || isKickStarted || isPreviewMode;
-    }, [isStarted, isTwitchStarted, isKickStarted, isPreviewMode]);
+        isActiveRef.current = isStarted || isTwitchStarted || isKickStarted || isTikTokStarted || isPreviewMode;
+    }, [isStarted, isTwitchStarted, isKickStarted, isTikTokStarted, isPreviewMode]);
 
     const scrollToBottomRef = useRef<HTMLDivElement>(null);
 
@@ -84,10 +153,10 @@ export const useChat = () => {
     };
 
     useEffect(() => {
-        if (isStarted || isTwitchStarted || isKickStarted || isPreviewMode) {
+        if (isStarted || isTwitchStarted || isKickStarted || isTikTokStarted || isPreviewMode) {
             scrollToBottom();
         }
-    }, [messages, isStarted, isTwitchStarted, isKickStarted, isPreviewMode]);
+    }, [messages, isStarted, isTwitchStarted, isKickStarted, isTikTokStarted, isPreviewMode]);
 
     // Truncate messages when the limit setting changes
     useEffect(() => {
@@ -115,9 +184,19 @@ export const useChat = () => {
 
             if (isUserBlocked(message.Author.Name, blockedUsers)) return;
             if (containsBlockedWord(message.Message, blockedWords)) return;
+            if (!shouldShowTikTokMessage(message, settingsRef.current, tiktokFlowRef.current)) return;
 
             setMessages(prev => {
-                if (message.ID && prev.some(m => m.ID === message.ID)) return prev;
+                const sameMessage = (candidate: ChatItem) => candidate.Platform === message.Platform && candidate.ID === message.ID;
+                if (message.ID && message.UpdateExisting) {
+                    const existingIndex = prev.findIndex(sameMessage);
+                    if (existingIndex >= 0) {
+                        const next = [...prev];
+                        next[existingIndex] = message;
+                        return next;
+                    }
+                }
+                if (message.ID && prev.some(sameMessage)) return prev;
                 const limit = settingsRef.current.maxMessages || 100;
                 return [...prev.slice(-(limit - 1)), message];
             });
@@ -166,6 +245,31 @@ export const useChat = () => {
             setIsKickStarted(false);
         });
 
+        const cancelTikTokStarted = EventsOn("tiktok_started", () => {
+            setIsTikTokStarted(true);
+            setIsTikTokConnecting(false);
+            setTikTokConnectionStatus('');
+            setTikTokError('');
+        });
+
+        const cancelTikTokReconnecting = EventsOn("tiktok_reconnecting", (detail: string) => {
+            setTikTokConnectionStatus(detail);
+        });
+
+        const cancelTikTokError = EventsOn("tiktok_error", (err: string) => {
+            setTikTokError(err);
+            setIsTikTokStarted(false);
+            setIsTikTokConnecting(false);
+            setTikTokConnectionStatus('');
+        });
+
+        const cancelTikTokEnded = EventsOn("tiktok_ended", (payload?: { reason?: string }) => {
+            setIsTikTokStarted(false);
+            setIsTikTokConnecting(false);
+            setTikTokConnectionStatus('');
+            if (payload?.reason) setTikTokError(payload.reason);
+        });
+
         const cancelObsStatus = EventsOn("obs_status", (status: OBSStatus) => {
             setObsStatus(status);
         });
@@ -181,6 +285,10 @@ export const useChat = () => {
             cancelKickStarted();
             cancelKickError();
             cancelKickEnded();
+            cancelTikTokStarted();
+            cancelTikTokReconnecting();
+            cancelTikTokError();
+            cancelTikTokEnded();
             cancelObsStatus();
         };
     }, []);
@@ -226,8 +334,9 @@ export const useChat = () => {
         const youtubeInput = channelId.trim();
         const twitchInput = normalizePlatformChannel(twitchChannel);
         const kickInput = normalizePlatformChannel(kickChannel);
+        const tiktokInput = tiktokChannel.trim();
 
-        if (!youtubeInput && !twitchInput && !kickInput) {
+        if (!youtubeInput && !twitchInput && !kickInput && !tiktokInput) {
             setError("Please enter at least one channel");
             return;
         }
@@ -235,6 +344,10 @@ export const useChat = () => {
         setError('');
         setTwitchError('');
         setKickError('');
+        setTikTokError('');
+        setTikTokConnectionStatus('');
+        tiktokFlowRef.current = { joinTimestamps: [], lastMetricAt: 0 };
+        isActiveRef.current = true;
 
         const tasks: Promise<void>[] = [];
 
@@ -262,6 +375,32 @@ export const useChat = () => {
             );
         }
 
+        if (tiktokInput) {
+            setIsTikTokConnecting(true);
+            setTikTokConnectionStatus('Connecting to TikTok LIVE...');
+            localStorage.setItem('airchat_last_tiktok', tiktokInput);
+            setTikTokChannel(tiktokInput);
+            tasks.push(
+                StartTikTokChat(tiktokInput, {
+                    cdn: settings.tiktokCDN,
+                    customCdn: settings.tiktokCustomCDN,
+                    timeoutSeconds: settings.tiktokTimeoutSeconds,
+                    maxRetries: settings.tiktokMaxRetries,
+                    staleTimeoutSeconds: settings.tiktokStaleTimeoutSeconds,
+                    userAgent: settings.tiktokUserAgent,
+                    cookies: settings.tiktokSessionCookies,
+                    language: settings.tiktokLanguage,
+                    region: settings.tiktokRegion,
+                    proxy: settings.tiktokProxy,
+                    compress: settings.tiktokCompress,
+                }).catch((err: any) => {
+                    setTikTokError(err?.toString?.() ?? String(err));
+                    setIsTikTokConnecting(false);
+                    setTikTokConnectionStatus('');
+                })
+            );
+        }
+
         await Promise.all(tasks);
     };
 
@@ -282,6 +421,7 @@ export const useChat = () => {
                 StopChat(),
                 StopTwitchChat(),
                 StopKickChat(),
+                StopTikTokChat(),
             ]);
             const stopErrors = results
                 .filter((result): result is PromiseRejectedResult => result.status === 'rejected')
@@ -293,12 +433,18 @@ export const useChat = () => {
         setIsStarted(false);
         setIsTwitchStarted(false);
         setIsKickStarted(false);
+        setIsTikTokStarted(false);
+        setIsTikTokConnecting(false);
         setIsPreviewMode(false);
         setMessages([]);
         setLiveId('');
         setError(disconnectError);
         setTwitchError('');
         setKickError('');
+        setTikTokError('');
+        setTikTokConnectionStatus('');
+        tiktokFlowRef.current = { joinTimestamps: [], lastMetricAt: 0 };
+        isActiveRef.current = false;
     };
 
     const clearYoutubeChannel = () => {
@@ -316,14 +462,23 @@ export const useChat = () => {
         localStorage.removeItem('airchat_last_kick');
     };
 
+    const clearTikTokChannel = () => {
+        setTikTokChannel('');
+        localStorage.removeItem('airchat_last_tiktok');
+    };
+
     return {
         messages,
         isStarted,
         isTwitchStarted,
         isKickStarted,
+        isTikTokStarted,
+        isTikTokConnecting,
         error,
         twitchError,
         kickError,
+        tiktokError,
+        tiktokConnectionStatus,
         liveId,
         isPreviewMode,
         channelId,
@@ -335,6 +490,9 @@ export const useChat = () => {
         kickChannel,
         setKickChannel,
         clearKickChannel,
+        tiktokChannel,
+        setTikTokChannel,
+        clearTikTokChannel,
         startChat,
         startPreview,
         stopChat,

@@ -1,4 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useSettings } from '../context/SettingsContext';
+import { TIKTOK_CONNECTION_SECTION } from '../config/settingsSchema';
+import { SettingControl } from './SettingControl';
 
 interface SetupScreenProps {
     channelId: string;
@@ -10,11 +13,17 @@ interface SetupScreenProps {
     kickChannel: string;
     onKickChannelChange: (name: string) => void;
     onClearKick: () => void;
+    tiktokChannel: string;
+    onTikTokChannelChange: (name: string) => void;
+    onClearTikTok: () => void;
     onStart: () => void;
     onPreview: () => void;
     error: string | null;
     twitchError: string;
     kickError: string;
+    tiktokError: string;
+    isTikTokConnecting: boolean;
+    tiktokConnectionStatus: string;
 }
 
 export const SetupScreen: React.FC<SetupScreenProps> = ({
@@ -27,19 +36,29 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
     kickChannel,
     onKickChannelChange,
     onClearKick,
+    tiktokChannel,
+    onTikTokChannelChange,
+    onClearTikTok,
     onStart,
     onPreview,
     error,
     twitchError,
     kickError,
+    tiktokError,
+    isTikTokConnecting,
+    tiktokConnectionStatus,
 }) => {
-    const canConnect = !!channelId || !!twitchChannel || !!kickChannel;
+    const { settings, updateSettings } = useSettings();
+    const [showTikTokOptions, setShowTikTokOptions] = useState(false);
+    const canConnect = !!channelId || !!twitchChannel || !!kickChannel || !!tiktokChannel;
 
     return (
         <div className="container">
-            <div className="setup-card">
+            <div
+                className="setup-card"
+                style={showTikTokOptions ? { maxHeight: 'calc(100vh - 80px)', overflowY: 'auto' } : undefined}
+            >
                 <header className="setup-header">
-                    <div className="setup-kicker">AirChat overlay</div>
                     <h1 className="title">Connect live chat</h1>
                     <p className="subtitle">
                         Add one or more stream chats, then customize how messages appear in your overlay.
@@ -117,15 +136,58 @@ export const SetupScreen: React.FC<SetupScreenProps> = ({
                         </div>
                         {kickError && <p className="error-message">{kickError}</p>}
                     </section>
+
+                    <section className="platform-field">
+                        <div className="platform-label-row">
+                            <div className="platform-label">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                    <path d="M16.7 2c.3 2.4 1.8 3.8 4.3 4v3.1c-1.5.1-2.9-.3-4.2-1.2v6.3a6.2 6.2 0 1 1-5.4-6.1v3.2a3.1 3.1 0 1 0 2.1 2.9V2h3.2z" />
+                                </svg>
+                                <span>TikTok LIVE</span>
+                            </div>
+                            <span className="platform-hint">username or profile URL</span>
+                        </div>
+                        <div className="input-group">
+                            <input
+                                type="text"
+                                placeholder="@creator or tiktok.com/@creator"
+                                value={tiktokChannel}
+                                onChange={(e) => onTikTokChannelChange(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && canConnect && onStart()}
+                            />
+                            {tiktokChannel && (
+                                <button className="input-clear" onClick={onClearTikTok} title="Clear">x</button>
+                            )}
+                        </div>
+                        {tiktokError && <p className="error-message">{tiktokError}</p>}
+                        {isTikTokConnecting && tiktokConnectionStatus && (
+                            <p className="platform-hint">{tiktokConnectionStatus}</p>
+                        )}
+
+                        <details onToggle={(event) => setShowTikTokOptions(event.currentTarget.open)}>
+                            <summary className="platform-hint tiktok-options-toggle">TikTok connection options</summary>
+                            {TIKTOK_CONNECTION_SECTION.items.map((item) => {
+                                if (item.showIf && !item.showIf(settings)) return null;
+                                return (
+                                    <SettingControl
+                                        key={item.renderKey || item.key}
+                                        config={item}
+                                        value={settings[item.key]}
+                                        onChange={(value) => updateSettings({ [item.key]: value })}
+                                    />
+                                );
+                            })}
+                        </details>
+                    </section>
                 </div>
 
                 <div className="setup-actions">
                     <button
                         onClick={onStart}
                         className="btn-primary setup-connect"
-                        disabled={!canConnect}
+                        disabled={!canConnect || isTikTokConnecting}
                     >
-                        Connect chats
+                        {isTikTokConnecting ? 'Connecting...' : 'Connect chats'}
                     </button>
                     <button onClick={onPreview} className="btn-secondary setup-preview">Preview design</button>
                 </div>

@@ -14,11 +14,14 @@ interface ChatPageProps {
     isStarted: boolean;
     isTwitchStarted: boolean;
     isKickStarted: boolean;
+    isTikTokStarted: boolean;
     twitchChannel: string;
     kickChannel: string;
+    tiktokChannel: string;
     error: string;
     twitchError: string;
     kickError: string;
+    tiktokError: string;
     messages: ChatItem[];
     scrollRef: React.RefObject<HTMLDivElement>;
     onStop: () => void;
@@ -35,11 +38,14 @@ export function ChatPage({
     isStarted,
     isTwitchStarted,
     isKickStarted,
+    isTikTokStarted,
     twitchChannel,
     kickChannel,
+    tiktokChannel,
     error,
     twitchError,
     kickError,
+    tiktokError,
     messages,
     scrollRef,
     onStop,
@@ -58,11 +64,14 @@ export function ChatPage({
                     isStarted={isStarted}
                     isTwitchStarted={isTwitchStarted}
                     isKickStarted={isKickStarted}
+                    isTikTokStarted={isTikTokStarted}
                     twitchChannel={twitchChannel}
                     kickChannel={kickChannel}
+                    tiktokChannel={tiktokChannel}
                     error={error}
                     twitchError={twitchError}
                     kickError={kickError}
+                    tiktokError={tiktokError}
                     onStop={onStop}
                 />
                 <PreviewArea
