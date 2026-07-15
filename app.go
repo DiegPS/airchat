@@ -191,57 +191,8 @@ func (a *App) StartPreviewChat() {
 			"IsOwner": false, "IsModerator": false, "IsMembership": false, "IsVerified": false,
 			"Timestamp": now.Format(time.RFC3339),
 		},
-		{
-			"Platform": "tiktok", "ID": "p13", "EventKind": "chat",
-			"Author":  map[string]interface{}{"Name": "CreatorTikTok", "ChannelID": "TT1", "Thumbnail": map[string]interface{}{"URL": "https://i.pravatar.cc/100?u=tiktok-creator", "Alt": "T"}},
-			"Message": []map[string]interface{}{txt("TikTok LIVE chat with native roles")},
-			"IsOwner": true, "IsModerator": false, "IsMembership": false, "IsVerified": true,
-			"Timestamp": now.Format(time.RFC3339),
-		},
-		{
-			"Platform": "tiktok", "ID": "p14", "EventKind": "emote",
-			"Author":  map[string]interface{}{"Name": "TikTokSubscriber", "ChannelID": "TT2", "Thumbnail": map[string]interface{}{"URL": "https://i.pravatar.cc/100?u=tiktok-sub", "Alt": "S"}},
-			"Message": []map[string]interface{}{emote("https://p16-webcast.tiktokcdn.com/img/maliva/webcast-va/802a21ae29f9fae5abe3693de9f874bd~tplv-obj.image", "TikTok emote", true)},
-			"IsOwner": false, "IsModerator": false, "IsMembership": true, "IsVerified": false,
-			"Timestamp": now.Format(time.RFC3339),
-		},
-		{
-			"Platform": "tiktok", "ID": "gift-streak-preview", "EventKind": "gift", "UpdateExisting": true,
-			"Author":  map[string]interface{}{"Name": "GiftGiver", "ChannelID": "TT3", "Thumbnail": map[string]interface{}{"URL": "https://i.pravatar.cc/100?u=tiktok-gift", "Alt": "G"}},
-			"Message": []map[string]interface{}{txt("sent Rose x25")},
-			"Gift":    map[string]interface{}{"Name": "Rose", "Count": 25, "EventCount": 5, "DiamondCount": 25, "EventDiamondCount": 5, "DiamondEach": 1, "Image": map[string]interface{}{"URL": "https://p16-webcast.tiktokcdn.com/img/maliva/webcast-va/eba3a9bb85c33e017f3648eaf88d7189~tplv-obj.png", "Alt": "Rose"}, "IsCombo": true, "IsFinal": false, "GroupID": "preview"},
-			"IsOwner": false, "IsModerator": false, "IsMembership": false, "IsVerified": false,
-			"Timestamp": now.Format(time.RFC3339),
-		},
-		{
-			"Platform": "tiktok", "ID": "p15", "EventKind": "subscription",
-			"Author":  map[string]interface{}{"Name": "NewSubscriber", "ChannelID": "TT4", "Thumbnail": map[string]interface{}{"URL": "", "Alt": "N"}},
-			"Message": []map[string]interface{}{txt("subscribed for 6 months")},
-			"IsOwner": false, "IsModerator": false, "IsMembership": true, "IsVerified": false,
-			"Timestamp": now.Format(time.RFC3339),
-		},
-		{
-			"Platform": "tiktok", "ID": "p16", "EventKind": "question",
-			"Author":  map[string]interface{}{"Name": "CuriousViewer", "ChannelID": "TT5", "Thumbnail": map[string]interface{}{"URL": "", "Alt": "C"}},
-			"Message": []map[string]interface{}{txt("What is your next stream?")},
-			"IsOwner": false, "IsModerator": false, "IsMembership": false, "IsVerified": false,
-			"Timestamp": now.Format(time.RFC3339),
-		},
 	}
-
-	advancedCategories := []string{"content", "goals", "interaction", "rankings", "link_mic", "system", "commerce", "games", "partnerships", "moderation", "unknown"}
-	for i, category := range advancedCategories {
-		id := fmt.Sprintf("tt-advanced-%d", i)
-		eventType := category + "_preview"
-		msgs = append(msgs, map[string]interface{}{
-			"Platform": "tiktok", "ID": id, "EventKind": "advanced",
-			"TikTokEvent": map[string]interface{}{"id": id, "type": eventType, "category": category, "timestamp": now.Format(time.RFC3339), "summary": "TikTok " + category + " event", "data": map[string]interface{}{"preview": true}},
-			"Author":      map[string]interface{}{"Name": "TikTok LIVE", "ChannelID": "system", "Thumbnail": map[string]interface{}{"URL": "", "Alt": "T"}},
-			"Message":     []map[string]interface{}{txt("TikTok " + category + " event")},
-			"IsOwner":     false, "IsModerator": false, "IsMembership": false, "IsVerified": false,
-			"Timestamp": now.Format(time.RFC3339),
-		})
-	}
+	msgs = append(msgs, tiktokPreviewMessages(now)...)
 
 	go func() {
 		for _, msg := range msgs {

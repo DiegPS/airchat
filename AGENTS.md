@@ -107,7 +107,7 @@ Do network calls and disconnect cleanup outside locks where practical. Session r
 - `StartKickChat(slug)` / `StopKickChat()` convert Kick message parts and badges to the common payload.
 - `StartTikTokChat(input, options)` / `StopTikTokChat()` consume every `live-go` event type, manage reconnect/end state, and convert renderable events to the common payload.
 - `CheckTikTokLive(input, timeoutSeconds)` and `GetTikTokRoomInfo(roomID, timeoutSeconds, cookies)` expose room resolution and metadata/stream information.
-- `StartPreviewChat()` emits representative mock messages for all four platforms and every TikTok category through `chat_message`/`tiktok_event`.
+- `StartPreviewChat()` emits representative messages for all four platforms. TikTok core fixtures are protobuf-encoded and decoded through `live-go/events.Decode` before using the production converters; opaque or undocumented event bodies are not fabricated.
 - `ConnectOBS(host, password)` / `DisconnectOBS()` manage OBS.
 - `GetOBSAudioInputs()`, `SetOBSInputMute()`, and `SetOBSInputVolume()` expose special Mic/Aux and Desktop inputs.
 - `SetClickThrough(enabled)` toggles `WS_EX_LAYERED | WS_EX_TRANSPARENT` on Windows.
@@ -161,7 +161,7 @@ The setup accepts any combination of platforms. `startChat` starts requested pla
 
 ### Rendering
 
-`PreviewArea` renders a unified feed with platform icons, fallback avatars, role labels, native/custom emotes, YouTube Super Chats/stickers, TikTok gifts/combos and advanced event metadata, membership/subscription events, and timestamps. Twitch, Kick, and TikTok can use platform accent colors. `TikTokEventInspector` displays status, metrics, structured data, unknown payload diagnostics, and JSON export. Visual settings also cover bubbles, Super Chat bar, chroma key, grid/scrollbar, text effects, animations, and 3D transforms.
+`PreviewArea` renders a unified feed with platform icons, fallback avatars, role labels, native/custom emotes, YouTube Super Chats/stickers, TikTok gifts/combos and advanced event metadata, membership/subscription events, and timestamps. YouTube, Twitch, Kick, and TikTok can use platform accent colors. `TikTokEventInspector` displays status, metrics, structured data, unknown payload diagnostics, and JSON export. Visual settings also cover bubbles, Super Chat bar, chroma key, grid/scrollbar, text effects, animations, and 3D transforms.
 
 ### Settings
 

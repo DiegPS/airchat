@@ -128,8 +128,10 @@ export const PreviewArea: React.FC<PreviewAreaProps> = ({ messages, scrollRef })
                     const messageParts = Array.isArray(msg.Message) ? msg.Message : [];
                     const isSuperChat = !!msg.SuperChat;
                     const isMembershipEvent = msg.IsMembership && messageParts.length === 0;
+                    const isYouTube = msg.Platform === 'youtube';
                     const isTwitch = msg.Platform === 'twitch';
                     const isKick = msg.Platform === 'kick';
+                    const isTikTok = msg.Platform === 'tiktok';
 
                     // YouTube sends SuperChat color as AARRGGBB hex (no #), strip alpha and add #
                     const superChatColor = msg.SuperChat?.Color
@@ -139,10 +141,14 @@ export const PreviewArea: React.FC<PreviewAreaProps> = ({ messages, scrollRef })
                     let bgColor = settings.showBubble ? `rgba(0,0,0,${settings.messageOpacity})` : 'transparent';
                     if (isMembershipEvent) {
                         bgColor = '#0f9d58';
+                    } else if (isYouTube && !isSuperChat && settings.youtubeBubbleAccent && settings.showBubble) {
+                        bgColor = `rgba(255, 0, 0, ${settings.messageOpacity})`;
                     } else if (isTwitch && settings.twitchBubbleAccent && settings.showBubble) {
                         bgColor = `rgba(97, 25, 210, ${settings.messageOpacity})`;
                     } else if (isKick && settings.kickBubbleAccent && settings.showBubble) {
                         bgColor = `rgba(30, 90, 10, ${settings.messageOpacity})`;
+                    } else if (isTikTok && settings.tiktokBubbleAccent && settings.showBubble) {
+                        bgColor = `rgba(254, 44, 85, ${settings.messageOpacity})`;
                     }
 
                     const defaultBorderStyle = settings.showBubble ? '1px solid rgba(255, 255, 255, 0.1)' : 'none';
@@ -218,13 +224,21 @@ export const PreviewArea: React.FC<PreviewAreaProps> = ({ messages, scrollRef })
                                         lineHeight: settings.lineHeight
                                     }}
                                 >
-                                    {messageParts.map((part, i) => (
-                                        part.EmojiItem ? (
-                                            <img key={i} src={part.EmojiItem.URL} alt={part.EmojiItem.EmojiText} className="emoji" />
-                                        ) : (
-                                            <span key={i}>{part.Text}</span>
-                                        )
-                                    ))}
+                                    {isTikTok && msg.EventKind === 'gift' && msg.Gift?.Image?.URL ? (
+                                        <>
+                                            <span>sent</span>
+                                            <img src={msg.Gift.Image.URL} alt={msg.Gift.Image.Alt || msg.Gift.Name} className="emoji" />
+                                            <span>{msg.Gift.Name} ×{msg.Gift.Count}</span>
+                                        </>
+                                    ) : (
+                                        messageParts.map((part, i) => (
+                                            part.EmojiItem ? (
+                                                <img key={i} src={part.EmojiItem.URL} alt={part.EmojiItem.EmojiText} className="emoji" />
+                                            ) : (
+                                                <span key={i}>{part.Text}</span>
+                                            )
+                                        ))
+                                    )}
 
                                     {isMembershipEvent && (
                                         <div className="membership-flair">

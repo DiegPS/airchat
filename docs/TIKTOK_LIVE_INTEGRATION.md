@@ -291,7 +291,7 @@ Actualizar:
 
 - `App.tsx`, `HomePage`, `ChatPage`, `Sidebar` y `TitleBar` con estado TikTok.
 - `PreviewArea` con icono y accent TikTok configurable.
-- Preview backend con chat, moderador/subscriber, emote-only, regalo combo y follow TikTok.
+- Preview backend con protobufs válidos de `live-go` para chat, roles, emote-only, regalo individual/combo, follow, share, join, suscripción, pregunta, likes, audiencia y evento desconocido seguro.
 - `Platform` en tipos y avatar fallback.
 - desconexión global para llamar también `StopTikTokChat`.
 - `useTTS` para considerar TikTok activo y deduplicar por plataforma.
@@ -340,7 +340,7 @@ Las pruebas Go construyen protobufs en memoria y comprueban normalización de en
 
 Vitest comprueba límites de joins/métricas, umbral de gifts, categorías unknown, filtros de nivel/rol, deduplicación entre plataformas, reemplazo de combos y eliminación de cookies antes de persistir. `npm run build` valida tipos y bundle; `wails build` valida bindings, frontend embebido y ejecutable Windows.
 
-El Preview backend cubre chat, emote, gift combo, subscription, question y las categorías content, goals, interaction, rankings, link-mic, system, commerce, games, partnerships, moderation y unknown. El panel permite verificar los payloads que una sala real entregue sin que la suite normal dependa de que un creador específico esté LIVE.
+El Preview backend cubre los formatos confirmados de chat, emote, regalo individual y combo, follow, share, join, subscription, question, likes, audiencia y unknown. Sus fixtures se serializan como protobuf y pasan por `live-go/events.Decode` y los conversores de producción. No se inventan cuerpos para eventos opacos, como `GiftDynamicRestriction`, ni para categorías cuyo formato no esté suficientemente definido. El diagnóstico permite revisar los payloads adicionales que una sala real entregue sin que la suite normal dependa de que un creador específico esté LIVE.
 
 ## Criterios de aceptación satisfechos
 

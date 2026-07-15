@@ -136,8 +136,10 @@ export interface ChatSettings {
 
   // Platform Settings
   showPlatformBadge: boolean;
+  youtubeBubbleAccent: boolean;
   twitchBubbleAccent: boolean;
   kickBubbleAccent: boolean;
+  tiktokBubbleAccent: boolean;
 
   // TikTok event visibility
   tiktokShowChat: boolean;

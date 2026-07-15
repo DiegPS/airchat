@@ -158,3 +158,55 @@ func TestUnknownEventRetainsSafeExportPayload(t *testing.T) {
 		t.Fatalf("summary does not identify method: %q", payload.Summary)
 	}
 }
+
+func TestTikTokPreviewUsesDecodedLiveGoFixtures(t *testing.T) {
+	items := tiktokPreviewMessages(time.Unix(1_700_000_000, 0))
+	wantKinds := map[string]int{
+		"chat": 2, "emote": 1, "gift": 3, "follow": 1, "share": 1, "join": 1,
+		"subscription": 2, "question": 1, "metrics": 2, "advanced": 4,
+	}
+	gotKinds := make(map[string]int)
+	comboStates := make(map[bool]bool)
+	foundGiftImage := false
+	foundAudienceMetadata := false
+
+	for _, item := range items {
+		if item["Platform"] != "tiktok" {
+			t.Fatalf("preview item has wrong platform: %#v", item)
+		}
+		kind, _ := item["EventKind"].(string)
+		gotKinds[kind]++
+		if item["TikTokEvent"] == nil {
+			t.Fatalf("preview item did not retain its decoded TikTok event: %#v", item)
+		}
+
+		if gift, ok := item["Gift"].(map[string]interface{}); ok {
+			image, _ := gift["Image"].(map[string]interface{})
+			if image["URL"] != "" {
+				foundGiftImage = true
+			}
+			if gift["IsCombo"] == true {
+				isFinal, _ := gift["IsFinal"].(bool)
+				comboStates[isFinal] = true
+			}
+		}
+
+		if meta, ok := item["TikTokUser"].(map[string]interface{}); ok {
+			if meta["GifterLevel"] == int64(18) && meta["FanClubLevel"] == int32(7) && meta["IsFollower"] == true {
+				foundAudienceMetadata = true
+			}
+		}
+	}
+
+	for kind, want := range wantKinds {
+		if gotKinds[kind] != want {
+			t.Fatalf("preview kind %q count = %d, want %d (all: %#v)", kind, gotKinds[kind], want, gotKinds)
+		}
+	}
+	if !foundGiftImage || !comboStates[false] || !comboStates[true] {
+		t.Fatalf("gift preview is incomplete: image=%v comboStates=%#v", foundGiftImage, comboStates)
+	}
+	if !foundAudienceMetadata {
+		t.Fatal("preview did not preserve gifter/fan-club/follower metadata")
+	}
+}

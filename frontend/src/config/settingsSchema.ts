@@ -88,9 +88,11 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
         id: 'platforms',
         title: 'Platform Display',
         items: [
-            { key: 'showPlatformBadge', label: 'Show Platform Icon (YouTube/Twitch)', type: 'toggle' },
+            { key: 'showPlatformBadge', label: 'Show Platform Icon (YouTube/Twitch/Kick/TikTok)', type: 'toggle' },
+            { key: 'youtubeBubbleAccent', label: 'YouTube Red Accent', type: 'toggle' },
             { key: 'twitchBubbleAccent', label: 'Twitch Purple Accent', type: 'toggle' },
             { key: 'kickBubbleAccent', label: 'Kick Green Accent', type: 'toggle' },
+            { key: 'tiktokBubbleAccent', label: 'TikTok Pink Accent', type: 'toggle' },
         ]
     },
     {

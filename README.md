@@ -21,10 +21,10 @@ AirChat is a transparent, frameless desktop chat overlay for **YouTube Live, Twi
 
 - Configurable bubbles, opacity, avatars, role badges, platform icons, timestamps, alignment, spacing, and message limit.
 - YouTube Super Chat styling, including stickers and an optional accent bar.
-- Platform-specific Twitch, Kick, and TikTok bubble accents.
+- Optional platform-specific YouTube, Twitch, Kick, and TikTok bubble accents.
 - Entrance animations, text outline and shadow, chroma key, and 3D transforms.
 - Comma-separated blocked-user and blocked-word filters are applied before display and TTS.
-- Preview mode sends representative messages and TikTok event categories through the same backend event pipeline used by live chat.
+- Preview mode sends representative messages through the same backend event pipeline used by live chat. TikTok core examples are built from `live-go` protobufs and decoded by the library instead of using hand-written frontend payloads.
 
 ### OBS integration
 
