@@ -1,5 +1,10 @@
 # AirChat
 
+> **Project status: archived (final version).**
+> This Wails (Go + React/TypeScript) implementation is feature-complete and no longer maintained. AirChat has been migrated to **Flutter**, which is where development continues. This repository is kept read-only as a reference for the Go/React version.
+>
+> The TikTok LIVE integration was removed from this version; its complete implementation is preserved in the `tiktok-beta` tag.
+
 AirChat is a transparent, frameless desktop chat overlay for **YouTube Live, Twitch, and Kick**. It is built with Wails v2 (Go backend and React/TypeScript frontend), can merge several live chats into one feed, integrates with OBS WebSocket, and includes browser and neural text-to-speech.
 
 ## Features
