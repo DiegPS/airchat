@@ -2,224 +2,191 @@
 
 ## Purpose
 
-AirChat is a Wails v2 desktop overlay that combines live chat from YouTube, Twitch, and Kick. The Go backend owns the native window, network clients, OBS connection, and Wails events. The React/TypeScript frontend owns routing, settings, the combined feed, filtering, rendering, and TTS playback.
+AirChat is a Wails v2 desktop overlay that combines live chat from YouTube, Twitch, and Kick. The Go backend owns the native window, the network clients, the OBS connection, and the Wails events. The React/TypeScript frontend owns routing, settings, the combined feed, rendering, and TTS playback.
 
-Keep this document synchronized with the implementation. Avoid line counts: the large style, schema, and TTS files change frequently.
+Keep this document synchronized with the implementation. Avoid line counts: the style, schema, and TTS files change frequently.
 
 ## Stack
 
 ### Backend
 
-| Package | Current role |
+| Package | Role |
 |---|---|
-| `github.com/wailsapp/wails/v2` | Desktop runtime, binding, events, and window APIs |
-| `github.com/DiegPS/youtube-chat` | YouTube live-chat observer |
+| `github.com/wailsapp/wails/v2` | Desktop runtime, bindings, events, window APIs |
+| `github.com/DiegPS/youtube-chat` | YouTube live-chat observer (HTTP polling) |
 | `github.com/gempir/go-twitch-irc/v3` | Anonymous Twitch IRC client |
-| `github.com/DiegPS/kick-chat` | Kick chat client and message parts |
+| `github.com/DiegPS/kick-chat` | Kick chat client (Pusher WebSocket) and message parts |
 | `github.com/andreykaipov/goobs` | OBS WebSocket v5 client |
 | `github.com/lxn/win` | Windows click-through extended styles |
 
-The module currently declares Go `1.26.1` and Wails `2.12.0` in `go.mod`.
-
 ### Frontend
 
-| Package | Current role |
+| Package | Role |
 |---|---|
-| React / React DOM 18 | UI and state composition |
+| React / React DOM 18 | UI |
 | React Router DOM 7 | `HashRouter` routes |
-| ONNX Runtime Web 1.17 | Supertonic 2/3 inference via WASM |
-| `fft.js` 4 | Supertonic audio processing |
-| Vite 3 / TypeScript 4.6 | development and production build |
+| ONNX Runtime Web | Supertonic 2/3 inference via WASM |
+| `fft.js` | Supertonic audio processing |
+| Vite 7 / TypeScript 5.6 | build |
+| Vitest 5 | unit tests |
 
-ONNX Runtime is loaded from `frontend/public/ort.min.js`; the matching WASM files are also vendored under `frontend/public/`.
+ONNX Runtime is loaded from `frontend/public/ort.min.js`; the matching WASM files are vendored under `frontend/public/`.
 
 ## Source layout
 
 ```text
 airchat/
-├── main.go                          Wails entry point and window configuration
-├── app.go                           App state, preview, OBS, platform sessions, events
-├── kick_chat.go                     Kick message-part and badge helpers
-├── twitch_emotes.go                 BTTV/FFZ/7TV fetch and Twitch emote parser
-├── wails.json                       Wails commands and package metadata
-├── go.mod / go.sum                  Go module definition
-├── build/                           platform metadata, icons, installer assets
+├── main.go                         Wails entry point and window options
+├── app.go                          thin Wails facade: bound methods only
+├── internal/
+│   ├── chat/                       message model, Sink, Manager, input normalization
+│   ├── platform/
+│   │   ├── youtube/                input parsing + Connector
+│   │   ├── twitch/                 Connector + native/BTTV/FFZ/7TV emote parser
+│   │   └── kick/                   Connector + badge/emote mapping
+│   ├── obs/                        Controller (connection, audio) + status sampler
+│   ├── preview/                    sample messages for design preview
+│   └── window/                     Windows click-through
+├── wails.json
+├── go.mod / go.sum
+├── build/                          icons, installer assets, platform metadata
 └── frontend/
-    ├── public/                      ONNX Runtime JS/WASM assets
-    ├── wailsjs/                     generated Wails bindings
+    ├── public/                     ONNX Runtime JS/WASM assets
+    ├── wailsjs/                    generated Wails bindings
     └── src/
-        ├── App.tsx                  providers, routes, navigation, shortcut
-        ├── types.ts                 unified chat and settings interfaces
-        ├── App.css / style.css      application and global styles
-        ├── pages/
-        │   ├── HomePage.tsx         setup route `/`
-        │   └── ChatPage.tsx         overlay route `/chat`
-        ├── components/
-        │   ├── SetupScreen.tsx      YouTube/Twitch/Kick inputs
-        │   ├── Sidebar.tsx          schema-driven settings and session status
-        │   ├── PreviewArea.tsx      unified message renderer
-        │   ├── StreamHUD.tsx        OBS status and audio controls
-        │   ├── TitleBar.tsx         native window and sidebar controls
-        │   └── SettingControl.tsx   polymorphic setting controls and TTS test
-        ├── hooks/
-        │   ├── useChat.ts           platform lifecycle, events, filtering, OBS
-        │   ├── useTTS.ts            bounded TTS queue and provider dispatch
-        │   ├── useOBSAudio.ts       OBS audio polling and mutations
-        │   └── supertonic2/
-        │       ├── helper.ts        model loading, preprocessing, inference, WAV
-        │       ├── useSupertonic.ts shared Supertonic 2/3 resources and hook
-        │       └── index.ts         exports
+        ├── App.tsx                 providers, routes, navigation, Ctrl+B
+        ├── platforms.ts            the list of platforms (single source of truth)
+        ├── types.ts                chat and settings interfaces
+        ├── state/                  pure reducers (+ tests)
+        ├── utils/                  filters, message handling, TTS rules (+ tests)
+        ├── hooks/                  usePlatforms, useMessages, useOBSConnection, useChat,
+        │                           useTTS, useTTSProviderReset, useOBSAudio, supertonic2/
+        ├── components/             SetupScreen, Sidebar, PreviewArea, StreamHUD,
+        │                           TitleBar, SettingControl, PlatformIcon
+        ├── pages/                  HomePage (`/`), ChatPage (`/chat`)
         ├── context/SettingsContext.tsx
-        ├── config/settingsSchema.ts
-        └── utils/filters.ts         shared blocked-user/word logic
+        └── config/settingsSchema.ts
 ```
 
 ## Backend design
 
-### `main.go`
+### Dependency direction
 
-- Embeds `frontend/dist`.
-- Creates a frameless 1024x768 window with a transparent background.
-- Enables transparent/translucent webviews for Windows and macOS.
-- Binds one `App` instance and calls `app.startup`.
+`main` -> `app.go` -> `internal/*`. Packages under `internal/platform` depend on `internal/chat`, never on each other or on `main`. `internal/chat` depends on no platform library.
 
-### `App` ownership and locking
+### `internal/chat`
 
-`App` keeps independent state for:
+- `Message` is the unified message and the frontend contract. Field names are PascalCase and must not change without updating `frontend/src/types.ts`.
+- `Connector` opens a `Session` for one platform: `Platform()` and `Connect(ctx, input, sink)`.
+- `Session` is one live connection: `Run(ctx)` blocks until it ends; `Close()` is idempotent.
+- `Sink` is how a session reports: `Message`, `Started(detail)`, `Warning(err)`.
+- `Manager` owns the single active session of one platform. `Start` connects first and only then swaps the session in (a failed connect never replaces a working one); the old session is closed outside the lock. A session that was replaced or stopped can no longer emit. A panic inside `Run` becomes an error event. Platforms never share state.
 
-- YouTube: `lc`, `lcMu`, `stopSignal`.
-- Twitch: `twitchClient`, `twitchMu`, `twitchStop`, and a separately locked global-emote map.
-- Kick: `kickClient`, `kickMu`, `kickCancel`.
-- OBS: `obsClient`, `obsStop`, protected by `obsClientMu`.
-- Native window: Wails context and Windows `HWND`.
+### Adding a platform
 
-Do network calls and disconnect cleanup outside locks where practical. Session replacement swaps the protected pointers/signals first, then cleans up the previous client.
+1. Add a package under `internal/platform/<name>` with a `Connector`.
+2. Add the platform id in `internal/chat/message.go`, build its manager in `NewApp`, and expose `Start<Name>Chat` / `Stop<Name>Chat` in `app.go`.
+3. Regenerate bindings (`wails generate module`).
+4. Add one entry to `frontend/src/platforms.ts` and one adapter in `hooks/usePlatforms.ts`; add its icon in `PlatformIcon.tsx`.
 
-### Bound backend methods
+### Bound methods (`app.go`)
 
-- `StartChat(youtubeInput)` / `StopChat()` manage YouTube. Inputs support handles, channel IDs, bare video IDs, and supported YouTube URLs.
-- `StartTwitchChat(channelName)` / `StopTwitchChat()` use anonymous IRC and emit role flags. Global BTTV, FFZ, and 7TV emotes load asynchronously after connection; native Twitch emotes use IRC positions.
-- `StartKickChat(slug)` / `StopKickChat()` convert Kick message parts and badges to the common payload.
-- `StartPreviewChat()` emits representative mock messages for all three platforms through `chat_message`.
-- `ConnectOBS(host, password)` / `DisconnectOBS()` manage OBS.
-- `GetOBSAudioInputs()`, `SetOBSInputMute()`, and `SetOBSInputVolume()` expose special Mic/Aux and Desktop inputs.
-- `SetClickThrough(enabled)` toggles `WS_EX_LAYERED | WS_EX_TRANSPARENT` on Windows.
+- `StartChat(input)` / `StopChat()`: YouTube. Accepts `@handle`, `UC...` channel ID, 11-character video ID, and watch/live/youtu.be/channel URLs.
+- `StartTwitchChat(channel)` / `StopTwitchChat()`: anonymous IRC; accepts a name, `@name`, or URL.
+- `StartKickChat(slug)` / `StopKickChat()`: accepts a name, `@name`, or URL.
+- `StartPreviewChat()`: emits sample messages for all platforms through `chat_message`.
+- `ConnectOBS(host, password)` / `DisconnectOBS()`, `GetOBSAudioInputs()`, `SetOBSInputMute()`, `SetOBSInputVolume()`.
+- `SetClickThrough(enabled)`: toggles `WS_EX_LAYERED | WS_EX_TRANSPARENT`.
+- `shutdown` (Wails `OnShutdown`) stops every session and the OBS monitor.
 
 ### Event contract
 
-All chat sources emit `chat_message` with the `ChatItem` shape and a `Platform` value of `youtube`, `twitch`, or `kick`.
-
-Lifecycle events:
-
-| Platform/service | Events |
+| Event | Payload |
 |---|---|
-| YouTube | `chat_started`, `chat_error`, `chat_ended` |
-| Twitch | `twitch_started`, `twitch_error`, `twitch_ended` |
-| Kick | `kick_started`, `kick_error`, `kick_ended` |
-| OBS | `obs_status` |
+| `chat_message` | `Message` (PascalCase) |
+| `platform_started` | `{ platform, detail? }` (YouTube live ID, channel) |
+| `platform_ended` | `{ platform, detail? }` |
+| `platform_error` | `{ platform, message }`: fatal, the session is unusable |
+| `platform_warning` | `{ platform, message }`: recoverable, the session keeps running |
+| `obs_status` | `Status` (lower camelCase JSON) |
 
-The normalized chat payload includes `ID`, `Platform`, `Author`, `Message`, optional `SuperChat`, role booleans, and `Timestamp`. Preserve PascalCase chat fields because the frontend interfaces and upstream YouTube objects use that contract. OBS JSON fields are lower camel case.
+`platform` is `youtube`, `twitch`, or `kick`. OBS JSON fields are lower camel case.
 
 ### OBS monitor
 
-`monitorOBS` polls once per second. It calculates bitrate and dropped-frame percentage from deltas, reports active FPS/current scene/congestion, and assigns:
+`internal/obs` polls once per second. The pure `sampler` turns raw readings into bitrate and dropped-frame percentage from deltas and assigns:
 
 - `GRAY`: output inactive.
-- `RED`: reconnecting or drop percentage at least 2%.
+- `RED`: reconnecting, or drop percentage at least 2%.
 - `YELLOW`: drop percentage at least 0.5%, or no output-byte progress after a baseline exists.
 - `GREEN`: otherwise healthy.
+
+A counter reset (restarted stream) drops the baseline. Monitoring stops on disconnect and when the app context ends.
 
 ## Frontend design
 
 ### Routing and window behavior
 
-`App.tsx` uses `HashRouter`:
+`App.tsx` uses `HashRouter`: `/` is the setup screen while nothing is active; `/chat` is the overlay while any platform or the preview is active. `Ctrl+B` is active only off the setup screen; it hides or shows the UI and calls `SetClickThrough` with the inverse visibility. The title bar separately toggles the sidebar and always-on-top.
 
-- `/`: setup while no platform and no preview are active.
-- `/chat`: combined overlay when any platform or preview is active.
+### State
 
-The setup accepts any combination of platforms. `startChat` starts requested platforms concurrently, and each has independent status/error state. `Ctrl+B` is active only off the setup screen; it hides/shows the UI and calls `SetClickThrough` with the inverse visibility. The title bar separately toggles sidebar visibility and always-on-top state.
-
-### `useChat`
-
-- Persists last inputs under `airchat_last_youtube`, `airchat_last_twitch`, and `airchat_last_kick`.
-- Normalizes Twitch/Kick names from plain names, `@name`, or URLs.
-- Subscribes to all chat lifecycle events plus `obs_status`.
-- Validates incoming payloads, applies blocked-user/word filters, deduplicates by non-empty message ID, enforces `maxMessages`, and autoscrolls.
-- Starts/stops all selected chat sources and clears combined state on disconnect.
-- Reacts to OBS settings by connecting/disconnecting the backend.
+- `platforms.ts` defines every platform (label, hint, placeholder, storage key, pulse class).
+- `usePlatforms` owns what the user typed (persisted under each `storageKey`), connection state through the pure `platformsReducer`, and starting/stopping all platforms. It subscribes to the four `platform_*` events.
+- `useMessages` owns the feed: it subscribes to `chat_message`, validates (`sanitizeIncoming`), drops blocked messages, deduplicates by `(Platform, ID)`, enforces `maxMessages`, and autoscrolls. `open()` flips the accept gate synchronously so the first messages of a session are not lost.
+- `useOBSConnection` keeps the OBS connection in sync with the OBS settings.
+- `useChat` only composes these plus the design preview. It is the only hook that talks to the backend about chat.
 
 ### Rendering
 
-`PreviewArea` renders a unified feed with platform icons, fallback avatars, role labels, native/custom emotes, YouTube Super Chats/stickers, membership/subscription events, and timestamps. Twitch and Kick can use platform accent colors. Visual settings also cover bubbles, Super Chat bar, chroma key, grid/scrollbar, text effects, animations, and 3D transforms.
+`PreviewArea` renders the unified feed with platform icons, fallback avatars (initials, deterministic color), role labels, native/custom emotes, YouTube Super Chats and stickers, and membership events. Visual settings cover bubbles, the Super Chat bar, chroma key, text effects, animations, and 3D transforms.
 
 ### Settings
 
-`SettingsContext` lazily merges saved values with defaults, sanitizes unsupported TTS providers, and persists to `AIRCHAT_SETTINGS`. `settingsSchema.ts` is declarative and supports conditional sections/controls.
-
-Current sections are:
-
-1. Overlay Mode
-2. Platform Display
-3. Style Settings
-4. Message Design
-5. Animation
-6. 3D Transform
-7. OBS Integration
-8. HUD Settings
-9. Filters
-10. Text to Speech (TTS)
-
-Supported control types include toggle, range, color, select, text, password, textarea, number, button, browser voice select, Supertonic status, and TTS test.
+`SettingsContext` lazily merges saved values with defaults, sanitizes unsupported TTS providers, and persists to `AIRCHAT_SETTINGS`. `settingsSchema.ts` is declarative and supports conditional sections and controls. The `ChatSettings` type in `types.ts` is the source of truth for settings.
 
 ### Filtering
 
-`utils/filters.ts` defines shared comma-list parsing and case-insensitive matching. `useChat` filters before adding messages to the feed. `useTTS` applies the same checks because it subscribes directly to backend events.
+`utils/filters.ts` has the comma-list parsing and case-insensitive matching. `utils/messages.ts` (`isBlocked`) applies them to a message and is used by both the feed and TTS.
 
 ### TTS
 
-`useTTS` has a FIFO queue capped at 20 entries (oldest pending entry is dropped when full). It ignores old messages that predate TTS activation, deduplicates processed IDs, removes/replaces URLs, cleans usernames, and supports:
+`utils/tts.ts` (`speechTextFor`) is the pure rule set: blocked users/words, members-only with allowlist, command prefix, URL replacement, username cleanup, separator. `useTTS` owns the playback: a FIFO queue capped at 20, ignoring messages older than TTS activation, deduplicating processed IDs, and dispatching to a provider. It subscribes to `chat_message` once and reads the latest settings from a ref.
 
-- Browser Speech Synthesis.
-- Supertonic 2 (`ttsProvider: supertonic`).
-- Supertonic 3 (`ttsProvider: supertonic3`).
-- members/subscribers-only mode with optional username allowlist.
-- command-prefix mode, separator text, random voice, and voice test.
-
-The neural hook loads only when TTS is enabled and a Supertonic provider is selected. Both model generations currently force the ONNX WASM execution provider; do not describe WebGPU fallback unless the implementation changes. Model assets come from the selected Hugging Face repository and use distinct Cache API names. Inactive model resources are released when switching between Supertonic 2 and 3.
-
-Supertonic 2 supports `en`, `ko`, `es`, `pt`, and `fr`. Supertonic 3 exposes the larger language list declared in `SUPERTONIC3_LANGS`. Both expose voice styles `M1.json`-`M5.json` and `F1.json`-`F5.json`.
+Providers: browser Speech Synthesis, Supertonic 2 (`supertonic`), Supertonic 3 (`supertonic3`). Both neural generations use the ONNX WASM provider; do not describe a WebGPU fallback unless the implementation changes. Model assets come from the selected Hugging Face repository and use distinct Cache API names. Supertonic 2 supports `en`, `ko`, `es`, `pt`, `fr`; Supertonic 3 uses `SUPERTONIC3_LANGS`. Voice styles are `M1.json`-`M5.json` and `F1.json`-`F5.json`.
 
 ## Development workflow
 
 ```bash
 wails dev
 wails build
+
+go vet ./...
 go test ./...
 
 cd frontend
 npm install
-npm run dev
-npm run build
+npm test          # vitest
+npm run build     # tsc && vite build
 ```
-
-`npm run build` runs `tsc && vite build`. Wails also uses `npm install` and `npm run build` through `wails.json`.
 
 ### Generated files
 
-`frontend/wailsjs/` is generated from the exported Go methods. When a bound method changes, regenerate bindings through Wails rather than hand-maintaining them. Treat `frontend/dist/`, `airchat.exe`, and packaged output as build artifacts even if an artifact is present in the working tree.
+`frontend/wailsjs/` is generated from the exported methods of `App`. After changing a bound method, run `wails generate module` instead of editing it by hand. `frontend/dist/` and `build/bin/` are build artifacts.
 
 ### Verification expectations
 
-- For Go/backend changes: run `go test ./...` (and `gofmt` on modified `.go` files).
-- For frontend changes: run `npm run build` from `frontend`.
-- For cross-boundary changes: run both and verify the generated Wails bindings expose the exact method signatures.
-- For visual changes: exercise setup, preview, `/chat`, sidebar hiding, and `Ctrl+B` in `wails dev`.
-- For platform changes: ensure one failed platform does not stop the others and all payloads retain the unified shape.
+- Go changes: `gofmt`, `go vet ./...`, `go test ./...`.
+- Frontend changes: `npm test` and `npm run build` in `frontend`.
+- Cross-boundary changes: both, plus regenerate bindings and check the signatures.
+- Visual changes: exercise setup, preview, `/chat`, sidebar hiding, and `Ctrl+B` in `wails dev`.
+- Platform changes: one failing platform must not affect the others, and every payload must keep the unified shape.
+
+The race detector (`go test -race`) needs cgo and a C compiler (for example MinGW on Windows).
 
 ## Persistence and external resources
 
 - Settings: `AIRCHAT_SETTINGS`.
-- Last platform inputs: the three `airchat_last_*` keys above.
+- Last platform inputs: `airchat_last_youtube`, `airchat_last_twitch`, `airchat_last_kick`.
 - Supertonic caches: `supertonic-2-models-v1`, `supertonic-3-models-v1`.
-- Runtime network dependencies include the selected chat services, OBS WebSocket, Twitch third-party emote APIs/CDNs, and Hugging Face for uncached neural model assets.
+- Network: the selected chat services, OBS WebSocket, Twitch third-party emote APIs and CDNs, and Hugging Face for uncached neural model assets.

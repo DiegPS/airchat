@@ -47,7 +47,7 @@ AirChat is a transparent, frameless desktop chat overlay for **YouTube Live, Twi
 ## Requirements
 
 - Go **1.26.1 or newer**, matching `go.mod`
-- Node.js and npm compatible with Vite 3 and TypeScript 4.6
+- Node.js **20.19+ or 22.12+** and npm (Vite 7, TypeScript 5.6, Vitest 5)
 - Wails v2 CLI
 - Windows is required for the current click-through implementation (`github.com/lxn/win`); transparent-window options are also configured for macOS.
 - OBS Studio with OBS WebSocket enabled is optional.
@@ -75,9 +75,11 @@ wails dev
 Useful verification commands:
 
 ```bash
+go vet ./...
 go test ./...
 
 cd frontend
+npm test
 npm run build
 ```
 
@@ -100,39 +102,48 @@ Wails writes packaged build output under `build/bin/`.
 ## Architecture
 
 ```text
-YouTube observer ─┐
-Twitch IRC ───────┼─> Go adapters ─> Wails chat_message event ─> React feed ─> overlay/TTS
-Kick client ──────┘
+YouTube ─┐
+Twitch ──┼─> internal/platform/* Connectors ─> chat.Manager ─> chat_message / platform_* events
+Kick ────┘                                                        │
+                                                                  v
+                                        React: usePlatforms + useMessages ─> overlay / TTS
 
-OBS WebSocket ──────> Go monitor/audio methods ─> obs_status event + HUD controls
-Settings UI ─────────> React Context ─> localStorage (AIRCHAT_SETTINGS)
+OBS WebSocket ─> internal/obs Controller ─> obs_status event ─> HUD and audio controls
+Settings UI ──> React Context ─> localStorage (AIRCHAT_SETTINGS)
 ```
 
-The backend keeps independent sessions for each chat platform so one platform can fail or stop without directly terminating the others. `useChat` owns the combined frontend feed, deduplication, filtering, message limits, platform state, OBS state, and navigation. `useTTS` subscribes separately to the unified chat event and manages its bounded speech queue.
+Each chat platform has its own `Manager`, so one platform can fail or stop without affecting the others. A platform is a `Connector` that opens a `Session`; the `Manager` handles starting, replacing, stopping, and error reporting in one place. Every platform emits the same unified `Message`.
+
+On the frontend, `platforms.ts` lists the platforms, `usePlatforms` tracks their connection state, `useMessages` owns the feed (validation, filtering, deduplication, limits), and `useTTS` subscribes separately to the unified chat event and manages its bounded speech queue. See `AGENTS.md` for the full technical guide, including how to add a platform.
 
 ## Project structure
 
 ```text
 airchat/
-├── main.go                         Wails entry point and transparent window options
-├── app.go                          chat orchestration, OBS, preview, and click-through
-├── kick_chat.go                    Kick message/role conversion helpers
-├── twitch_emotes.go                Twitch native and third-party emote parsing
-├── go.mod / go.sum                 Go dependencies
-├── wails.json                      Wails build configuration
-├── build/                          platform metadata, icons, installer assets, output
+├── main.go                  Wails entry point and window options
+├── app.go                   thin Wails facade: bound methods only
+├── internal/
+│   ├── chat/                unified message, Manager, input normalization
+│   ├── platform/            youtube/, twitch/, kick/ connectors
+│   ├── obs/                 OBS connection, audio, stream status
+│   ├── preview/             sample messages for the design preview
+│   └── window/              Windows click-through
+├── go.mod / go.sum          Go dependencies
+├── wails.json               Wails build configuration
+├── build/                   icons, installer assets, platform metadata
 └── frontend/
-    ├── package.json                React/Vite dependencies and scripts
-    ├── public/                     ONNX Runtime browser assets
+    ├── package.json         React/Vite dependencies and scripts
+    ├── public/              ONNX Runtime browser assets
     └── src/
-        ├── App.tsx                 providers, hash routes, and Ctrl+B behavior
-        ├── components/             setup, sidebar, overlay, HUD, title bar, controls
-        ├── config/settingsSchema.ts
-        ├── context/SettingsContext.tsx
-        ├── hooks/                  chat, OBS audio, TTS, and Supertonic hooks
-        ├── pages/                  setup and chat routes
-        ├── utils/filters.ts        shared user/word filters
-        └── types.ts                unified chat and settings types
+        ├── platforms.ts     the list of supported platforms
+        ├── state/           pure reducers
+        ├── utils/           filters, message handling, TTS rules
+        ├── hooks/           platforms, messages, OBS, TTS, Supertonic
+        ├── components/      setup, sidebar, overlay, HUD, title bar, controls
+        ├── pages/           setup and chat routes
+        ├── context/         settings
+        ├── config/          declarative settings schema
+        └── types.ts         unified chat and settings types
 ```
 
 ## Settings and local data

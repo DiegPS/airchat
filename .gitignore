@@ -1,3 +1,7 @@
 build/bin
 node_modules
 frontend/dist
+
+# Built binaries
+/airchat.exe
+*.exe
