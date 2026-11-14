@@ -2,6 +2,8 @@ package youtube
 
 import (
 	"context"
+	"errors"
+	"strings"
 	"sync"
 
 	youtubechat "github.com/DiegPS/youtube-chat"
@@ -19,7 +21,7 @@ type Connector struct{}
 func (Connector) Platform() chat.Platform { return chat.YouTube }
 
 // Connect implements chat.Connector.
-func (Connector) Connect(_ context.Context, input string, sink chat.Sink) (chat.Session, error) {
+func (Connector) Connect(ctx context.Context, input string, sink chat.Sink) (chat.Session, error) {
 	id, err := ParseInput(input)
 	if err != nil {
 		return nil, err
@@ -28,6 +30,18 @@ func (Connector) Connect(_ context.Context, input string, sink chat.Sink) (chat.
 	if err != nil {
 		return nil, err
 	}
+
+	// Cancelling ctx also interrupts a stream lookup that is still running.
+	finished := make(chan struct{})
+	defer close(finished)
+	go func() {
+		select {
+		case <-ctx.Done():
+			lc.Stop("cancelled")
+		case <-finished:
+		}
+	}()
+
 	if err := lc.Start(); err != nil {
 		return nil, err
 	}
@@ -45,42 +59,26 @@ func (s *session) Close() {
 	s.once.Do(func() { s.lc.Stop("session closed") })
 }
 
-// Run implements chat.Session. Channels the library closes are disabled
-// instead of being read as zero values.
+// Run implements chat.Session. It returns nil when the stream's chat ended or
+// the session was closed, and an error when polling gave up.
 func (s *session) Run(ctx context.Context) error {
-	start, end, items, errs := s.lc.StartChan, s.lc.EndChan, s.lc.ChatChan, s.lc.ErrorChan
-
-	for start != nil || items != nil || errs != nil {
+	for {
 		select {
 		case <-ctx.Done():
 			return nil
-		case liveID, ok := <-start:
-			if !ok {
-				start = nil
-				continue
-			}
+		case liveID := <-s.lc.StartChan:
 			s.sink.Started(liveID)
-		case _, ok := <-end:
-			if !ok {
-				end = nil
-				continue
+		case item := <-s.lc.ChatChan:
+			s.sink.Message(toMessage(item))
+		case err := <-s.lc.ErrorChan:
+			s.sink.Warning(err)
+		case reason := <-s.lc.EndChan:
+			if strings.HasPrefix(reason, youtubechat.EndTooManyErrors) {
+				return errors.New("youtube chat stopped: " + reason)
 			}
 			return nil
-		case item, ok := <-items:
-			if !ok {
-				items = nil
-				continue
-			}
-			s.sink.Message(toMessage(item))
-		case err, ok := <-errs:
-			if !ok {
-				errs = nil
-				continue
-			}
-			s.sink.Warning(err)
 		}
 	}
-	return nil
 }
 
 func toMessage(item types.ChatItem) chat.Message {

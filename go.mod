@@ -4,7 +4,7 @@ go 1.26.1
 
 require (
 	github.com/DiegPS/kick-chat v0.0.0-20261114055911-5d037750962d
-	github.com/DiegPS/youtube-chat v0.0.0-20260505181917-95bac9e584ce
+	github.com/DiegPS/youtube-chat v0.0.0-20261114060735-86e353de1c8a
 	github.com/andreykaipov/goobs v1.11.1
 	github.com/gempir/go-twitch-irc/v3 v3.3.0
 	github.com/gorilla/websocket v1.5.3

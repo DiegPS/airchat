@@ -13,7 +13,7 @@ Keep this document synchronized with the implementation. Avoid line counts: the 
 | Package | Role |
 |---|---|
 | `github.com/wailsapp/wails/v2` | Desktop runtime, bindings, events, window APIs |
-| `github.com/DiegPS/youtube-chat` | YouTube live-chat observer (HTTP polling) |
+| `github.com/DiegPS/youtube-chat` | YouTube live-chat observer (HTTP polling; cancellable, detects the end of the chat) |
 | `github.com/gempir/go-twitch-irc/v3` | Anonymous Twitch IRC client |
 | `github.com/DiegPS/kick-chat` | Kick chat client (Centrifugo realtime service; auto-reconnect) and message parts |
 | `github.com/andreykaipov/goobs` | OBS WebSocket v5 client |
