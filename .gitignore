@@ -5,3 +5,4 @@ frontend/dist
 # Built binaries
 /airchat.exe
 *.exe
+frontend/package.json.md5

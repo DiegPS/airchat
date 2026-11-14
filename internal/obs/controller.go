@@ -24,7 +24,8 @@ var errNotConnected = errors.New("not connected to OBS")
 
 // Controller owns the OBS connection and its monitoring goroutine.
 type Controller struct {
-	emit chat.Emitter
+	emit     chat.Emitter
+	interval time.Duration // how often OBS is polled
 
 	mu     sync.RWMutex
 	client *goobs.Client
@@ -33,7 +34,7 @@ type Controller struct {
 
 // NewController creates a Controller that publishes status through emit.
 func NewController(emit chat.Emitter) *Controller {
-	return &Controller{emit: emit}
+	return &Controller{emit: emit, interval: pollInterval}
 }
 
 // Connect opens a connection to OBS and starts monitoring it. Any previous
@@ -146,7 +147,7 @@ func (c *Controller) SetInputVolume(name string, volumeDb float64) error {
 }
 
 func (c *Controller) monitor(ctx context.Context, client *goobs.Client) {
-	ticker := time.NewTicker(pollInterval)
+	ticker := time.NewTicker(c.interval)
 	defer ticker.Stop()
 
 	var s sampler

@@ -7,6 +7,7 @@ require (
 	github.com/DiegPS/youtube-chat v0.0.0-20260505181917-95bac9e584ce
 	github.com/andreykaipov/goobs v1.11.1
 	github.com/gempir/go-twitch-irc/v3 v3.3.0
+	github.com/gorilla/websocket v1.5.3
 	github.com/lxn/win v0.0.0-20210218163916-a377121e959e
 	github.com/wailsapp/wails/v2 v2.17.1
 )
@@ -19,7 +20,6 @@ require (
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/godbus/dbus/v5 v5.2.4 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/hashicorp/logutils v1.0.0 // indirect
 	github.com/jchv/go-winloader v0.0.0-20250406163304-c1995be93bd1 // indirect
 	github.com/labstack/echo/v4 v4.16.4 // indirect
