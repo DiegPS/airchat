@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
@@ -10,6 +12,44 @@ import (
 	"github.com/PirateTok/live-go/helpers"
 	pb "github.com/PirateTok/live-go/proto"
 )
+
+func TestTikTokCookieHelpersPreferOneTTWID(t *testing.T) {
+	value, ok := findCookieValue("sessionid=abc; ttwid=user-token; sid_tt=def", "ttwid")
+	if !ok || value != "user-token" {
+		t.Fatalf("ttwid lookup = %q, %v", value, ok)
+	}
+	got := mergeTikTokCookies("resolved-token", "sessionid=abc; ttwid=user-token; sid_tt=def")
+	if got != "ttwid=resolved-token; sessionid=abc; sid_tt=def" {
+		t.Fatalf("merged cookies = %q", got)
+	}
+}
+
+func TestFetchTikTokTTWIDUsesRegistrationCookie(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.Header.Get("Content-Type") != "application/json" {
+			t.Fatalf("unexpected request: %s %s", r.Method, r.Header.Get("Content-Type"))
+		}
+		http.SetCookie(w, &http.Cookie{Name: "ttwid", Value: "registered-token", Path: "/"})
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	value, err := fetchTikTokTTWID(context.Background(), server.URL, time.Second, "test-agent", "")
+	if err != nil || value != "registered-token" {
+		t.Fatalf("fetchTikTokTTWID() = %q, %v", value, err)
+	}
+}
+
+func TestFetchTikTokTTWIDRejectsMissingCookie(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	if _, err := fetchTikTokTTWID(context.Background(), server.URL, time.Second, "test-agent", ""); err == nil {
+		t.Fatal("missing ttwid cookie should fail")
+	}
+}
 
 func TestNormalizeTikTokUsername(t *testing.T) {
 	tests := map[string]string{
@@ -85,20 +125,6 @@ func TestTikTokGenerationInvalidatesStoppedSessions(t *testing.T) {
 	app.StopTikTokChat()
 	if app.isTikTokGenerationCurrent(4) || app.tiktokGeneration != 5 {
 		t.Fatalf("stopped generation remained active: %d", app.tiktokGeneration)
-	}
-}
-
-func TestTikTokInitialRetryDelayIsShortAndBounded(t *testing.T) {
-	tests := map[int]time.Duration{
-		0: 1 * time.Second,
-		1: 1 * time.Second,
-		3: 3 * time.Second,
-		8: 5 * time.Second,
-	}
-	for attempt, want := range tests {
-		if got := tiktokInitialRetryDelay(attempt); got != want {
-			t.Fatalf("attempt %d delay = %v, want %v", attempt, got, want)
-		}
 	}
 }
 

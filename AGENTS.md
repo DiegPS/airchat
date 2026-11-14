@@ -41,6 +41,7 @@ airchat/
 ├── main.go                          Wails entry point and window configuration
 ├── app.go                           App state, preview, OBS, platform sessions, events
 ├── kick_chat.go                     Kick message-part and badge helpers
+├── tiktok_client.go                 TikTok client, reconnect loop, and resilient ttwid bootstrap
 ├── tiktok_chat.go                   TikTok lifecycle, event conversion, metrics, metadata
 ├── tiktok_chat_test.go              exhaustive event/conversion/session tests
 ├── twitch_emotes.go                 BTTV/FFZ/7TV fetch and Twitch emote parser
@@ -105,7 +106,7 @@ Do network calls and disconnect cleanup outside locks where practical. Session r
 - `StartChat(youtubeInput)` / `StopChat()` manage YouTube. Inputs support handles, channel IDs, bare video IDs, and supported YouTube URLs.
 - `StartTwitchChat(channelName)` / `StopTwitchChat()` use anonymous IRC and emit role flags. Global BTTV, FFZ, and 7TV emotes load asynchronously after connection; native Twitch emotes use IRC positions.
 - `StartKickChat(slug)` / `StopKickChat()` convert Kick message parts and badges to the common payload.
-- `StartTikTokChat(input, options)` / `StopTikTokChat()` consume every `live-go` event type, manage reconnect/end state, and convert renderable events to the common payload.
+- `StartTikTokChat(input, options)` / `StopTikTokChat()` consume every `live-go` event type, manage reconnect/end state, and convert renderable events to the common payload. The local client preserves `live-go` room resolution, WebSocket framing, protobuf decoding, and event types while making `ttwid` bootstrap resilient: it honors a supplied runtime cookie, tries the TikTok homepage, then falls back to ByteDance registration.
 - `CheckTikTokLive(input, timeoutSeconds)` and `GetTikTokRoomInfo(roomID, timeoutSeconds, cookies)` expose room resolution and metadata/stream information.
 - `StartPreviewChat()` emits representative messages for all four platforms. TikTok core fixtures are protobuf-encoded and decoded through `live-go/events.Decode` before using the production converters; opaque or undocumented event bodies are not fabricated.
 - `ConnectOBS(host, password)` / `DisconnectOBS()` manage OBS.
@@ -237,4 +238,4 @@ npm test
 - Last platform inputs: the four `airchat_last_*` keys above.
 - TikTok session cookies: memory only, never `localStorage`.
 - Supertonic caches: `supertonic-2-models-v1`, `supertonic-3-models-v1`.
-- Runtime network dependencies include the selected chat services, TikTok LIVE/metadata endpoints, OBS WebSocket, Twitch third-party emote APIs/CDNs, and Hugging Face for uncached neural model assets.
+- Runtime network dependencies include the selected chat services, TikTok LIVE/metadata and ByteDance `ttwid` registration endpoints, OBS WebSocket, Twitch third-party emote APIs/CDNs, and Hugging Face for uncached neural model assets.

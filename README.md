@@ -1,5 +1,9 @@
 # AirChat
 
+> **Project status: archived (final version).**
+> This Wails (Go + React/TypeScript) implementation is feature-complete and no longer maintained.
+> AirChat has been migrated to **Flutter**, which is where development continues. This repository is kept read-only as a reference for the Go/React version.
+
 AirChat is a transparent, frameless desktop chat overlay for **YouTube Live, Twitch, Kick, and TikTok LIVE**. It is built with Wails v2 (Go backend and React/TypeScript frontend), can merge several live chats into one feed, integrates with OBS WebSocket, and includes browser and neural text-to-speech.
 
 ## Features
@@ -50,7 +54,7 @@ AirChat is a transparent, frameless desktop chat overlay for **YouTube Live, Twi
 ## Requirements
 
 - Go **1.26.1 or newer**, matching `go.mod`
-- Node.js **20.19+ or 22.12+** and npm, as required by Vite 7; TypeScript 5.9 is used for builds.
+- Node.js and npm (the frontend uses Vite 3 and TypeScript 4.9; see `frontend/package.json`).
 - Wails v2 CLI
 - Windows is required for the current click-through implementation (`github.com/lxn/win`); transparent-window options are also configured for macOS.
 - OBS Studio with OBS WebSocket enabled is optional.
@@ -121,6 +125,7 @@ airchat/
 ├── main.go                         Wails entry point and transparent window options
 ├── app.go                          chat orchestration, OBS, preview, and click-through
 ├── kick_chat.go                    Kick message/role conversion helpers
+├── tiktok_client.go                TikTok room/WebSocket client and resilient ttwid bootstrap
 ├── tiktok_chat.go                  TikTok lifecycle, exhaustive event routing, gifts, metadata
 ├── twitch_emotes.go                Twitch native and third-party emote parsing
 ├── go.mod / go.sum                 Go dependencies
@@ -174,8 +179,9 @@ airchat/
 
 - Confirm the creator is currently LIVE and that the username/URL is correct.
 - Public rooms normally need no login. Restricted rooms may require session cookies in TikTok advanced connection settings; those cookies stay in memory and are not saved.
+- AirChat first honors a `ttwid` supplied in the runtime-only cookies, then tries the TikTok homepage, and falls back to ByteDance's `ttwid` registration endpoint when the homepage returns without that cookie.
 - The `live-go` WebSocket proxy path is reliably implemented for HTTP `CONNECT`; SOCKS5 and HTTPS proxy behavior is an upstream limitation.
-- The inspector and sidebar distinguish room resolution, first WebSocket traffic, reconnect attempts, LIVE end, and terminal disconnect. Some terminal WebSocket causes are logged internally by `live-go` without exposing the exact error to consumers.
+- The inspector and sidebar distinguish room resolution, first WebSocket traffic, reconnect attempts, LIVE end, and terminal disconnect. Failed bootstrap/reconnect details are included in lifecycle status instead of being reduced to a generic setup error.
 
 ## Author
 

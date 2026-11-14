@@ -81,7 +81,7 @@ type tiktokSessionState struct {
 	connected      bool
 	everConnected  bool
 	startedEmitted bool
-	initialRetries int
+	connectionInfo string
 	viewerCount    int64
 	totalUsers     int32
 	totalLikes     int32
@@ -117,46 +117,6 @@ func normalizeTikTokUsername(input string) (string, error) {
 		return "", fmt.Errorf("TikTok username is required")
 	}
 	return value, nil
-}
-
-func buildTikTokClient(username string, opts TikTokConnectOptions) *golive.Client {
-	client := golive.NewClient(username)
-	switch strings.ToLower(opts.CDN) {
-	case "eu":
-		client.CdnEU()
-	case "us":
-		client.CdnUS()
-	case "custom":
-		if host := strings.TrimSpace(opts.CustomCDN); host != "" {
-			client.Cdn(host)
-		}
-	}
-	if opts.TimeoutSeconds > 0 {
-		client.Timeout(time.Duration(opts.TimeoutSeconds) * time.Second)
-	}
-	if opts.MaxRetries >= 0 {
-		client.MaxRetries(opts.MaxRetries)
-	}
-	if opts.StaleTimeoutSeconds > 0 {
-		client.StaleTimeout(time.Duration(opts.StaleTimeoutSeconds) * time.Second)
-	}
-	if value := strings.TrimSpace(opts.UserAgent); value != "" {
-		client.UserAgent(value)
-	}
-	if value := strings.TrimSpace(opts.Cookies); value != "" {
-		client.Cookies(value)
-	}
-	if value := strings.TrimSpace(opts.Language); value != "" {
-		client.Language(value)
-	}
-	if value := strings.TrimSpace(opts.Region); value != "" {
-		client.Region(value)
-	}
-	if value := strings.TrimSpace(opts.Proxy); value != "" {
-		client.Proxy(value)
-	}
-	client.Compress(opts.Compress)
-	return client
 }
 
 // StartTikTokChat connects to a TikTok LIVE and consumes every event exposed
@@ -283,17 +243,17 @@ func (a *App) consumeTikTokEvents(ctx context.Context, cancel context.CancelFunc
 			case events.EventReconnecting:
 				state.connected = false
 				detail := fmt.Sprint(evt.Data)
+				state.connectionInfo = detail
 				a.emitTikTok(state.generation, "tiktok_reconnecting", detail)
 				a.emitTikTokStatus(state, "reconnecting", detail)
 				state.giftTracker.Reset()
 			case events.EventDisconnected:
 				if !state.everConnected {
-					nextChannel, retrying := a.retryTikTokInitialConnection(ctx, state)
-					if retrying {
-						eventCh = nextChannel
-						continue
+					reason := "TikTok connection setup failed after automatic retries"
+					if state.connectionInfo != "" {
+						reason += ": " + state.connectionInfo
 					}
-					emitEnded("TikTok connection setup failed after automatic retries")
+					emitEnded(reason)
 					return
 				}
 				emitEnded("disconnected after reconnect attempts")
@@ -316,51 +276,6 @@ func (a *App) consumeTikTokEvents(ctx context.Context, cancel context.CancelFunc
 			}
 		}
 	}
-}
-
-func tiktokInitialRetryDelay(attempt int) time.Duration {
-	if attempt < 1 {
-		attempt = 1
-	}
-	if attempt > 5 {
-		attempt = 5
-	}
-	return time.Duration(attempt) * time.Second
-}
-
-// retryTikTokInitialConnection covers a gap in live-go: failure to obtain
-// TikTok's ttwid cookie closes the channel without applying MaxRetries. A full
-// client restart rotates the default User-Agent and repeats that bootstrap
-// phase while the UI remains on the setup screen.
-func (a *App) retryTikTokInitialConnection(ctx context.Context, state *tiktokSessionState) (<-chan events.Event, bool) {
-	maxRetries := state.options.MaxRetries
-	if maxRetries < 0 {
-		maxRetries = 0
-	}
-
-	for state.initialRetries < maxRetries {
-		state.initialRetries++
-		delay := tiktokInitialRetryDelay(state.initialRetries)
-		detail := fmt.Sprintf("initial connection retry %d/%d in %s", state.initialRetries, maxRetries, delay)
-		a.emitTikTok(state.generation, "tiktok_reconnecting", detail)
-		a.emitTikTokStatus(state, "connecting", detail)
-
-		select {
-		case <-time.After(delay):
-		case <-ctx.Done():
-			return nil, false
-		}
-
-		if !a.isTikTokGenerationCurrent(state.generation) {
-			return nil, false
-		}
-		nextChannel, err := buildTikTokClient(state.username, state.options).Connect(ctx)
-		if err == nil {
-			return nextChannel, true
-		}
-		a.emitTikTokStatus(state, "connecting", fmt.Sprintf("initial retry %d failed: %v", state.initialRetries, err))
-	}
-	return nil, false
 }
 
 // CheckTikTokLive exposes live-go's room resolution without opening a socket.
