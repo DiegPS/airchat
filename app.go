@@ -44,10 +44,6 @@ type App struct {
 	kickClient *kickchat.Client
 	kickMu     sync.Mutex
 	kickCancel context.CancelFunc
-
-	tiktokMu         sync.Mutex
-	tiktokCancel     context.CancelFunc
-	tiktokGeneration uint64
 }
 
 // StartPreviewChat emits hardcoded mock messages that exercise the full
@@ -192,14 +188,10 @@ func (a *App) StartPreviewChat() {
 			"Timestamp": now.Format(time.RFC3339),
 		},
 	}
-	msgs = append(msgs, tiktokPreviewMessages(now)...)
 
 	go func() {
 		for _, msg := range msgs {
 			runtime.EventsEmit(a.ctx, "chat_message", msg)
-			if event, ok := msg["TikTokEvent"]; ok {
-				runtime.EventsEmit(a.ctx, "tiktok_event", event)
-			}
 			time.Sleep(150 * time.Millisecond)
 		}
 	}()

@@ -33,53 +33,15 @@ export interface Author {
 
 export interface ChatItem {
   ID: string;
-  Platform?: 'youtube' | 'twitch' | 'kick' | 'tiktok';
-  EventKind?: 'chat' | 'emote' | 'gift' | 'subscription' | 'follow' | 'share' | 'join' | 'question' | 'metrics' | 'advanced';
+  Platform?: 'youtube' | 'twitch' | 'kick';
   Author: Author;
   Message: MessageItem[] | null;
   SuperChat?: SuperChat;
-  Gift?: TikTokGift;
-  TikTokEvent?: TikTokEvent;
-  TikTokUser?: TikTokUserMeta;
-  UpdateExisting?: boolean;
   IsMembership: boolean;
   IsVerified: boolean;
   IsOwner: boolean;
   IsModerator: boolean;
   Timestamp: string;
-}
-
-export interface TikTokGift {
-  Name: string;
-  Count: number;
-  EventCount: number;
-  DiamondCount: number;
-  EventDiamondCount: number;
-  DiamondEach: number;
-  Image?: ImageItem;
-  IsCombo: boolean;
-  IsFinal: boolean;
-  GroupID: string;
-}
-
-export interface TikTokEvent {
-  id: string;
-  type: string;
-  category: string;
-  timestamp: string;
-  summary: string;
-  data?: unknown;
-  rawPayloadBase64?: string;
-}
-
-export interface TikTokUserMeta {
-  UniqueID: string;
-  GifterLevel: number;
-  FanClubLevel: number;
-  IsFollower: boolean;
-  IsSubscriber: boolean;
-  IsModerator: boolean;
-  IsAnchor: boolean;
 }
 
 export interface ChatSettings {
@@ -136,57 +98,8 @@ export interface ChatSettings {
 
   // Platform Settings
   showPlatformBadge: boolean;
-  youtubeBubbleAccent: boolean;
   twitchBubbleAccent: boolean;
   kickBubbleAccent: boolean;
-  tiktokBubbleAccent: boolean;
-
-  // TikTok event visibility
-  tiktokShowChat: boolean;
-  tiktokShowEmotes: boolean;
-  tiktokShowGifts: boolean;
-  tiktokShowSubscriptions: boolean;
-  tiktokShowFollows: boolean;
-  tiktokShowShares: boolean;
-  tiktokShowJoins: boolean;
-  tiktokShowQuestions: boolean;
-  tiktokShowMetrics: boolean;
-  tiktokShowActivityEvents: boolean;
-  tiktokShowContent: boolean;
-  tiktokShowGoals: boolean;
-  tiktokShowInteraction: boolean;
-  tiktokShowRankings: boolean;
-  tiktokShowLinkMic: boolean;
-  tiktokShowSystem: boolean;
-  tiktokShowCommerce: boolean;
-  tiktokShowGames: boolean;
-  tiktokShowPartnerships: boolean;
-  tiktokShowModeration: boolean;
-  tiktokShowProfileEvents: boolean;
-  tiktokShowDiagnosticEvents: boolean;
-  tiktokShowUnknown: boolean;
-
-  // TikTok flow and audience filters
-  tiktokJoinRateLimit: number;
-  tiktokMetricIntervalSeconds: number;
-  tiktokMinGiftDiamonds: number;
-  tiktokMinGifterLevel: number;
-  tiktokOnlyFollowers: boolean;
-  tiktokOnlySubscribers: boolean;
-  tiktokOnlyModerators: boolean;
-
-  // TikTok connection
-  tiktokCDN: 'global' | 'eu' | 'us' | 'custom';
-  tiktokCustomCDN: string;
-  tiktokTimeoutSeconds: number;
-  tiktokMaxRetries: number;
-  tiktokStaleTimeoutSeconds: number;
-  tiktokCompress: boolean;
-  tiktokLanguage: string;
-  tiktokRegion: string;
-  tiktokUserAgent: string;
-  tiktokProxy: string;
-  tiktokSessionCookies: string;
 
   // Filter Settings
   blockedUsers: string;
@@ -203,9 +116,6 @@ export interface ChatSettings {
   ttsRandomVoice: boolean;
   ttsProvider: string;
   ttsVoice: string;
-  ttsReadTikTokGifts: boolean;
-  ttsReadTikTokActivity: boolean;
-  ttsReadTikTokAdvanced: boolean;
   // Supertonic TTS Settings
   supertonicVoiceStyle: string;
   supertonicLang: string;

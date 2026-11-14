@@ -16,13 +16,9 @@ function AppContent() {
         isStarted,
         isTwitchStarted,
         isKickStarted,
-        isTikTokStarted,
-        isTikTokConnecting,
         error,
         twitchError,
         kickError,
-        tiktokError,
-        tiktokConnectionStatus,
         liveId,
         isPreviewMode,
         channelId,
@@ -34,9 +30,6 @@ function AppContent() {
         kickChannel,
         setKickChannel,
         clearKickChannel,
-        tiktokChannel,
-        setTikTokChannel,
-        clearTikTokChannel,
         startChat,
         startPreview,
         stopChat,
@@ -44,11 +37,11 @@ function AppContent() {
         obsStatus
     } = useChat();
 
-    useTTS(isStarted || isTwitchStarted || isKickStarted || isTikTokStarted);
+    useTTS(isStarted || isTwitchStarted || isKickStarted);
 
     const [showUI, setShowUI] = useState(true);
     const [showSidebar, setShowSidebar] = useState(true);
-    const isSetup = !isStarted && !isTwitchStarted && !isKickStarted && !isTikTokStarted && !isPreviewMode;
+    const isSetup = !isStarted && !isTwitchStarted && !isKickStarted && !isPreviewMode;
 
     // Navigate based on setup state
     useEffect(() => {
@@ -100,17 +93,11 @@ function AppContent() {
                         kickChannel={kickChannel}
                         onKickChannelChange={setKickChannel}
                         onClearKick={clearKickChannel}
-                        tiktokChannel={tiktokChannel}
-                        onTikTokChannelChange={setTikTokChannel}
-                        onClearTikTok={clearTikTokChannel}
                         onStart={startChat}
                         onPreview={startPreview}
                         error={error}
                         twitchError={twitchError}
                         kickError={kickError}
-                        tiktokError={tiktokError}
-                        isTikTokConnecting={isTikTokConnecting}
-                        tiktokConnectionStatus={tiktokConnectionStatus}
                     />
                 } 
             />
@@ -127,14 +114,11 @@ function AppContent() {
                         isStarted={isStarted}
                         isTwitchStarted={isTwitchStarted}
                         isKickStarted={isKickStarted}
-                        isTikTokStarted={isTikTokStarted}
                         twitchChannel={twitchChannel}
                         kickChannel={kickChannel}
-                        tiktokChannel={tiktokChannel}
                         error={error}
                         twitchError={twitchError}
                         kickError={kickError}
-                        tiktokError={tiktokError}
                         messages={messages}
                         scrollRef={scrollToBottomRef}
                         onStop={stopChat}

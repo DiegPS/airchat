@@ -28,39 +28,6 @@ export interface SettingsSection {
     showIf?: (settings: ChatSettings) => boolean;
 }
 
-export const TIKTOK_CONNECTION_SECTION: SettingsSection = {
-    id: 'tiktok-connection',
-    title: 'TikTok Connection',
-    items: [
-        {
-            key: 'tiktokCDN',
-            label: 'CDN',
-            type: 'select',
-            options: [
-                { label: 'Global', value: 'global' },
-                { label: 'Europe', value: 'eu' },
-                { label: 'United States', value: 'us' },
-                { label: 'Custom', value: 'custom' }
-            ]
-        },
-        {
-            key: 'tiktokCustomCDN',
-            label: 'Custom CDN Host',
-            type: 'text',
-            showIf: (s) => s.tiktokCDN === 'custom'
-        },
-        { key: 'tiktokTimeoutSeconds', label: 'HTTP Timeout', type: 'number', min: 1, max: 120, step: 1, unit: 's' },
-        { key: 'tiktokMaxRetries', label: 'Reconnect Attempts', type: 'number', min: 0, max: 100, step: 1 },
-        { key: 'tiktokStaleTimeoutSeconds', label: 'Stale Connection Timeout', type: 'number', min: 10, max: 300, step: 1, unit: 's' },
-        { key: 'tiktokCompress', label: 'Compressed WebSocket Messages', type: 'toggle' },
-        { key: 'tiktokLanguage', label: 'Language Override (for example: es)', type: 'text' },
-        { key: 'tiktokRegion', label: 'Region Override (for example: MX)', type: 'text' },
-        { key: 'tiktokUserAgent', label: 'User-Agent Override', type: 'textarea' },
-        { key: 'tiktokProxy', label: 'HTTP CONNECT Proxy URL', type: 'text' },
-        { key: 'tiktokSessionCookies', label: 'Session Cookies (memory only)', type: 'password' },
-    ]
-};
-
 export const SETTINGS_SCHEMA: SettingsSection[] = [
     {
         id: 'overlay',
@@ -88,78 +55,11 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
         id: 'platforms',
         title: 'Platform Display',
         items: [
-            { key: 'showPlatformBadge', label: 'Show Platform Icon (YouTube/Twitch/Kick/TikTok)', type: 'toggle' },
-            { key: 'youtubeBubbleAccent', label: 'YouTube Red Accent', type: 'toggle' },
+            { key: 'showPlatformBadge', label: 'Show Platform Icon (YouTube/Twitch)', type: 'toggle' },
             { key: 'twitchBubbleAccent', label: 'Twitch Purple Accent', type: 'toggle' },
             { key: 'kickBubbleAccent', label: 'Kick Green Accent', type: 'toggle' },
-            { key: 'tiktokBubbleAccent', label: 'TikTok Pink Accent', type: 'toggle' },
         ]
     },
-    {
-        id: 'tiktok-content',
-        title: 'TikTok LIVE',
-        items: [
-            { key: 'tiktokShowChat', label: 'Show Chat Messages', type: 'toggle' },
-            { key: 'tiktokShowEmotes', label: 'Show Emote Messages', type: 'toggle' },
-            { key: 'tiktokShowGifts', label: 'Show Gifts', type: 'toggle' },
-            { key: 'tiktokShowSubscriptions', label: 'Show Subscriptions', type: 'toggle' },
-            { key: 'tiktokShowFollows', label: 'Show Follows', type: 'toggle' },
-            { key: 'tiktokShowShares', label: 'Show Shares', type: 'toggle' },
-            { key: 'tiktokShowJoins', label: 'Show Joins', type: 'toggle' },
-            { key: 'tiktokShowQuestions', label: 'Show Questions', type: 'toggle' },
-            { key: 'tiktokShowMetrics', label: 'Show Like and Viewer Updates', type: 'toggle' },
-        ]
-    },
-    {
-        id: 'tiktok-events',
-        title: 'TikTok Event Categories',
-        items: [
-            { key: 'tiktokShowActivityEvents', label: 'Show Member and Social Events', type: 'toggle' },
-            { key: 'tiktokShowContent', label: 'Show Captions and Content', type: 'toggle' },
-            { key: 'tiktokShowGoals', label: 'Show Goals', type: 'toggle' },
-            { key: 'tiktokShowInteraction', label: 'Show Polls, Pins and Interaction', type: 'toggle' },
-            { key: 'tiktokShowRankings', label: 'Show Rankings', type: 'toggle' },
-            { key: 'tiktokShowLinkMic', label: 'Show Link Mic and Battles', type: 'toggle' },
-            { key: 'tiktokShowSystem', label: 'Show System Events', type: 'toggle' },
-            { key: 'tiktokShowCommerce', label: 'Show Shopping Events', type: 'toggle' },
-            { key: 'tiktokShowGames', label: 'Show Game Events', type: 'toggle' },
-            { key: 'tiktokShowPartnerships', label: 'Show Partnership Events', type: 'toggle' },
-            { key: 'tiktokShowModeration', label: 'Show Moderation Events', type: 'toggle' },
-            { key: 'tiktokShowProfileEvents', label: 'Show Room and Profile Events', type: 'toggle' },
-            { key: 'tiktokShowDiagnosticEvents', label: 'Show Diagnostic Events', type: 'toggle' },
-            { key: 'tiktokShowUnknown', label: 'Show Unknown Events', type: 'toggle' },
-        ]
-    },
-    {
-        id: 'tiktok-flow',
-        title: 'TikTok Flow and Filters',
-        items: [
-            {
-                key: 'tiktokJoinRateLimit',
-                label: 'Maximum Joins per Minute',
-                type: 'range',
-                min: 1,
-                max: 120,
-                step: 1,
-                formatDisplay: (v) => `${v}`
-            },
-            {
-                key: 'tiktokMetricIntervalSeconds',
-                label: 'Metrics Update Interval',
-                type: 'range',
-                min: 1,
-                max: 60,
-                step: 1,
-                unit: 's'
-            },
-            { key: 'tiktokMinGiftDiamonds', label: 'Minimum Gift Diamonds', type: 'number', min: 0, max: 1000000, step: 1 },
-            { key: 'tiktokMinGifterLevel', label: 'Minimum Gifter Level', type: 'number', min: 0, max: 50, step: 1 },
-            { key: 'tiktokOnlyFollowers', label: 'Only Followers', type: 'toggle' },
-            { key: 'tiktokOnlySubscribers', label: 'Only Subscribers', type: 'toggle' },
-            { key: 'tiktokOnlyModerators', label: 'Only Moderators', type: 'toggle' },
-        ]
-    },
-    TIKTOK_CONNECTION_SECTION,
     {
         id: 'style',
         title: 'Style Settings',
@@ -401,9 +301,6 @@ export const SETTINGS_SCHEMA: SettingsSection[] = [
         title: 'Text to Speech (TTS)',
         items: [
             { key: 'ttsEnabled', label: 'Enable TTS', type: 'toggle' },
-            { key: 'ttsReadTikTokGifts', label: 'Read TikTok Gifts', type: 'toggle', showIf: (s) => s.ttsEnabled },
-            { key: 'ttsReadTikTokActivity', label: 'Read TikTok Activity', type: 'toggle', showIf: (s) => s.ttsEnabled },
-            { key: 'ttsReadTikTokAdvanced', label: 'Read Advanced TikTok Events', type: 'toggle', showIf: (s) => s.ttsEnabled },
             {
                 key: 'ttsStatusMessage',
                 label: 'TTS Status',

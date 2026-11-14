@@ -11,14 +11,11 @@ interface SidebarProps {
     isStarted: boolean;
     isTwitchStarted: boolean;
     isKickStarted: boolean;
-    isTikTokStarted: boolean;
     twitchChannel: string;
     kickChannel: string;
-    tiktokChannel: string;
     error: string;
     twitchError: string;
     kickError: string;
-    tiktokError: string;
     onStop: () => void;
 }
 
@@ -30,14 +27,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
     isStarted,
     isTwitchStarted,
     isKickStarted,
-    isTikTokStarted,
     twitchChannel,
     kickChannel,
-    tiktokChannel,
     error,
     twitchError,
     kickError,
-    tiktokError,
     onStop
 }) => {
     const { settings, updateSettings } = useSettings();
@@ -74,12 +68,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 Kick · {kickChannel}
                             </div>
                         )}
-                        {isTikTokStarted && (
-                            <div className="live-badge">
-                                <span className="pulse"></span>
-                                TikTok · {tiktokChannel}
-                            </div>
-                        )}
                         {error && (
                             <div className="platform-error">YouTube: {error}</div>
                         )}
@@ -88,9 +76,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         )}
                         {kickError && (
                             <div className="platform-error">Kick: {kickError}</div>
-                        )}
-                        {tiktokError && (
-                            <div className="platform-error">TikTok: {tiktokError}</div>
                         )}
                     </div>
                 )}

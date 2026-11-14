@@ -118,16 +118,6 @@ body {
   text-align: right;
 }
 
-.tiktok-options-toggle {
-  cursor: pointer;
-  margin-top: 0.75rem;
-  transition: color 0.2s;
-}
-
-.tiktok-options-toggle:hover {
-  color: var(--text-main);
-}
-
 .input-group {
   display: flex;
   gap: 0.5rem;

@@ -5,12 +5,10 @@ go 1.26.1
 require (
 	github.com/DiegPS/kick-chat v0.0.0-20260505183815-b2a2ade3aaa1
 	github.com/DiegPS/youtube-chat v0.0.0-20260505181917-95bac9e584ce
-	github.com/PirateTok/live-go v0.1.6-0.20260410063317-6697c56ac480
 	github.com/andreykaipov/goobs v1.5.6
 	github.com/gempir/go-twitch-irc/v3 v3.3.0
 	github.com/lxn/win v0.0.0-20210218163916-a377121e959e
 	github.com/wailsapp/wails/v2 v2.12.0
-	google.golang.org/protobuf v1.33.0
 )
 
 require (
@@ -18,9 +16,6 @@ require (
 	github.com/bep/debounce v1.2.1 // indirect
 	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
-	github.com/gobwas/httphead v0.1.0 // indirect
-	github.com/gobwas/pool v0.2.1 // indirect
-	github.com/gobwas/ws v1.4.0 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect

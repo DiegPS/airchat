@@ -48,51 +48,8 @@ const defaultSettings: ChatSettings = {
     obsHudShowDesktop: false,
     obsHudShowScene: false,
     showPlatformBadge: true,
-    youtubeBubbleAccent: true,
     twitchBubbleAccent: true,
     kickBubbleAccent: true,
-    tiktokBubbleAccent: true,
-    tiktokShowChat: true,
-    tiktokShowEmotes: true,
-    tiktokShowGifts: true,
-    tiktokShowSubscriptions: true,
-    tiktokShowFollows: false,
-    tiktokShowShares: false,
-    tiktokShowJoins: false,
-    tiktokShowQuestions: true,
-    tiktokShowMetrics: false,
-    tiktokShowActivityEvents: false,
-    tiktokShowContent: true,
-    tiktokShowGoals: true,
-    tiktokShowInteraction: true,
-    tiktokShowRankings: false,
-    tiktokShowLinkMic: false,
-    tiktokShowSystem: false,
-    tiktokShowCommerce: false,
-    tiktokShowGames: false,
-    tiktokShowPartnerships: false,
-    tiktokShowModeration: false,
-    tiktokShowProfileEvents: false,
-    tiktokShowDiagnosticEvents: false,
-    tiktokShowUnknown: false,
-    tiktokJoinRateLimit: 12,
-    tiktokMetricIntervalSeconds: 5,
-    tiktokMinGiftDiamonds: 0,
-    tiktokMinGifterLevel: 0,
-    tiktokOnlyFollowers: false,
-    tiktokOnlySubscribers: false,
-    tiktokOnlyModerators: false,
-    tiktokCDN: 'global',
-    tiktokCustomCDN: '',
-    tiktokTimeoutSeconds: 10,
-    tiktokMaxRetries: 5,
-    tiktokStaleTimeoutSeconds: 60,
-    tiktokCompress: true,
-    tiktokLanguage: '',
-    tiktokRegion: '',
-    tiktokUserAgent: '',
-    tiktokProxy: '',
-    tiktokSessionCookies: '',
     blockedUsers: '',
     blockedWords: '',
     ttsEnabled: false,
@@ -106,9 +63,6 @@ const defaultSettings: ChatSettings = {
     ttsRandomVoice: false,
     ttsProvider: 'browser',
     ttsVoice: '',
-    ttsReadTikTokGifts: false,
-    ttsReadTikTokActivity: false,
-    ttsReadTikTokAdvanced: false,
     supertonicVoiceStyle: 'M1.json',
     supertonicLang: 'en',
     supertonicTotalStep: 5,
@@ -118,11 +72,10 @@ const defaultSettings: ChatSettings = {
 const supportedTtsProviders = new Set(['browser', 'supertonic', 'supertonic3']);
 
 const sanitizeSettings = (settings: ChatSettings): ChatSettings => {
-    const sanitized = { ...settings, tiktokSessionCookies: '' };
-    if (supportedTtsProviders.has(sanitized.ttsProvider)) {
-        return sanitized;
+    if (supportedTtsProviders.has(settings.ttsProvider)) {
+        return settings;
     }
-    return { ...sanitized, ttsProvider: defaultSettings.ttsProvider };
+    return { ...settings, ttsProvider: defaultSettings.ttsProvider };
 };
 
 interface SettingsContextType {
@@ -155,10 +108,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
     // 2. Save to localStorage whenever settings change
     React.useEffect(() => {
-        localStorage.setItem('AIRCHAT_SETTINGS', JSON.stringify({
-            ...settings,
-            tiktokSessionCookies: ''
-        }));
+        localStorage.setItem('AIRCHAT_SETTINGS', JSON.stringify(settings));
     }, [settings]);
 
     const updateSettings = useCallback((newSettings: Partial<ChatSettings>) => {

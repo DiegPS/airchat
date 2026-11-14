@@ -220,26 +220,6 @@ export const useTTS = (isStarted: boolean) => {
             if (!settings.ttsEnabled) return;
             if (!message?.Author?.Name || !Array.isArray(message.Message)) return;
 
-            if (message.Platform === 'tiktok') {
-                if (message.TikTokUser) {
-                    if (message.TikTokUser.GifterLevel < settings.tiktokMinGifterLevel) return;
-                    if (settings.tiktokOnlyFollowers && !message.TikTokUser.IsFollower) return;
-                    if (settings.tiktokOnlySubscribers && !message.TikTokUser.IsSubscriber) return;
-                    if (settings.tiktokOnlyModerators && !message.TikTokUser.IsModerator) return;
-                }
-                if (message.EventKind === 'gift') {
-                    if (!settings.ttsReadTikTokGifts) return;
-                    if ((message.Gift?.DiamondCount ?? 0) < settings.tiktokMinGiftDiamonds) return;
-                    if (message.Gift?.IsCombo && !message.Gift.IsFinal) return;
-                } else if (['subscription', 'follow', 'share', 'join', 'question'].includes(message.EventKind || '')) {
-                    if (!settings.ttsReadTikTokActivity) return;
-                } else if (message.EventKind === 'metrics') {
-                    return;
-                } else if (message.EventKind === 'advanced' && !settings.ttsReadTikTokAdvanced) {
-                    return;
-                }
-            }
-
             if (message.ID) {
                 const messageKey = `${message.Platform || 'chat'}:${message.ID}`;
                 if (processedMessagesRef.current.has(messageKey)) return;
@@ -299,9 +279,6 @@ export const useTTS = (isStarted: boolean) => {
 
             const author = cleanUsername(message.Author.Name);
             let content = message.Message.map(m => m.Text).join(' ');
-            if (message.Platform === 'tiktok' && message.EventKind === 'gift' && message.Gift) {
-                content = `sent ${message.Gift.Name} times ${message.Gift.Count}, worth ${message.Gift.DiamondCount} diamonds`;
-            }
 
             // Check for command mode
             if (settings.ttsCommandMode && settings.ttsCommandPrefix) {
