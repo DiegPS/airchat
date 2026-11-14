@@ -439,6 +439,16 @@ body {
   word-break: break-word;
 }
 
+.platform-warning {
+  font-size: 0.72rem;
+  color: #f5c451;
+  background: rgba(245, 196, 81, 0.12);
+  border: 1px solid rgba(245, 196, 81, 0.25);
+  border-radius: 8px;
+  padding: 5px 10px;
+  word-break: break-word;
+}
+
 .settings-container {
   flex: 1;
   /* Take remaining space */

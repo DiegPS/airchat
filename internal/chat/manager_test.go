@@ -44,8 +44,6 @@ func (r *recorder) count(event string) int {
 	return n
 }
 
-var testEvents = Events{Started: "x_started", Ended: "x_ended", Error: "x_error"}
-
 // fakeSession blocks in Run until released, then returns runErr.
 type fakeSession struct {
 	sink    Sink
@@ -81,7 +79,7 @@ type fakeConnector struct {
 	setup    func(*fakeSession)
 }
 
-func (c *fakeConnector) Events() Events { return testEvents }
+func (c *fakeConnector) Platform() Platform { return Twitch }
 
 func (c *fakeConnector) Connect(_ context.Context, _ string, sink Sink) (Session, error) {
 	if c.failWith != nil {
@@ -117,18 +115,18 @@ func TestStartEmitsStartedAndStopEmitsEndedOnce(t *testing.T) {
 	if err := m.Start(context.Background(), "chan"); err != nil {
 		t.Fatal(err)
 	}
-	waitFor(t, func() bool { return rec.count("x_started") == 1 })
+	waitFor(t, func() bool { return rec.count(EventStarted) == 1 })
 
 	m.Stop()
 	m.Stop() // second stop is a no-op
-	waitFor(t, func() bool { return rec.count("x_ended") == 1 })
+	waitFor(t, func() bool { return rec.count(EventEnded) == 1 })
 
 	<-conn.sessions[0].closed
 	time.Sleep(20 * time.Millisecond)
-	if got := rec.count("x_ended"); got != 1 {
-		t.Fatalf("x_ended emitted %d times, want 1", got)
+	if got := rec.count(EventEnded); got != 1 {
+		t.Fatalf("platform_ended emitted %d times, want 1", got)
 	}
-	if got := rec.count("x_error"); got != 0 {
+	if got := rec.count(EventError); got != 0 {
 		t.Fatalf("unexpected error events: %d", got)
 	}
 }
@@ -141,7 +139,7 @@ func TestReplacedSessionIsSilent(t *testing.T) {
 	if err := m.Start(context.Background(), "a"); err != nil {
 		t.Fatal(err)
 	}
-	waitFor(t, func() bool { return rec.count("x_started") == 1 })
+	waitFor(t, func() bool { return rec.count(EventStarted) == 1 })
 	first := conn.sessions[0]
 	first.runErr = errors.New("late failure of the old session")
 
@@ -149,14 +147,14 @@ func TestReplacedSessionIsSilent(t *testing.T) {
 		t.Fatal(err)
 	}
 	<-first.closed // old session was shut down
-	waitFor(t, func() bool { return rec.count("x_started") == 2 })
+	waitFor(t, func() bool { return rec.count(EventStarted) == 2 })
 	time.Sleep(30 * time.Millisecond)
 
-	if got := rec.count("x_ended"); got != 0 {
-		t.Fatalf("replaced session emitted x_ended %d times", got)
+	if got := rec.count(EventEnded); got != 0 {
+		t.Fatalf("replaced session emitted platform_ended %d times", got)
 	}
-	if got := rec.count("x_error"); got != 0 {
-		t.Fatalf("replaced session emitted x_error %d times", got)
+	if got := rec.count(EventError); got != 0 {
+		t.Fatalf("replaced session emitted platform_error %d times", got)
 	}
 	m.Stop()
 }
@@ -169,7 +167,7 @@ func TestFailedConnectKeepsCurrentSession(t *testing.T) {
 	if err := m.Start(context.Background(), "a"); err != nil {
 		t.Fatal(err)
 	}
-	waitFor(t, func() bool { return rec.count("x_started") == 1 })
+	waitFor(t, func() bool { return rec.count(EventStarted) == 1 })
 
 	conn.failWith = errors.New("nope")
 	if err := m.Start(context.Background(), "b"); err == nil {
@@ -194,9 +192,9 @@ func TestRunErrorIsReportedThenEnded(t *testing.T) {
 	if err := m.Start(context.Background(), "a"); err != nil {
 		t.Fatal(err)
 	}
-	waitFor(t, func() bool { return rec.count("x_ended") == 1 })
-	if got := rec.count("x_error"); got != 1 {
-		t.Fatalf("x_error = %d, want 1", got)
+	waitFor(t, func() bool { return rec.count(EventEnded) == 1 })
+	if got := rec.count(EventError); got != 1 {
+		t.Fatalf("platform_error = %d, want 1", got)
 	}
 }
 
@@ -208,11 +206,11 @@ func TestErrorAfterIntentionalStopIsSuppressed(t *testing.T) {
 	if err := m.Start(context.Background(), "a"); err != nil {
 		t.Fatal(err)
 	}
-	waitFor(t, func() bool { return rec.count("x_started") == 1 })
+	waitFor(t, func() bool { return rec.count(EventStarted) == 1 })
 	m.Stop()
-	waitFor(t, func() bool { return rec.count("x_ended") == 1 })
-	if got := rec.count("x_error"); got != 0 {
-		t.Fatalf("x_error = %d after intentional stop, want 0", got)
+	waitFor(t, func() bool { return rec.count(EventEnded) == 1 })
+	if got := rec.count(EventError); got != 0 {
+		t.Fatalf("platform_error = %d after intentional stop, want 0", got)
 	}
 }
 
@@ -224,9 +222,9 @@ func TestPanicBecomesErrorEvent(t *testing.T) {
 	if err := m.Start(context.Background(), "a"); err != nil {
 		t.Fatal(err)
 	}
-	waitFor(t, func() bool { return rec.count("x_ended") == 1 })
-	if got := rec.count("x_error"); got != 1 {
-		t.Fatalf("x_error = %d, want 1", got)
+	waitFor(t, func() bool { return rec.count(EventEnded) == 1 })
+	if got := rec.count(EventError); got != 1 {
+		t.Fatalf("platform_error = %d, want 1", got)
 	}
 }
 
@@ -238,10 +236,51 @@ func TestSinkDropsMessagesAfterStop(t *testing.T) {
 	if err := m.Start(context.Background(), "a"); err != nil {
 		t.Fatal(err)
 	}
-	waitFor(t, func() bool { return rec.count("x_started") == 1 })
+	waitFor(t, func() bool { return rec.count(EventStarted) == 1 })
 	m.Stop()
 	conn.sessions[0].sink.Message(Message{ID: "late"})
 	if got := rec.count(EventMessage); got != 0 {
 		t.Fatalf("message delivered after stop: %d", got)
+	}
+}
+
+func TestWarningKeepsSessionAlive(t *testing.T) {
+	rec := &recorder{}
+	conn := &fakeConnector{}
+	m := NewManager(conn, rec)
+
+	if err := m.Start(context.Background(), "a"); err != nil {
+		t.Fatal(err)
+	}
+	waitFor(t, func() bool { return rec.count(EventStarted) == 1 })
+
+	conn.sessions[0].sink.Warning(errors.New("transient fetch failure"))
+	waitFor(t, func() bool { return rec.count(EventWarning) == 1 })
+	if rec.count(EventError) != 0 || rec.count(EventEnded) != 0 {
+		t.Fatalf("a warning must not end the session: %v", rec.names())
+	}
+	m.Stop()
+}
+
+func TestEventPayloadsCarryThePlatform(t *testing.T) {
+	rec := &recorder{}
+	m := NewManager(&fakeConnector{}, rec)
+
+	if err := m.Start(context.Background(), "chan"); err != nil {
+		t.Fatal(err)
+	}
+	waitFor(t, func() bool { return rec.count(EventStarted) == 1 })
+	m.Stop()
+	waitFor(t, func() bool { return rec.count(EventEnded) == 1 })
+
+	rec.mu.Lock()
+	defer rec.mu.Unlock()
+	for _, e := range rec.events {
+		switch p := e.payload.(type) {
+		case StatusEvent:
+			if p.Platform != Twitch {
+				t.Errorf("%s payload platform = %q", e.event, p.Platform)
+			}
+		}
 	}
 }

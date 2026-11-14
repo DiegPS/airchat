@@ -1,43 +1,22 @@
 import { SetupScreen } from '../components/SetupScreen';
 import { TitleBar } from '../components/TitleBar';
+import { PlatformId } from '../platforms';
+import { PlatformView } from '../hooks/usePlatforms';
 
 interface HomePageProps {
-    channelId: string;
-    onChannelIdChange: (value: string) => void;
-    onClearYoutube: () => void;
-    twitchChannel: string;
-    onTwitchChannelChange: (value: string) => void;
-    onClearTwitch: () => void;
-    kickChannel: string;
-    onKickChannelChange: (value: string) => void;
-    onClearKick: () => void;
+    platforms: PlatformView[];
+    notice: string;
+    onInputChange: (id: PlatformId, value: string) => void;
+    onClear: (id: PlatformId) => void;
     onStart: () => void;
     onPreview: () => void;
-    error: string | null;
-    twitchError: string;
-    kickError: string;
 }
 
-export function HomePage({ channelId, onChannelIdChange, onClearYoutube, twitchChannel, onTwitchChannelChange, onClearTwitch, kickChannel, onKickChannelChange, onClearKick, onStart, onPreview, error, twitchError, kickError }: HomePageProps) {
+export function HomePage(props: HomePageProps) {
     return (
         <>
             <TitleBar show={true} />
-            <SetupScreen
-                channelId={channelId}
-                onChannelIdChange={onChannelIdChange}
-                onClearYoutube={onClearYoutube}
-                twitchChannel={twitchChannel}
-                onTwitchChannelChange={onTwitchChannelChange}
-                onClearTwitch={onClearTwitch}
-                kickChannel={kickChannel}
-                onKickChannelChange={onKickChannelChange}
-                onClearKick={onClearKick}
-                onStart={onStart}
-                onPreview={onPreview}
-                error={error}
-                twitchError={twitchError}
-                kickError={kickError}
-            />
+            <SetupScreen {...props} />
         </>
     );
 }

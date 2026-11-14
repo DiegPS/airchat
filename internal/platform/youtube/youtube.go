@@ -15,10 +15,8 @@ const pollIntervalMs = 1000
 // Connector opens YouTube live-chat sessions.
 type Connector struct{}
 
-// Events implements chat.Connector.
-func (Connector) Events() chat.Events {
-	return chat.Events{Started: "chat_started", Ended: "chat_ended", Error: "chat_error"}
-}
+// Platform implements chat.Connector.
+func (Connector) Platform() chat.Platform { return chat.YouTube }
 
 // Connect implements chat.Connector.
 func (Connector) Connect(_ context.Context, input string, sink chat.Sink) (chat.Session, error) {
@@ -79,7 +77,7 @@ func (s *session) Run(ctx context.Context) error {
 				errs = nil
 				continue
 			}
-			s.sink.Error(err)
+			s.sink.Warning(err)
 		}
 	}
 	return nil

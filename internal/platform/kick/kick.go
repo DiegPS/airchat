@@ -14,10 +14,8 @@ import (
 // Connector opens Kick chat sessions.
 type Connector struct{}
 
-// Events implements chat.Connector.
-func (Connector) Events() chat.Events {
-	return chat.Events{Started: "kick_started", Ended: "kick_ended", Error: "kick_error"}
-}
+// Platform implements chat.Connector.
+func (Connector) Platform() chat.Platform { return chat.Kick }
 
 // Connect implements chat.Connector. The client is only handed to the
 // Manager once it has joined the channel, so a failed join never replaces a
@@ -70,7 +68,7 @@ func (s *session) Run(ctx context.Context) error {
 				errs = nil
 				continue
 			}
-			s.sink.Error(err)
+			s.sink.Warning(err)
 		}
 	}
 }

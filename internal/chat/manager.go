@@ -18,11 +18,25 @@ type EmitterFunc func(event string, payload any)
 // Emit implements Emitter.
 func (f EmitterFunc) Emit(event string, payload any) { f(event, payload) }
 
-// Events names the lifecycle events a platform emits.
-type Events struct {
-	Started string
-	Ended   string
-	Error   string
+// Lifecycle events. Every platform emits the same four events; the payload
+// says which platform they are about.
+const (
+	EventStarted = "platform_started"
+	EventEnded   = "platform_ended"
+	EventError   = "platform_error"   // fatal: the session is unusable
+	EventWarning = "platform_warning" // recoverable: the session keeps running
+)
+
+// StatusEvent is the payload of EventStarted and EventEnded.
+type StatusEvent struct {
+	Platform Platform `json:"platform"`
+	Detail   string   `json:"detail,omitempty"` // e.g. YouTube live ID, channel name
+}
+
+// ProblemEvent is the payload of EventError and EventWarning.
+type ProblemEvent struct {
+	Platform Platform `json:"platform"`
+	Message  string   `json:"message"`
 }
 
 // Sink is what a Session uses to report what happens on its connection.
@@ -30,8 +44,11 @@ type Events struct {
 // has to check whether it is still current.
 type Sink interface {
 	Message(Message)
-	Started(payload any)
-	Error(err error)
+	// Started reports that the connection is live. detail is shown next to
+	// the platform name (live ID, channel).
+	Started(detail string)
+	// Warning reports a recoverable problem (the session keeps running).
+	Warning(err error)
 }
 
 // Session is one live connection to a platform.
@@ -47,7 +64,7 @@ type Session interface {
 
 // Connector opens sessions for one platform.
 type Connector interface {
-	Events() Events
+	Platform() Platform
 	// Connect validates input and opens a connection. ctx is cancelled when
 	// the session is stopped or replaced.
 	Connect(ctx context.Context, input string, sink Sink) (Session, error)
@@ -88,9 +105,8 @@ func (r *run) shutdown() {
 func (m *Manager) Start(parent context.Context, input string) error {
 	ctx, cancel := context.WithCancel(parent)
 	r := &run{cancel: cancel, ctx: ctx}
-	events := m.connector.Events()
 
-	session, err := m.connector.Connect(ctx, input, &sink{m: m, r: r, events: events})
+	session, err := m.connector.Connect(ctx, input, &sink{m: m, r: r})
 	if err != nil {
 		cancel()
 		return err
@@ -108,7 +124,7 @@ func (m *Manager) Start(parent context.Context, input string) error {
 		old.shutdown()
 	}
 
-	go m.supervise(r, input, events)
+	go m.supervise(r, input)
 	return nil
 }
 
@@ -126,11 +142,11 @@ func (m *Manager) Stop() {
 
 // supervise runs the session and reports how it ended. A panic is turned
 // into an error event instead of taking the whole app down.
-func (m *Manager) supervise(r *run, input string, events Events) {
-	s := &sink{m: m, r: r, events: events}
+func (m *Manager) supervise(r *run, input string) {
+	s := &sink{m: m, r: r}
 	defer func() {
 		if rec := recover(); rec != nil {
-			s.Error(fmt.Errorf("panic: %v", rec))
+			s.fail(fmt.Errorf("panic: %v", rec))
 		}
 		m.mu.Lock()
 		if m.current == r {
@@ -139,19 +155,18 @@ func (m *Manager) supervise(r *run, input string, events Events) {
 		m.mu.Unlock()
 		r.cancel()
 		if !r.superseded.Load() {
-			m.emit.Emit(events.Ended, input)
+			m.emit.Emit(EventEnded, StatusEvent{Platform: m.connector.Platform(), Detail: input})
 		}
 	}()
 
 	if err := r.session.Run(r.ctx); err != nil {
-		s.Error(err)
+		s.fail(err)
 	}
 }
 
 type sink struct {
-	m      *Manager
-	r      *run
-	events Events
+	m *Manager
+	r *run
 }
 
 // live reports whether the session may still talk to the frontend.
@@ -165,14 +180,23 @@ func (s *sink) Message(msg Message) {
 	}
 }
 
-func (s *sink) Started(payload any) {
+func (s *sink) Started(detail string) {
 	if s.live() {
-		s.m.emit.Emit(s.events.Started, payload)
+		s.m.emit.Emit(EventStarted, StatusEvent{Platform: s.m.connector.Platform(), Detail: detail})
 	}
 }
 
-func (s *sink) Error(err error) {
+func (s *sink) Warning(err error) {
+	s.problem(EventWarning, err)
+}
+
+// fail reports a fatal error. Only the Manager calls it.
+func (s *sink) fail(err error) {
+	s.problem(EventError, err)
+}
+
+func (s *sink) problem(event string, err error) {
 	if err != nil && s.live() {
-		s.m.emit.Emit(s.events.Error, err.Error())
+		s.m.emit.Emit(event, ProblemEvent{Platform: s.m.connector.Platform(), Message: err.Error()})
 	}
 }

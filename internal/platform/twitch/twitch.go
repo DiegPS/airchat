@@ -17,10 +17,8 @@ type Connector struct {
 	emotes emoteStore
 }
 
-// Events implements chat.Connector.
-func (*Connector) Events() chat.Events {
-	return chat.Events{Started: "twitch_started", Ended: "twitch_ended", Error: "twitch_error"}
-}
+// Platform implements chat.Connector.
+func (*Connector) Platform() chat.Platform { return chat.Twitch }
 
 // Connect implements chat.Connector.
 func (c *Connector) Connect(ctx context.Context, input string, sink chat.Sink) (chat.Session, error) {

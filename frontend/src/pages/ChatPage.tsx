@@ -2,76 +2,52 @@ import { Sidebar } from '../components/Sidebar';
 import { PreviewArea } from '../components/PreviewArea';
 import { StreamHUD } from '../components/StreamHUD';
 import { TitleBar } from '../components/TitleBar';
+import { PlatformView } from '../hooks/usePlatforms';
+import { OBSStatus } from '../hooks/useOBSConnection';
 import { ChatItem } from '../types';
 
 interface ChatPageProps {
     showUI: boolean;
     showSidebar: boolean;
     onToggleSidebar: () => void;
-    channelId: string;
-    liveId: string;
+    platforms: PlatformView[];
     isPreviewMode: boolean;
-    isStarted: boolean;
-    isTwitchStarted: boolean;
-    isKickStarted: boolean;
-    twitchChannel: string;
-    kickChannel: string;
-    error: string;
-    twitchError: string;
-    kickError: string;
     messages: ChatItem[];
     scrollRef: React.RefObject<HTMLDivElement>;
     onStop: () => void;
-    obsStatus: any;
+    obsStatus: OBSStatus | null;
 }
 
 export function ChatPage({
     showUI,
     showSidebar,
     onToggleSidebar,
-    channelId,
-    liveId,
+    platforms,
     isPreviewMode,
-    isStarted,
-    isTwitchStarted,
-    isKickStarted,
-    twitchChannel,
-    kickChannel,
-    error,
-    twitchError,
-    kickError,
     messages,
     scrollRef,
     onStop,
-    obsStatus
+    obsStatus,
 }: ChatPageProps) {
     const sidebarVisible = showUI && showSidebar;
     return (
         <>
-            <TitleBar show={showUI} onToggleSidebar={onToggleSidebar} sidebarVisible={showSidebar} isStarted={isStarted} isTwitchStarted={isTwitchStarted} isKickStarted={isKickStarted} isPreviewMode={isPreviewMode} />
+            <TitleBar
+                show={showUI}
+                onToggleSidebar={onToggleSidebar}
+                sidebarVisible={showSidebar}
+                platforms={platforms}
+                isPreviewMode={isPreviewMode}
+            />
             <div className={`dashboard-layout ${!sidebarVisible ? 'sidebar-hidden' : ''}`}>
                 <Sidebar
                     showSidebar={sidebarVisible}
-                    channelId={channelId}
-                    liveId={liveId}
+                    platforms={platforms}
                     isPreviewMode={isPreviewMode}
-                    isStarted={isStarted}
-                    isTwitchStarted={isTwitchStarted}
-                    isKickStarted={isKickStarted}
-                    twitchChannel={twitchChannel}
-                    kickChannel={kickChannel}
-                    error={error}
-                    twitchError={twitchError}
-                    kickError={kickError}
                     onStop={onStop}
                 />
-                <PreviewArea
-                    messages={messages}
-                    scrollRef={scrollRef}
-                />
-                {obsStatus && obsStatus.connected && (
-                    <StreamHUD status={obsStatus} />
-                )}
+                <PreviewArea messages={messages} scrollRef={scrollRef} />
+                {obsStatus?.connected && <StreamHUD status={obsStatus} />}
             </div>
         </>
     );

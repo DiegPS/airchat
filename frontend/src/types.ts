@@ -1,3 +1,5 @@
+import { PlatformId } from './platforms';
+
 export interface ImageItem {
   URL: string;
   Alt: string;
@@ -33,7 +35,7 @@ export interface Author {
 
 export interface ChatItem {
   ID: string;
-  Platform?: 'youtube' | 'twitch' | 'kick';
+  Platform?: PlatformId;
   Author: Author;
   Message: MessageItem[] | null;
   SuperChat?: SuperChat;

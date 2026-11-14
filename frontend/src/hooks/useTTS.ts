@@ -1,8 +1,8 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { EventsOn } from "../../wailsjs/runtime";
 import { useSettings } from '../context/SettingsContext';
-import { ChatItem } from '../types';
-import { containsBlockedWord, isUserBlocked, normalizeUsernameForFilter, splitCommaList } from '../utils/filters';
+import { sanitizeIncoming } from '../utils/messages';
+import { speechTextFor } from '../utils/tts';
 import { useSupertonic } from './supertonic2/useSupertonic';
 
 export const useTTS = (isStarted: boolean) => {
@@ -167,26 +167,6 @@ export const useTTS = (isStarted: boolean) => {
         }
     }, [supertonicState.isReady, isSupertonicProvider, processQueue]);
 
-    const cleanText = (text: string) => {
-        // Remove URLs
-        return text.replace(/(?:https?|ftp):\/\/[\n\S]+/g, 'link');
-    };
-
-    const cleanUsername = (username: string) => {
-        // Remove @ at the beginning
-        let cleaned = username.startsWith('@') ? username.slice(1) : username;
-
-        // Remove all numbers
-        const withoutNumbers = cleaned.replace(/\d+/g, '');
-
-        // If the result is empty or only whitespace, the username was all numbers
-        if (!withoutNumbers.trim()) {
-            return 'Only Numbers';
-        }
-
-        return withoutNumbers.trim();
-    };
-
     const stopTTS = useCallback(() => {
         if (window.speechSynthesis) {
             window.speechSynthesis.cancel();
@@ -214,101 +194,58 @@ export const useTTS = (isStarted: boolean) => {
         }
     }, [isStarted, settings.ttsEnabled, stopTTS]);
 
+    // The listener subscribes once and reads the latest values from a ref, so
+    // moving a slider in the settings never re-registers it.
+    const latest = useRef({ settings, isStarted, supertonicReady: supertonicState.isReady, isSupertonicProvider, addToQueue, reportTtsStatus });
+    latest.current = { settings, isStarted, supertonicReady: supertonicState.isReady, isSupertonicProvider, addToQueue, reportTtsStatus };
+
     useEffect(() => {
-        const handleMessage = (message: ChatItem) => {
-            if (!isStarted) return;
-            if (!settings.ttsEnabled) return;
-            if (!message?.Author?.Name || !Array.isArray(message.Message)) return;
+        const handleMessage = (raw: unknown) => {
+            const { settings, isStarted, supertonicReady, isSupertonicProvider, addToQueue, reportTtsStatus } = latest.current;
+            if (!isStarted || !settings.ttsEnabled) return;
+
+            const message = sanitizeIncoming(raw);
+            if (!message) return;
 
             if (message.ID) {
                 const messageKey = `${message.Platform || 'chat'}:${message.ID}`;
                 if (processedMessagesRef.current.has(messageKey)) return;
                 processedMessagesRef.current.add(messageKey);
-                
+
                 if (processedMessagesRef.current.size > 200) {
                     const arr = Array.from(processedMessagesRef.current);
                     processedMessagesRef.current = new Set(arr.slice(arr.length - 100));
                 }
             }
 
-            if (isUserBlocked(message.Author.Name, settings.blockedUsers)) return;
-            if (containsBlockedWord(message.Message, settings.blockedWords)) return;
-
-            // Check if members-only mode is active
-            if (settings.ttsMembersOnly) {
-                const isMember = message.IsMembership || !!message.Author.Badge || !!message.SuperChat;
-                let isCustomAllowed = false;
-
-                if (settings.ttsAllowCustomUsers && settings.ttsCustomUsersList) {
-                    const allowedUsers = splitCommaList(settings.ttsCustomUsersList).map(normalizeUsernameForFilter);
-                    const currentAuthor = normalizeUsernameForFilter(message.Author.Name);
-                    const cleanAuthor = normalizeUsernameForFilter(cleanUsername(message.Author.Name));
-
-                    if (allowedUsers.includes(currentAuthor) || allowedUsers.includes(cleanAuthor)) {
-                        isCustomAllowed = true;
-                    }
-                }
-
-                if (!isMember && !isCustomAllowed) return;
-            }
+            const text = speechTextFor(message, settings);
+            if (text === null) return;
 
             // Ignore messages that arrived before TTS was enabled
             if (ttsStartTimeRef.current === null) {
                 ttsStartTimeRef.current = Date.now();
                 return;
             }
-
-            // Parse message timestamp and ignore old messages
-            const messageTime = new Date(message.Timestamp).getTime();
-            if (messageTime < ttsStartTimeRef.current) {
-                return;
-            }
+            if (new Date(message.Timestamp).getTime() < ttsStartTimeRef.current) return;
 
             // Check provider-specific readiness
             if (settings.ttsProvider === 'browser' && !window.speechSynthesis) {
                 reportTtsStatus('Browser TTS is not supported in this webview.');
                 return;
             }
-            if (isSupertonicProvider && !supertonicState.isReady) {
+            if (isSupertonicProvider && !supertonicReady) {
                 reportTtsStatus('TTS skipped: Supertonic is still loading.');
                 return;
             }
 
-            // Basic heuristic to skip system messages or commands if any
-            if (!message.Message || message.Message.length === 0) return;
-
-            const author = cleanUsername(message.Author.Name);
-            let content = message.Message.map(m => m.Text).join(' ');
-
-            // Check for command mode
-            if (settings.ttsCommandMode && settings.ttsCommandPrefix) {
-                const prefix = settings.ttsCommandPrefix.trim().toLowerCase();
-                if (!content.toLowerCase().startsWith(prefix)) return;
-                // Remove the command prefix from the message
-                content = content.substring(settings.ttsCommandPrefix.trim().length).trim();
-                if (!content) return;
-            }
-
-            const cleanContent = cleanText(content);
-            if (!cleanContent.trim()) return;
-
-            // Simple template with customizable separator
-            const separator = settings.ttsSeparatorText || 'says:';
-            const textToSpeak = `${author} ${separator} ${cleanContent}`;
-            addToQueue(textToSpeak);
+            addToQueue(text);
         };
-
-        let cancelSubscription: (() => void) | undefined;
 
         try {
-            cancelSubscription = EventsOn("chat_message", handleMessage);
+            return EventsOn('chat_message', handleMessage);
         } catch (err) {
-            console.error("Failed to subscribe to chat events for TTS", err);
-            reportTtsStatus('TTS failed to subscribe to chat events.');
+            console.error('Failed to subscribe to chat events for TTS', err);
+            latest.current.reportTtsStatus('TTS failed to subscribe to chat events.');
         }
-
-        return () => {
-            if (cancelSubscription) cancelSubscription();
-        };
-    }, [settings.ttsEnabled, settings.blockedUsers, settings.blockedWords, settings.ttsMembersOnly, settings.ttsAllowCustomUsers, settings.ttsCustomUsersList, settings.ttsProvider, settings.ttsCommandMode, settings.ttsCommandPrefix, settings.ttsSeparatorText, settings.ttsRandomVoice, addToQueue, isStarted, supertonicState.isReady, reportTtsStatus, isSupertonicProvider]);
+    }, []);
 };

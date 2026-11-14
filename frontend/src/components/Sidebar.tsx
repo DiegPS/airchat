@@ -2,38 +2,16 @@ import React from 'react';
 import { useSettings } from '../context/SettingsContext';
 import { SETTINGS_SCHEMA } from '../config/settingsSchema';
 import { SettingControl } from './SettingControl';
+import { PlatformView } from '../hooks/usePlatforms';
 
 interface SidebarProps {
     showSidebar: boolean;
-    channelId: string;
-    liveId: string;
+    platforms: PlatformView[];
     isPreviewMode: boolean;
-    isStarted: boolean;
-    isTwitchStarted: boolean;
-    isKickStarted: boolean;
-    twitchChannel: string;
-    kickChannel: string;
-    error: string;
-    twitchError: string;
-    kickError: string;
     onStop: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({
-    showSidebar,
-    channelId,
-    liveId,
-    isPreviewMode,
-    isStarted,
-    isTwitchStarted,
-    isKickStarted,
-    twitchChannel,
-    kickChannel,
-    error,
-    twitchError,
-    kickError,
-    onStop
-}) => {
+export const Sidebar: React.FC<SidebarProps> = ({ showSidebar, platforms, isPreviewMode, onStop }) => {
     const { settings, updateSettings } = useSettings();
 
     return (
@@ -50,33 +28,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     </div>
                 ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        {isStarted && (
-                            <div className="live-badge">
-                                <span className="pulse"></span>
-                                YouTube · {liveId || channelId}
+                        {platforms.filter(({ state }) => state.active).map(({ def, input, state }) => (
+                            <div className="live-badge" key={def.id}>
+                                <span className={def.pulseClass}></span>
+                                {def.label} · {state.detail || input}
                             </div>
-                        )}
-                        {isTwitchStarted && (
-                            <div className="live-badge">
-                                <span className="pulse-twitch"></span>
-                                Twitch · {twitchChannel}
-                            </div>
-                        )}
-                        {isKickStarted && (
-                            <div className="live-badge">
-                                <span className="pulse-kick"></span>
-                                Kick · {kickChannel}
-                            </div>
-                        )}
-                        {error && (
-                            <div className="platform-error">YouTube: {error}</div>
-                        )}
-                        {twitchError && (
-                            <div className="platform-error">Twitch: {twitchError}</div>
-                        )}
-                        {kickError && (
-                            <div className="platform-error">Kick: {kickError}</div>
-                        )}
+                        ))}
+                        {platforms.map(({ def, state }) => (
+                            <React.Fragment key={def.id}>
+                                {state.error && <div className="platform-error">{def.label}: {state.error}</div>}
+                                {state.warning && <div className="platform-warning">{def.label}: {state.warning}</div>}
+                            </React.Fragment>
+                        ))}
                     </div>
                 )}
             </div>

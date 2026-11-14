@@ -1,18 +1,17 @@
 import { WindowMinimise, WindowToggleMaximise, Quit, WindowSetAlwaysOnTop } from '../../wailsjs/runtime/runtime';
 import './TitleBar.css';
 import { useState } from 'react';
+import { PlatformView } from '../hooks/usePlatforms';
 
 interface TitleBarProps {
     show?: boolean;
     onToggleSidebar?: () => void;
     sidebarVisible?: boolean;
-    isStarted?: boolean;
-    isTwitchStarted?: boolean;
-    isKickStarted?: boolean;
+    platforms?: PlatformView[];
     isPreviewMode?: boolean;
 }
 
-export function TitleBar({ show = true, onToggleSidebar, sidebarVisible = true, isStarted = false, isTwitchStarted = false, isKickStarted = false, isPreviewMode = false }: TitleBarProps) {
+export function TitleBar({ show = true, onToggleSidebar, sidebarVisible = true, platforms = [], isPreviewMode = false }: TitleBarProps) {
     const [isPinned, setIsPinned] = useState(false);
 
     const togglePin = () => {
@@ -29,9 +28,9 @@ export function TitleBar({ show = true, onToggleSidebar, sidebarVisible = true, 
                     <span className="dot-preview"></span>
                 ) : (
                     <>
-                        {isStarted && <span className="pulse"></span>}
-                        {isTwitchStarted && <span className="pulse-twitch"></span>}
-                        {isKickStarted && <span className="pulse-kick"></span>}
+                        {platforms.filter(({ state }) => state.active).map(({ def }) => (
+                            <span key={def.id} className={def.pulseClass}></span>
+                        ))}
                     </>
                 )}
             </div>

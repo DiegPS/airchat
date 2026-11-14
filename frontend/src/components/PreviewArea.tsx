@@ -1,24 +1,8 @@
 import React from 'react';
 import { useSettings } from '../context/SettingsContext';
 import { ChatItem } from '../types';
-
-const YouTubeIcon = () => (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="#FF0000" style={{ flexShrink: 0 }}>
-        <path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8A3 3 0 0 0 2.6 20c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z" />
-    </svg>
-);
-
-const TwitchIcon = () => (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="#9146FF" style={{ flexShrink: 0 }}>
-        <path d="M11.6 6H13v4.5h-1.4V6zm3.8 0h1.4v4.5h-1.4V6zM4 0L.5 3.5V20.5H6V24l3.5-3.5H12L23.5 9V0H4zm18 8.5L18.5 12H16l-3 3v-3H9.5v-8H22v4.5z" />
-    </svg>
-);
-
-const KickIcon = () => (
-    <svg width="12" height="12" viewBox="0 0 512 512" fill="#53FC18" style={{ flexShrink: 0 }}>
-        <path d="M37 .036h164.448v113.621h54.71v-56.82h54.731V.036h164.448v170.777h-54.73v56.82h-54.711v56.8h54.71v56.82h54.73V512.03H310.89v-56.82h-54.73v-56.8h-54.711v113.62H37V.036z" />
-    </svg>
-);
+import { PlatformId } from '../platforms';
+import { PlatformIcon } from './PlatformIcon';
 
 // Generates a deterministic hue from a username so each user gets a consistent color
 const nameToHue = (name: string) => {
@@ -30,15 +14,9 @@ const nameToHue = (name: string) => {
 interface AvatarProps {
     url: string;
     name: string;
-    platform?: 'youtube' | 'twitch' | 'kick';
+    platform?: PlatformId;
     showPlatformBadge: boolean;
 }
-
-const PlatformIcon: React.FC<{ platform?: string }> = ({ platform }) => {
-    if (platform === 'twitch') return <TwitchIcon />;
-    if (platform === 'kick') return <KickIcon />;
-    return <YouTubeIcon />;
-};
 
 const Avatar: React.FC<AvatarProps> = ({ url, name, platform, showPlatformBadge }) => {
     const hue = nameToHue(name);
