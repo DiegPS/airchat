@@ -1,7 +1,7 @@
 git.sr.ht/~jackmordaunt/go-toast/v2 v2.0.3 h1:N3IGoHHp9pb6mj1cbXbuaSXV/UMKwmbKLf53nQmtqMA=
 git.sr.ht/~jackmordaunt/go-toast/v2 v2.0.3/go.mod h1:QtOLZGz8olr4qH2vWK0QH0w0O4T9fEIjMuWpKUsH7nc=
-github.com/DiegPS/kick-chat v0.0.0-20260505183815-b2a2ade3aaa1 h1:LP23wUSIzwE2QHR/m/k9K7RJtwq2R9fP9vxQbpnYxFU=
-github.com/DiegPS/kick-chat v0.0.0-20260505183815-b2a2ade3aaa1/go.mod h1:cEY37mUZTNm+ByiBbN+cjJPvok2A1Ho5Vyy69uVHhMA=
+github.com/DiegPS/kick-chat v0.0.0-20261114055911-5d037750962d h1:6ry086/5hBSM6ftmLoScfd/nVMWQAVEIf3xeFFb8Xns=
+github.com/DiegPS/kick-chat v0.0.0-20261114055911-5d037750962d/go.mod h1:Fq8ZeDNsRDjlb3VPR9ArhnTciLX0+XvalKupiQwA/c0=
 github.com/DiegPS/youtube-chat v0.0.0-20260505181917-95bac9e584ce h1:n6dS2arkdPHyq9W6H03rWgasxAQRAnWP3weBcvm8MuU=
 github.com/DiegPS/youtube-chat v0.0.0-20260505181917-95bac9e584ce/go.mod h1:HGsRbmcwffwtPDQsDsx5TKIR2ARGuGCddTO2HJPU3nM=
 github.com/andreykaipov/goobs v1.11.1 h1:73qAE5wK7Dx2G7oT6z2s0rXcAZUy7cDS3VFeaRaSI/I=

@@ -15,7 +15,7 @@ Keep this document synchronized with the implementation. Avoid line counts: the 
 | `github.com/wailsapp/wails/v2` | Desktop runtime, bindings, events, window APIs |
 | `github.com/DiegPS/youtube-chat` | YouTube live-chat observer (HTTP polling) |
 | `github.com/gempir/go-twitch-irc/v3` | Anonymous Twitch IRC client |
-| `github.com/DiegPS/kick-chat` | Kick chat client (Pusher WebSocket) and message parts |
+| `github.com/DiegPS/kick-chat` | Kick chat client (Centrifugo realtime service; auto-reconnect) and message parts |
 | `github.com/andreykaipov/goobs` | OBS WebSocket v5 client |
 | `github.com/lxn/win` | Windows click-through extended styles |
 
