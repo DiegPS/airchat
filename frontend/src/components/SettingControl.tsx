@@ -202,9 +202,9 @@ export const SettingControl: React.FC<SettingControlProps> = ({ config, value, o
             };
 
             loadVoices();
-            if (window.speechSynthesis.onvoiceschanged !== undefined) {
-                window.speechSynthesis.onvoiceschanged = loadVoices;
-            }
+            const synth = window.speechSynthesis;
+            synth.addEventListener('voiceschanged', loadVoices);
+            return () => synth.removeEventListener('voiceschanged', loadVoices);
         }, []);
 
         return (

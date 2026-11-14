@@ -23,6 +23,7 @@ export function useOBSConnection() {
     const { settings, updateSettings } = useSettings();
     const [status, setStatus] = useState<OBSStatus | null>(null);
     const failedRef = useRef(false);
+    const requestedRef = useRef(false); // a connection was requested before
 
     useEffect(() => EventsOn('obs_status', (next: OBSStatus) => setStatus(next)), []);
 
@@ -30,6 +31,7 @@ export function useOBSConnection() {
     useEffect(() => {
         if (settings.obsEnabled && settings.obsConnected) {
             failedRef.current = false;
+            requestedRef.current = true;
             updateSettings({ obsStatusMessage: 'Connecting...' });
             ConnectOBS(settings.obsHost || 'localhost:4455', settings.obsPassword).catch((err) => {
                 failedRef.current = true;
@@ -40,6 +42,9 @@ export function useOBSConnection() {
         }
 
         setStatus(null);
+        // Nothing to tear down if OBS was never requested (e.g. first render).
+        if (!requestedRef.current) return;
+        requestedRef.current = false;
         DisconnectOBS()
             .then(() => {
                 if (!failedRef.current) updateSettings({ obsStatusMessage: 'Disconnected' });
